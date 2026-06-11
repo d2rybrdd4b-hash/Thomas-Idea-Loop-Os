@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(CLAUDE.md)",
+      "Read(README.md)",
+      "Read(docs/**)",
+      "Read(outputs/**)",
+      "Read(.claude/**)",
+      "Write(docs/**)",
+      "Write(outputs/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(npm run deploy*)",
+      "Bash(npx*deploy*)",
+      "Bash(*publish*)",
+      "Read(.env*)",
+      "Read(*secret*)",
+      "Read(*credentials*)"
+    ]
+  }
+}
