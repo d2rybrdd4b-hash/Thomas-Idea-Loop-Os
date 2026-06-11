@@ -1,0 +1,22 @@
+TischID;Zone;Kapazitaet;Fensterlage;Ruhig;FamilieGeeignet;Steckdose;Barrierefrei;Beschreibung;Aktiv;X;Y
+A01;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd — romantisch;Ja;8;12
+A02;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;26
+A03;A;4;Ja;Nein;Nein;Nein;Ja;Fenster Süd — barrierefrei;Ja;8;42
+A04;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Nord;Ja;8;58
+B01;B;4;Nein;Nein;Nein;Ja;Nein;Mitte West;Ja;30;12
+B02;B;2;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;28
+B03;B;4;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;44
+B04;B;6;Nein;Nein;Nein;Nein;Nein;Mitte — Rundes Oval;Ja;30;60
+B05;B;2;Nein;Nein;Nein;Ja;Nein;Mitte Ost;Ja;48;12
+B06;B;4;Nein;Nein;Nein;Nein;Nein;Mitte Ost;Ja;48;30
+C01;C;4;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;12
+C02;C;2;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;28
+C03;C;4;Nein;Nein;Nein;Nein;Nein;Hinten;Ja;66;44
+C04;C;6;Nein;Nein;Nein;Nein;Nein;Hinten — groß;Ja;66;60
+C05;C;2;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;12
+C06;C;4;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;30
+F01;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;82;58
+F02;F;6;Nein;Nein;Ja;Nein;Nein;Familienecke — groß;Ja;82;74
+F03;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;68;74
+Q01;Q;2;Nein;Ja;Nein;Nein;Nein;Ruhige Nische;Ja;48;74
+Q02;Q;4;Nein;Ja;Nein;Ja;Nein;Ruhige Nische — barrierefrei;Ja;48;88
