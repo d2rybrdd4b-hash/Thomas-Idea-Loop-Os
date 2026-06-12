@@ -193,6 +193,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
     </label>
 
+    <button class="btn btn-ghost" id="btn-demo" style="border-color:rgba(200,168,75,.4);color:var(--gold)">
+      <span>📋</span> Demo-Daten laden
+    </button>
+
     <div class="sep"></div>
 
     <button class="btn btn-gold" id="btn-run" disabled>
@@ -279,6 +283,42 @@ const ANLASS_P={Hochzeitstag:15,Honeymoon:15,Geburtstag:12,Jubilaeum:12,Abschlus
 const KAT_R={Presidential:1,Suite:.9,Deluxe:.75,Superior:.6,Standard:.4};
 const ZC={A:'#C8A84B',B:'#3BB87A',C:'#5A7A96',F:'#3AB4E0',Q:'#9B72C0'};
 const SVG_W=820,SVG_H=530,M=38,FW=SVG_W-2*M,FH=SVG_H-2*M;
+
+/* ─── Demo data ────────────────────────────────────────────────────────────── */
+const DEMO_G=`GastID;Nachname;Vorname;Zimmernummer;Zimmerkategorie;Tagesrate;CheckIn;CheckOut;VerbleibendeNaechte;GastTyp;AnzahlPersonen;KinderUnter12;BesondererAnlass;Praeferenzen;GruppenID;VIP;WiederholungsBesuche;Bemerkungen;Mobilitaet
+G001;Hartmann;Michael;101;Presidential;850;2026-06-09;2026-06-14;3;Honeymoon;2;0;Hochzeitstag;Fenster;;Ja;3;;
+G002;Müller;Hans;205;Suite;520;2026-06-10;2026-06-15;4;Stammgast;1;0;;Ruhig;;Nein;7;;
+G003;Weber;Familie;312;Deluxe;380;2026-06-08;2026-06-13;2;Familie;4;2;;;Familie;;Nein;1;;
+G004;Bauer;Klaus;418;Superior;280;2026-06-11;2026-06-12;1;VIP;2;0;;Fenster;;Ja;0;;
+G005;Fischer;Anna;220;Suite;490;2026-06-09;2026-06-16;5;Einzelgast;1;0;Geburtstag;Ruhig;Steckdose;Nein;2;;
+G006;Wagner;Peter;115;Standard;180;2026-06-11;2026-06-13;2;Einzelgast;2;0;;;;;Nein;0;;
+G007;Schneider;Familie;330;Deluxe;360;2026-06-10;2026-06-17;6;Familie;5;3;;;;;Nein;0;;
+G008;Koch;Robert;410;Presidential;780;2026-06-11;2026-06-15;4;Stammgast;2;0;;Fenster;;Nein;12;;
+G009;Becker;Sophie;108;Suite;510;2026-06-09;2026-06-14;3;Honeymoon;2;0;Honeymoon;Fenster;;Nein;0;;
+G010;Zimmermann;Franz;216;Superior;240;2026-06-11;2026-06-12;1;Einzelgast;1;0;;;;;Nein;0;;Rollstuhl`;
+
+const DEMO_T=`TischID;Zone;Kapazitaet;Fensterlage;Ruhig;FamilieGeeignet;Steckdose;Barrierefrei;Beschreibung;Aktiv;X;Y
+A01;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd — romantisch;Ja;8;12
+A02;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;26
+A03;A;4;Ja;Nein;Nein;Nein;Ja;Fenster Süd — barrierefrei;Ja;8;42
+A04;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Nord;Ja;8;58
+B01;B;4;Nein;Nein;Nein;Ja;Nein;Mitte West;Ja;30;12
+B02;B;2;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;28
+B03;B;4;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;44
+B04;B;6;Nein;Nein;Nein;Nein;Nein;Mitte — Rundes Oval;Ja;30;60
+B05;B;2;Nein;Nein;Nein;Ja;Nein;Mitte Ost;Ja;48;12
+B06;B;4;Nein;Nein;Nein;Nein;Nein;Mitte Ost;Ja;48;30
+C01;C;4;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;12
+C02;C;2;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;28
+C03;C;4;Nein;Nein;Nein;Nein;Nein;Hinten;Ja;66;44
+C04;C;6;Nein;Nein;Nein;Nein;Nein;Hinten — groß;Ja;66;60
+C05;C;2;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;12
+C06;C;4;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;30
+F01;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;82;58
+F02;F;6;Nein;Nein;Ja;Nein;Nein;Familienecke — groß;Ja;82;74
+F03;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;68;74
+Q01;Q;2;Nein;Ja;Nein;Nein;Nein;Ruhige Nische;Ja;48;74
+Q02;Q;4;Nein;Ja;Nein;Ja;Nein;Ruhige Nische — barrierefrei;Ja;48;88`;
 
 /* ─── State ────────────────────────────────────────────────────────────────── */
 let guests=[],tables=[],gLoaded=false,tLoaded=false;
@@ -471,6 +511,29 @@ el('fi-t').addEventListener('change',function(){
 });
 
 function checkReady(){el('btn-run').disabled=!(gLoaded&&tLoaded)}
+
+el('btn-demo').addEventListener('click',()=>{
+  const gRows=parseCSV(DEMO_G);
+  guests=gRows.map(rowToGuest).filter(g=>g.nachname);
+  gLoaded=true;
+  el('ub-g').classList.add('ok');
+  el('ico-g').textContent='✅';
+  el('sub-g').textContent=`${guests.length} Gäste geladen`;
+  el('sv-g').textContent=guests.length;
+  renderGuestList(guests);
+
+  const tRows=parseCSV(DEMO_T);
+  tables=tRows.map(rowToTable).filter(t=>t.tisch_id);
+  tLoaded=true;
+  el('ub-t').classList.add('ok');
+  el('ico-t').textContent='✅';
+  el('sub-t').textContent=`${tables.length} Tische geladen`;
+  el('sv-t').textContent=tables.length;
+  renderFP(tables,guests);
+
+  checkReady();
+  setStatus('Demo geladen — Zuweisung berechnen!','go');
+});
 
 el('btn-run').addEventListener('click',()=>{
   if(!gLoaded||!tLoaded){alert('Bitte erst beide CSV-Dateien laden.');return}
