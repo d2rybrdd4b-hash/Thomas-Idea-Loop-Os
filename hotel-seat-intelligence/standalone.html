@@ -15,8 +15,6 @@
 }
 html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
           background:var(--bg);color:var(--text);overflow:hidden}
-
-/* Header */
 #hdr{height:var(--hdr);background:#090F17;border-bottom:1px solid var(--border);
      display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
 .logo{font-size:14px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap}
@@ -26,40 +24,27 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .dot.go{background:var(--green)}.dot.spin{background:var(--gold);animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.3}}
 #stxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* Tab nav (mobile) */
 #tabs{display:none;background:#090F17;border-bottom:1px solid var(--border)}
 #tabs button{flex:1;padding:10px;background:none;border:none;color:var(--dim);
              font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
              cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
 #tabs button.act{color:var(--gold);border-bottom-color:var(--gold)}
-
-/* Desktop 3-column */
 #app{height:calc(100vh - var(--hdr));display:grid;
      grid-template-columns:250px 1fr 288px;overflow:hidden}
-
-/* Sidebar */
 #sidebar{background:var(--panel);border-right:1px solid var(--border);
          display:flex;flex-direction:column;overflow-y:auto;padding:14px 12px;gap:10px}
 .slbl{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
       color:var(--dim);padding:4px 4px 6px}
 .sep{height:1px;background:var(--border);margin:2px 0}
-
-/* Upload buttons */
-.upbtn{
-  display:flex;align-items:center;gap:10px;
-  background:var(--card);border:1.5px dashed var(--border);
-  border-radius:var(--r);padding:13px 12px;cursor:pointer;
-  transition:all .2s;position:relative;text-align:left;width:100%;
-}
+.upbtn{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1.5px dashed var(--border);border-radius:var(--r);padding:13px 12px;
+  cursor:pointer;transition:all .2s;position:relative;text-align:left;width:100%}
 .upbtn:hover{border-color:var(--gold);background:var(--gold-glow)}
 .upbtn.ok{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
 .upbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upbtn .ico{font-size:18px;flex-shrink:0}
 .upbtn .info .t{font-size:11px;font-weight:600}
 .upbtn .info .s{font-size:9px;color:var(--dim);margin-top:2px}
-
-/* Action buttons */
 .btn{width:100%;padding:10px 12px;border:none;border-radius:var(--r);
      font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;
      text-align:left;display:flex;align-items:center;gap:8px}
@@ -68,50 +53,62 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .btn-gold:not(:disabled):hover{background:#D4AF5A;transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
 .btn-ghost:not(:disabled):hover{border-color:var(--dim)}
-
-/* Stats */
+/* Meal slot bar */
+#slot-bar{display:flex;gap:4px}
+.sl{flex:1;padding:7px 4px;background:var(--card);border:1px solid var(--border);
+    border-radius:8px;color:var(--dim);font-size:9px;font-weight:700;
+    text-align:center;cursor:pointer;transition:all .18s;line-height:1.4}
+.sl.act{background:var(--gold-glow);border-color:var(--gold);color:var(--gold)}
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .sc{background:var(--card);border-radius:6px;padding:9px;text-align:center;border:1px solid var(--border)}
 .sc .v{font-size:20px;font-weight:700;color:var(--gold)}
 .sc .k{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
-
-/* Legend */
 .leg{display:flex;flex-direction:column;gap:5px}
 .li{display:flex;align-items:center;gap:8px;font-size:10px}
 .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-
-/* Warnings */
 #warns{display:flex;flex-direction:column;gap:4px;max-height:100px;overflow-y:auto}
 .wi{padding:6px 9px;border-radius:5px;font-size:9px;line-height:1.4;
     border-left:2.5px solid var(--gold);background:rgba(200,168,75,.08)}
 .wi.cr{border-color:var(--red);background:rgba(238,85,85,.08)}
 .wok{font-size:10px;color:var(--dim)}
-
 /* Floor plan */
 #fp{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
 #fp-hdr{padding:10px 16px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;
-        letter-spacing:2px;text-transform:uppercase;color:var(--dim);display:flex;align-items:center}
+        letter-spacing:2px;text-transform:uppercase;color:var(--dim);
+        display:flex;align-items:center;gap:8px}
+#fp-info{font-weight:400;letter-spacing:0;color:var(--dim)}
+#btn-add-tbl{background:none;border:1px solid var(--border);border-radius:6px;
+             color:var(--dim);font-size:15px;line-height:1;cursor:pointer;
+             padding:1px 7px;margin-left:auto;transition:all .18s;flex-shrink:0}
+#btn-add-tbl:hover{border-color:var(--gold);color:var(--gold)}
+/* Reassign banner */
+#rbanner{padding:8px 14px;background:rgba(200,168,75,.08);
+         border-bottom:1px solid rgba(200,168,75,.25);
+         font-size:10px;color:var(--gold);
+         display:flex;justify-content:space-between;align-items:center}
+#rbanner.hidden{display:none}
+#rbanner button{background:none;border:none;color:var(--gold);font-size:18px;
+                cursor:pointer;padding:0 2px;line-height:1}
 #fp-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden}
 #fp-svg{width:100%;height:100%;display:none}
 #fp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
           gap:10px;color:var(--dim);text-align:center}
 #fp-empty .big{font-size:36px}
 #fp-empty .msg{font-size:11px;line-height:1.6}
-
 /* Guest list */
 #gl{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 #gl-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;
         letter-spacing:2px;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
 #gl-body{flex:1;overflow-y:auto;padding:6px 8px}
 .gr{display:grid;grid-template-columns:38px 1fr 34px 40px;align-items:center;gap:4px;
-    padding:5px 6px;border-radius:6px;transition:background .12s;cursor:default}
+    padding:5px 6px;border-radius:6px;transition:background .12s;cursor:pointer}
 .gr:hover{background:var(--card)}
+.gr.sel{background:rgba(200,168,75,.1);outline:1.5px solid var(--gold);outline-offset:-1px}
 .gsc{font-size:11px;font-weight:700;text-align:center;padding:2px 0;border-radius:5px;background:var(--card)}
 .gnm .n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gnm .k{font-size:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zbg{font-size:7.5px;font-weight:700;padding:2px 5px;border-radius:4px;text-align:center;color:#090F17}
 .tch{font-size:9px;font-weight:700;color:var(--dim);text-align:center}
-
 /* Tooltip */
 #tip{position:fixed;z-index:999;background:#090F17;border:1px solid var(--border);
      border-radius:9px;padding:13px 15px;font-size:11px;pointer-events:none;opacity:0;
@@ -122,18 +119,31 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tr .tk{color:var(--dim)}.tr .tv{color:var(--text);font-weight:500}
 .tsc{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);
      font-size:16px;font-weight:700;text-align:center}
-
+/* Modal */
+.modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);
+       display:flex;align-items:center;justify-content:center;padding:16px}
+.modal.hidden{display:none}
+.mbox{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+      padding:18px;width:min(300px,100%);display:flex;flex-direction:column;gap:10px}
+.mbox h3{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+.mrow{display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center}
+.mrow label{font-size:10px;color:var(--dim)}
+.mrow input,.mrow select{background:var(--card);border:1px solid var(--border);
+  border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;width:100%}
+.mchks{display:flex;flex-wrap:wrap;gap:10px}
+.mchk{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim);cursor:pointer}
+.mbtns{display:flex;gap:8px;margin-top:4px}
+.mbtn{flex:1;padding:10px;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer}
+.mbtn-ok{background:var(--gold);color:#090F17}
+.mbtn-cancel{background:var(--card);color:var(--dim);border:1px solid var(--border)}
+.mbtn-del{background:rgba(238,85,85,.1);color:var(--red);border:1px solid rgba(238,85,85,.3)}
 /* Empty states */
 .ges{display:flex;flex-direction:column;align-items:center;justify-content:center;
      height:200px;gap:8px;color:var(--dim);text-align:center;font-size:11px}
 .ges .b{font-size:28px}
-
-/* Scrollbar */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
-/* Mobile layout */
 @media(max-width:768px){
   html,body{overflow:auto}
   #tabs{display:flex}
@@ -144,11 +154,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   #fp-wrap{min-height:55vw}
   #gl{min-height:300px;border-left:none}
   #gl-body{max-height:50vh;overflow-y:auto}
-  /* Tab visibility */
   [data-tab].hidden{display:none}
   #app{grid-template-columns:1fr}
 }
-
 @media(max-width:480px){
   .logo{font-size:12px;letter-spacing:2px}
   #hdr{padding:0 12px}
@@ -170,42 +178,37 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <div id="app">
 
-  <!-- Sidebar -->
   <div id="sidebar" data-tab="sidebar">
-
     <div class="slbl">Daten Import</div>
-
     <label class="upbtn" id="ub-g">
       <input type="file" accept=".csv" id="fi-g">
       <span class="ico" id="ico-g">&#128100;</span>
-      <div class="info">
-        <div class="t">G&auml;ste-CSV</div>
-        <div class="s" id="sub-g">Tippen zum Ausw&auml;hlen</div>
-      </div>
+      <div class="info"><div class="t">G&auml;ste-CSV</div><div class="s" id="sub-g">Tippen zum Ausw&auml;hlen</div></div>
     </label>
-
     <label class="upbtn" id="ub-t">
       <input type="file" accept=".csv" id="fi-t">
       <span class="ico" id="ico-t">&#128506;</span>
-      <div class="info">
-        <div class="t">Tische-CSV</div>
-        <div class="s" id="sub-t">Tippen zum Ausw&auml;hlen</div>
-      </div>
+      <div class="info"><div class="t">Tische-CSV</div><div class="s" id="sub-t">Tippen zum Ausw&auml;hlen</div></div>
     </label>
-
     <button class="btn btn-ghost" id="btn-demo" style="border-color:rgba(200,168,75,.4);color:var(--gold)">
       <span>&#128203;</span> Demo-Daten laden
     </button>
-
     <div class="sep"></div>
 
+    <div class="slbl">Mahlzeit-Slot</div>
+    <div id="slot-bar">
+      <button class="sl act" data-slot="fruehstueck">&#127773;<br>Fr&uuml;hst&uuml;ck</button>
+      <button class="sl" data-slot="mittag">&#9728;<br>Mittag</button>
+      <button class="sl" data-slot="abend">&#127769;<br>Abend</button>
+    </div>
+
+    <div class="sep"></div>
     <button class="btn btn-gold" id="btn-run" disabled>
       <span>&#9654;</span> Zuweisung berechnen
     </button>
     <button class="btn btn-ghost" id="btn-print" disabled>
       <span>&#128424;</span> Drucken / Speichern
     </button>
-
     <div class="sep"></div>
 
     <div class="slbl">Statistik</div>
@@ -215,7 +218,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="sc"><div class="v" id="sv-a">&mdash;</div><div class="k">Zugewiesen</div></div>
       <div class="sc"><div class="v" id="sv-f">&mdash;</div><div class="k">Auslastung</div></div>
     </div>
-
     <div class="sep"></div>
 
     <div class="slbl">Zonen</div>
@@ -226,19 +228,21 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="li"><div class="ld" style="background:var(--zf)"></div>Zone F &mdash; Familie</div>
       <div class="li"><div class="ld" style="background:var(--zq)"></div>Zone Q &mdash; Ruhig</div>
     </div>
-
     <div class="sep"></div>
 
     <div class="slbl">Hinweise</div>
     <div id="warns"><div class="wok">&mdash; noch keine Zuweisung &mdash;</div></div>
-
   </div>
 
-  <!-- Floor plan -->
   <div id="fp" data-tab="fp">
     <div id="fp-hdr">
       Grundriss &mdash; Restaurant
-      <span style="margin-left:auto;font-weight:400;letter-spacing:0;color:var(--dim)" id="fp-info"></span>
+      <span id="fp-info"></span>
+      <button id="btn-add-tbl" title="Tisch hinzuf&uuml;gen" onclick="openTableModal(null)">+</button>
+    </div>
+    <div id="rbanner" class="hidden">
+      <span>&#128205; Tippe auf einen Tisch zum Zuweisen</span>
+      <button onclick="cancelSelection()">&#x2715;</button>
     </div>
     <div id="fp-wrap">
       <div id="fp-empty">
@@ -250,7 +254,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
   </div>
 
-  <!-- Guest list -->
   <div id="gl" data-tab="gl">
     <div id="gl-hdr">
       <span>Priorit&auml;tsliste</span>
@@ -263,7 +266,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 </div>
 
-<!-- Tooltip -->
 <div id="tip">
   <div class="tn" id="tt-nm"></div>
   <div class="tr"><span class="tk">Zimmer</span><span class="tv" id="tt-rm"></span></div>
@@ -275,6 +277,37 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div class="tsc" id="tt-sc"></div>
 </div>
 
+<!-- Table modal -->
+<div id="tbl-modal" class="modal hidden">
+  <div class="mbox">
+    <h3 id="modal-title">Tisch hinzuf&uuml;gen</h3>
+    <div class="mrow"><label>Tisch-ID</label><input id="m-id" type="text" maxlength="6" placeholder="T01"></div>
+    <div class="mrow"><label>Zone</label>
+      <select id="m-zone">
+        <option value="A">A &mdash; Premium</option>
+        <option value="B">B &mdash; Standard+</option>
+        <option value="C" selected>C &mdash; Standard</option>
+        <option value="F">F &mdash; Familie</option>
+        <option value="Q">Q &mdash; Ruhig</option>
+      </select>
+    </div>
+    <div class="mrow"><label>Kapazit&auml;t</label><input id="m-kap" type="number" min="1" max="16" value="2"></div>
+    <div class="mrow"><label>X-Position (%)</label><input id="m-x" type="number" min="5" max="95" value="50"></div>
+    <div class="mrow"><label>Y-Position (%)</label><input id="m-y" type="number" min="5" max="95" value="50"></div>
+    <div class="mchks">
+      <label class="mchk"><input type="checkbox" id="m-fen"> Fenster</label>
+      <label class="mchk"><input type="checkbox" id="m-bar"> Barrierefrei</label>
+      <label class="mchk"><input type="checkbox" id="m-fam"> Familie</label>
+      <label class="mchk"><input type="checkbox" id="m-ruh"> Ruhig</label>
+    </div>
+    <div class="mbtns">
+      <button class="mbtn mbtn-ok" onclick="saveTableModal()">Speichern</button>
+      <button class="mbtn mbtn-cancel" onclick="closeTableModal()">Abbrechen</button>
+    </div>
+    <button class="mbtn mbtn-del hidden" id="m-del" onclick="deleteTableModal()" style="margin-top:4px">Tisch l&ouml;schen</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 const GASTTYP_P={Honeymoon:25,Geburtstag:22,Jubilaeum:22,VIP:20,Stammgast:15,Familie:12,Einzelgast:8,Gruppe:6};
@@ -282,6 +315,7 @@ const ANLASS_P={Hochzeitstag:15,Honeymoon:15,Geburtstag:12,Jubilaeum:12,Abschlus
 const KAT_R={Presidential:1,Suite:.9,Deluxe:.75,Superior:.6,Standard:.4};
 const ZC={A:'#C8A84B',B:'#3BB87A',C:'#5A7A96',F:'#3AB4E0',Q:'#9B72C0'};
 const SVG_W=820,SVG_H=530,M=38,FW=SVG_W-2*M,FH=SVG_H-2*M;
+const SLOTS=['fruehstueck','mittag','abend'];
 
 const DEMO_G=`GastID;Nachname;Vorname;Zimmernummer;Zimmerkategorie;Tagesrate;CheckIn;CheckOut;VerbleibendeNaechte;GastTyp;AnzahlPersonen;KinderUnter12;BesondererAnlass;Praeferenzen;GruppenID;VIP;WiederholungsBesuche;Bemerkungen;Mobilitaet
 G001;Hartmann;Michael;101;Presidential;850;2026-06-09;2026-06-14;3;Honeymoon;2;0;Hochzeitstag;Fenster;;Ja;3;;
@@ -296,9 +330,9 @@ G009;Becker;Sophie;108;Suite;510;2026-06-09;2026-06-14;3;Honeymoon;2;0;Honeymoon
 G010;Zimmermann;Franz;216;Superior;240;2026-06-11;2026-06-12;1;Einzelgast;1;0;;;;;Nein;0;;Rollstuhl`;
 
 const DEMO_T=`TischID;Zone;Kapazitaet;Fensterlage;Ruhig;FamilieGeeignet;Steckdose;Barrierefrei;Beschreibung;Aktiv;X;Y
-A01;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;12
-A02;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;26
-A03;A;4;Ja;Nein;Nein;Nein;Ja;Fenster Süd barrierefrei;Ja;8;42
+A01;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Sued;Ja;8;12
+A02;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Sued;Ja;8;26
+A03;A;4;Ja;Nein;Nein;Nein;Ja;Fenster barrierefrei;Ja;8;42
 A04;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Nord;Ja;8;58
 B01;B;4;Nein;Nein;Nein;Ja;Nein;Mitte West;Ja;30;12
 B02;B;2;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;28
@@ -316,15 +350,25 @@ F01;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;82;58
 F02;F;6;Nein;Nein;Ja;Nein;Nein;Familienecke gross;Ja;82;74
 F03;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;68;74
 Q01;Q;2;Nein;Ja;Nein;Nein;Nein;Ruhige Nische;Ja;48;74
-Q02;Q;4;Nein;Ja;Nein;Ja;Nein;Ruhige Nische barrierefrei;Ja;48;88`;
+Q02;Q;4;Nein;Ja;Nein;Ja;Nein;Ruhige Nische bf;Ja;48;88`;
 
-let guests=[],tables=[],gLoaded=false,tLoaded=false;
+/* ── State ── */
+let baseTables=[];
+let currentSlot='fruehstueck';
+let slots={fruehstueck:{guests:[],assigned:false},mittag:{guests:[],assigned:false},abend:{guests:[],assigned:false}};
+let gLoaded=false,tLoaded=false;
+let selectedGuestId=null;
+let editingTableId=null;
+let tipTimer=null;
 
+/* ── Helpers ── */
 const el=id=>document.getElementById(id);
 const bool=v=>/^(ja|yes|1|true)$/i.test(String(v||'').trim());
 const int=(v,d=0)=>{const n=parseInt(String(v||'').trim());return isNaN(n)?d:n};
 const flt=(v,d=0)=>{const n=parseFloat(String(v||'').replace(',','.').trim());return isNaN(n)?d:n};
 const pct=(arr,p)=>{const s=[...arr].sort((a,b)=>a-b);const i=(p/100)*(s.length-1);const lo=Math.floor(i);return s[lo]+(s[Math.ceil(i)]-s[lo])*(i-lo)};
+const curSlot=()=>slots[currentSlot];
+const deepCopyGuests=gs=>gs.map(g=>({...g}));
 
 function parseCSV(text){
   const lines=text.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
@@ -343,7 +387,7 @@ function rowToGuest(r){
     tagesrate:flt(r.Tagesrate),verbleibende_naechte:int(r.VerbleibendeNaechte,1),
     gast_typ:r.GastTyp||'Einzelgast',anzahl_personen:int(r.AnzahlPersonen,1),
     kinder_unter_12:int(r.KinderUnter12),besonderer_anlass:r.BesondererAnlass||'',
-    praeferenzen:r.Praeferenzen||'',gruppen_id:r.GruppenID||'',vip:bool(r.VIP),
+    praeferenzen:r.Praeferenzen||'',vip:bool(r.VIP),
     wiederholungs_besuche:int(r.WiederholungsBesuche),mobilitaet:r.Mobilitaet||'',
     prioritaet_score:0,zugewiesene_zone:'',zugewiesener_tisch:'',
   };
@@ -358,8 +402,9 @@ function rowToTable(r){
   };
 }
 
-function scoreGuest(g,rateThreshold){
-  const rr=Math.min(g.tagesrate/Math.max(rateThreshold,1),1);
+/* ── Algorithm ── */
+function scoreGuest(g,threshold){
+  const rr=Math.min(g.tagesrate/Math.max(threshold,1),1);
   const kr=KAT_R[g.zimmerkategorie]||.5;
   const fin=(rr*.7+kr*.3)*30;
   const auf=Math.min(g.verbleibende_naechte/14,1)*20;
@@ -370,14 +415,12 @@ function scoreGuest(g,rateThreshold){
   const pr=g.praeferenzen?5:0;
   return Math.round(fin+auf+gtyp+an+pr);
 }
-
 function zoneFor(g){
   if(g.kinder_unter_12>0||g.gast_typ==='Familie') return'F';
   if(g.prioritaet_score>=85) return'A';
   if(g.prioritaet_score>=70) return'B';
   return'C';
 }
-
 function prefScore(g,t){
   const p=(g.praeferenzen||'').toLowerCase();
   let s=0;
@@ -387,17 +430,14 @@ function prefScore(g,t){
   s-=Math.abs(t.kapazitaet-g.anzahl_personen);
   return s;
 }
-
 function findTable(g,zone,tabs){
   const c=tabs.filter(t=>!t.belegt&&t.zone===zone&&t.kapazitaet>=g.anzahl_personen&&(!g.mobilitaet||t.barrierefrei));
   if(!c.length) return null;
   return c.reduce((b,t)=>prefScore(g,t)>prefScore(g,b)?t:b);
 }
-
 function findFallback(g,tabs){
   return tabs.find(t=>!t.belegt&&t.kapazitaet>=g.anzahl_personen&&(!g.mobilitaet||t.barrierefrei))||null;
 }
-
 function runAlgorithm(gIn,tIn){
   const rates=gIn.map(g=>g.tagesrate);
   const threshold=pct(rates,75);
@@ -411,101 +451,173 @@ function runAlgorithm(gIn,tIn){
   sorted.forEach(g=>{
     const zone=zoneFor(g);
     const t=findTable(g,zone,ts);
-    if(t){
-      g.zugewiesene_zone=t.zone;g.zugewiesener_tisch=t.tisch_id;t.belegt=true;
-    } else {
+    if(t){g.zugewiesene_zone=t.zone;g.zugewiesener_tisch=t.tisch_id;t.belegt=true;}
+    else{
       const fb=findFallback(g,ts);
-      if(fb){
-        g.zugewiesene_zone=fb.zone;g.zugewiesener_tisch=fb.tisch_id;fb.belegt=true;
-        warnings.push('⚠️ '+g.nachname+': Zone '+zone+' voll → '+fb.zone);
-      } else {
-        warnings.push('🔴 '+g.nachname+': Kein Tisch verfügbar!');
-      }
+      if(fb){g.zugewiesene_zone=fb.zone;g.zugewiesener_tisch=fb.tisch_id;fb.belegt=true;warnings.push('⚠️ '+g.nachname+': Zone '+zone+' voll → '+fb.zone);}
+      else{warnings.push('🔴 '+g.nachname+': Kein Tisch verfügbar!');}
     }
   });
-  return{guests:sorted,tables:ts,warnings};
+  return{guests:sorted,warnings};
 }
 
+/* ── Status ── */
 function setStatus(msg,mode=''){
   el('stxt').textContent=msg;
   el('dot').className='dot'+(mode?' '+mode:'');
 }
+function checkReady(){el('btn-run').disabled=!(gLoaded&&tLoaded)}
 
-function readFile(file,cb){
-  const r=new FileReader();
-  r.onload=e=>cb(e.target.result);
-  r.readAsText(file,'utf-8');
-}
-
+/* ── Load data ── */
 function loadGuestData(text){
-  const rows=parseCSV(text);
-  guests=rows.map(rowToGuest).filter(g=>g.nachname);
+  const gs=parseCSV(text).map(rowToGuest).filter(g=>g.nachname);
+  SLOTS.forEach(s=>{slots[s].guests=deepCopyGuests(gs);slots[s].assigned=false;});
   gLoaded=true;
-  el('ub-g').classList.add('ok');
-  el('ico-g').textContent='✅';
-  el('sub-g').textContent=guests.length+' Gäste geladen';
-  el('sv-g').textContent=guests.length;
-  renderGuestList(guests);
+  el('ub-g').classList.add('ok');el('ico-g').textContent='✅';
+  el('sub-g').textContent=gs.length+' Gäste geladen';el('sv-g').textContent=gs.length;
+  renderGuestList(curSlot().guests);
+}
+function loadTableData(text){
+  baseTables=parseCSV(text).map(rowToTable).filter(t=>t.tisch_id);
+  tLoaded=true;
+  el('ub-t').classList.add('ok');el('ico-t').textContent='✅';
+  el('sub-t').textContent=baseTables.length+' Tische geladen';el('sv-t').textContent=baseTables.length;
+  renderFP(curSlot().guests);
 }
 
-function loadTableData(text){
-  const rows=parseCSV(text);
-  tables=rows.map(rowToTable).filter(t=>t.tisch_id);
-  tLoaded=true;
-  el('ub-t').classList.add('ok');
-  el('ico-t').textContent='✅';
-  el('sub-t').textContent=tables.length+' Tische geladen';
-  el('sv-t').textContent=tables.length;
-  renderFP(tables,guests);
-}
+function readFile(file,cb){const r=new FileReader();r.onload=e=>cb(e.target.result);r.readAsText(file,'utf-8');}
 
 el('fi-g').addEventListener('change',function(){
   if(!this.files[0]) return;
   setStatus('Gäste laden …','spin');
   readFile(this.files[0],text=>{loadGuestData(text);checkReady();setStatus('Gäste geladen','go');});
 });
-
 el('fi-t').addEventListener('change',function(){
   if(!this.files[0]) return;
   setStatus('Tische laden …','spin');
   readFile(this.files[0],text=>{loadTableData(text);checkReady();setStatus('Tische geladen','go');});
 });
-
-function checkReady(){el('btn-run').disabled=!(gLoaded&&tLoaded)}
-
 el('btn-demo').addEventListener('click',()=>{
-  loadGuestData(DEMO_G);
-  loadTableData(DEMO_T);
-  checkReady();
+  loadGuestData(DEMO_G);loadTableData(DEMO_T);checkReady();
   setStatus('Demo geladen — Zuweisung berechnen!','go');
 });
-
 el('btn-run').addEventListener('click',()=>{
   if(!gLoaded||!tLoaded){alert('Bitte erst Daten laden.');return}
   setStatus('Zuweisung berechnen …','spin');
   setTimeout(()=>{
-    const res=runAlgorithm(guests,tables);
-    guests=res.guests;tables=res.tables;
-    const n=guests.filter(g=>g.zugewiesener_tisch).length;
+    const res=runAlgorithm(curSlot().guests,baseTables);
+    slots[currentSlot].guests=res.guests;
+    slots[currentSlot].assigned=true;
+    const n=res.guests.filter(g=>g.zugewiesener_tisch).length;
     el('sv-a').textContent=n;
-    el('sv-f').textContent=Math.round(n/Math.max(tables.length,1)*100)+'%';
-    renderFP(tables,guests);
-    renderGuestList(guests);
-    renderWarnings(res.warnings);
+    el('sv-f').textContent=Math.round(n/Math.max(baseTables.length,1)*100)+'%';
+    renderFP(curSlot().guests);renderGuestList(curSlot().guests);renderWarnings(res.warnings);
     el('btn-print').disabled=false;
-    setStatus('Zugewiesen: '+n+'/'+guests.length+' Gäste','go');
+    setStatus('Zugewiesen: '+n+'/'+res.guests.length+' Gäste','go');
     if(window.innerWidth<=768) showTab('fp');
   },50);
 });
-
 el('btn-print').addEventListener('click',()=>window.print());
 
-function renderFP(tabs,gs){
+/* ── Meal slot switching ── */
+document.querySelectorAll('.sl').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    currentSlot=btn.dataset.slot;
+    document.querySelectorAll('.sl').forEach(b=>b.classList.toggle('act',b===btn));
+    cancelSelection();
+    renderFP(curSlot().guests);renderGuestList(curSlot().guests);
+    const n=curSlot().guests.filter(g=>g.zugewiesener_tisch).length;
+    el('sv-a').textContent=curSlot().assigned?n:'—';
+    el('sv-f').textContent=curSlot().assigned?Math.round(n/Math.max(baseTables.length,1)*100)+'%':'—';
+    renderWarnings([]);
+    setStatus(btn.textContent.replace(/\n/,' ')+' aktiv','go');
+  });
+});
+
+/* ── Guest selection (2-tap reassign) ── */
+function selectGuest(gast_id){
+  selectedGuestId=(selectedGuestId===gast_id)?null:gast_id;
+  el('rbanner').classList.toggle('hidden',!selectedGuestId);
+  renderGuestList(curSlot().guests);
+  renderFP(curSlot().guests);
+}
+function cancelSelection(){
+  selectedGuestId=null;
+  el('rbanner').classList.add('hidden');
+  renderGuestList(curSlot().guests);
+  renderFP(curSlot().guests);
+}
+function reassignGuestToTable(tisch_id){
+  const g=curSlot().guests.find(x=>x.gast_id===selectedGuestId);
+  const t=baseTables.find(x=>x.tisch_id===tisch_id);
+  if(!g||!t) return;
+  g.zugewiesener_tisch=tisch_id;
+  g.zugewiesene_zone=t.zone;
+  cancelSelection();
+  renderFP(curSlot().guests);renderGuestList(curSlot().guests);
+  setStatus(g.nachname+' → Tisch '+tisch_id,'go');
+}
+
+/* ── Table modal ── */
+function openTableModal(tableId){
+  editingTableId=tableId;
+  const t=tableId?baseTables.find(x=>x.tisch_id===tableId):null;
+  el('modal-title').textContent=t?'Tisch bearbeiten':'Tisch hinzufügen';
+  el('m-id').value=t?t.tisch_id:'';el('m-id').disabled=!!t;
+  el('m-zone').value=t?t.zone:'C';
+  el('m-kap').value=t?t.kapazitaet:2;
+  el('m-x').value=t?Math.round(t.x_pos):50;
+  el('m-y').value=t?Math.round(t.y_pos):50;
+  el('m-fen').checked=t?t.fensterlage:false;
+  el('m-bar').checked=t?t.barrierefrei:false;
+  el('m-fam').checked=t?t.familie_geeignet:false;
+  el('m-ruh').checked=t?t.ruhig:false;
+  el('m-del').classList.toggle('hidden',!t);
+  el('tbl-modal').classList.remove('hidden');
+}
+function closeTableModal(){el('tbl-modal').classList.add('hidden');editingTableId=null;}
+function saveTableModal(){
+  const id=el('m-id').value.trim();
+  if(!id){alert('Tisch-ID eingeben');return;}
+  const data={
+    tisch_id:editingTableId||id,zone:el('m-zone').value,kapazitaet:int(el('m-kap').value,2),
+    x_pos:flt(el('m-x').value,50),y_pos:flt(el('m-y').value,50),
+    fensterlage:el('m-fen').checked,barrierefrei:el('m-bar').checked,
+    familie_geeignet:el('m-fam').checked,ruhig:el('m-ruh').checked,
+    steckdose:false,beschreibung:'',aktiv:true,belegt:false,
+  };
+  if(editingTableId){
+    const idx=baseTables.findIndex(t=>t.tisch_id===editingTableId);
+    if(idx>=0) baseTables[idx]={...baseTables[idx],...data};
+  } else {
+    if(baseTables.find(t=>t.tisch_id===id)){alert('Tisch-ID bereits vorhanden');return;}
+    baseTables.push(data);
+  }
+  el('sv-t').textContent=baseTables.length;
+  closeTableModal();renderFP(curSlot().guests);
+}
+function deleteTableModal(){
+  if(!editingTableId) return;
+  baseTables=baseTables.filter(t=>t.tisch_id!==editingTableId);
+  SLOTS.forEach(s=>slots[s].guests.forEach(g=>{
+    if(g.zugewiesener_tisch===editingTableId){g.zugewiesener_tisch='';g.zugewiesene_zone='';}
+  }));
+  el('sv-t').textContent=baseTables.length;
+  closeTableModal();renderFP(curSlot().guests);
+}
+
+/* ── Floor plan ── */
+function renderFP(gs){
   el('fp-empty').style.display='none';
   const svg=el('fp-svg');svg.style.display='block';
   const ns='http://www.w3.org/2000/svg';
   const byT={};(gs||[]).forEach(g=>{if(g.zugewiesener_tisch) byT[g.zugewiesener_tisch]=g});
-  const mk=(tag,attrs,txt)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.textContent=txt;return e};
+  const mk=(tag,attrs,txt)=>{
+    const e=document.createElementNS(ns,tag);
+    Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+    if(txt!==undefined) e.textContent=txt;
+    return e;
+  };
   svg.innerHTML='<defs><filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   svg.appendChild(mk('rect',{x:0,y:0,width:SVG_W,height:SVG_H,fill:'#0D1925'}));
   svg.appendChild(mk('rect',{x:M,y:M,width:FW,height:FH,rx:8,fill:'#111E2C',stroke:'#1E3045','stroke-width':1.5}));
@@ -513,10 +625,13 @@ function renderFP(tabs,gs){
   svg.appendChild(mk('line',{x1:M+FW*.19,y1:M,x2:M+FW*.19,y2:M+FH,stroke:'rgba(200,168,75,0.08)','stroke-width':1,'stroke-dasharray':'4,4'}));
   svg.appendChild(mk('rect',{x:M+FW*.71,y:M+FH*.56,width:FW*.29,height:FH*.44,rx:6,fill:'rgba(58,180,224,0.05)'}));
   svg.appendChild(mk('rect',{x:M+FW*.41,y:M+FH*.71,width:FW*.2,height:FH*.26,rx:6,fill:'rgba(155,114,192,0.05)'}));
-  svg.appendChild(mk('text',{x:M+5,y:M-10,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'← FENSTER'));
-  svg.appendChild(mk('text',{x:M+FW*.73,y:M+FH*.59,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'FAMILIENZONE'));
-  svg.appendChild(mk('text',{x:M+FW*.43,y:M+FH*.74,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'RUHIG'));
-  tabs.forEach(t=>{
+  svg.appendChild(mk('text',{x:M+5,y:M-10,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600'},'← FENSTER'));
+  svg.appendChild(mk('text',{x:M+FW*.73,y:M+FH*.59,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600'},'FAMILIENZONE'));
+  svg.appendChild(mk('text',{x:M+FW*.43,y:M+FH*.74,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600'},'RUHIG'));
+
+  const selG=selectedGuestId?curSlot().guests.find(x=>x.gast_id===selectedGuestId):null;
+
+  baseTables.forEach(t=>{
     if(!t.aktiv) return;
     const cx=M+(t.x_pos/100)*FW,cy=M+(t.y_pos/100)*FH;
     const tw=t.kapazitaet<=2?54:t.kapazitaet<=4?66:80;
@@ -524,11 +639,21 @@ function renderFP(tabs,gs){
     const x1=cx-tw/2,y1=cy-th/2;
     const zc=ZC[t.zone]||'#5A7A96';
     const g=byT[t.tisch_id];
+    const isCurGuestTable=selG&&selG.zugewiesener_tisch===t.tisch_id;
+    const isTarget=!!selectedGuestId;
+
     const grp=document.createElementNS(ns,'g');
+    grp.style.cursor='pointer';
+
     if(g) grp.appendChild(mk('rect',{x:x1+2,y:y1+3,width:tw,height:th,rx:7,fill:zc,opacity:.15,filter:'url(#gw)'}));
+    if(isCurGuestTable) grp.appendChild(mk('rect',{x:x1-3,y:y1-3,width:tw+6,height:th+6,rx:9,fill:'none',stroke:'#C8A84B','stroke-width':2,'stroke-dasharray':'4,3',opacity:.8}));
+
     grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:th,rx:7,
-      fill:g?zc+'28':'rgba(255,255,255,0.02)',stroke:g?zc:'#1E3045','stroke-width':g?2:1.5}));
+      fill:isTarget?(t.kapazitaet>=(selG?.anzahl_personen||1)?zc+'22':'rgba(238,85,85,.08)'):(g?zc+'28':'rgba(255,255,255,0.02)'),
+      stroke:isTarget?zc:g?zc:'#1E3045','stroke-width':isTarget?1.5:g?2:1.5,
+      opacity:isTarget?1:1}));
     if(g) grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:3,rx:2,fill:zc,opacity:.8}));
+
     grp.appendChild(mk('text',{x:cx.toFixed(1),y:(g?cy-8:cy-4).toFixed(1),'text-anchor':'middle',
       'font-size':9,'font-weight':'700',fill:g?zc:'#2A4060','font-family':'system-ui'},t.tisch_id));
     if(g){
@@ -540,50 +665,91 @@ function renderFP(tabs,gs){
     }
     if(t.fensterlage) grp.appendChild(mk('text',{x:(x1+tw-3).toFixed(1),y:(y1+10).toFixed(1),'text-anchor':'end','font-size':8,fill:'rgba(200,168,75,.7)','font-family':'system-ui'},'W'));
     if(t.barrierefrei) grp.appendChild(mk('text',{x:(x1+3).toFixed(1),y:(y1+10).toFixed(1),'font-size':8,fill:'rgba(90,122,150,.7)','font-family':'system-ui'},'♿'));
-    if(g){
-      grp.style.cursor='pointer';
-      grp.addEventListener('mousemove',e=>showTip(e,g,t));
-      grp.addEventListener('mouseleave',()=>el('tip').classList.remove('on'));
-      grp.addEventListener('touchstart',e=>{e.preventDefault();showTip(e.touches[0],g,t)},{passive:false});
-    }
+
+    /* ── Touch & click handlers ── */
+    let touchSX=null,touchSY=null;
+
+    grp.addEventListener('touchstart',e=>{
+      touchSX=e.touches[0].clientX;touchSY=e.touches[0].clientY;
+    },{passive:true});
+
+    grp.addEventListener('touchmove',()=>{
+      touchSX=null;
+      hideTip();
+    },{passive:true});
+
+    grp.addEventListener('touchend',e=>{
+      if(touchSX===null) return;
+      const dx=e.changedTouches[0].clientX-touchSX;
+      const dy=e.changedTouches[0].clientY-touchSY;
+      if(Math.abs(dx)>12||Math.abs(dy)>12){hideTip();return;}
+      e.preventDefault();
+      if(selectedGuestId){reassignGuestToTable(t.tisch_id);}
+      else if(g){showTip(e.changedTouches[0],g,t);autoHideTip();}
+      else{openTableModal(t.tisch_id);}
+      touchSX=null;
+    },{passive:false});
+
+    grp.addEventListener('mousemove',e=>{if(!selectedGuestId&&g) showTip(e,g,t);});
+    grp.addEventListener('mouseleave',hideTip);
+    grp.addEventListener('dblclick',()=>openTableModal(t.tisch_id));
+    grp.addEventListener('click',e=>{
+      if(e.detail>1) return;
+      if(selectedGuestId){reassignGuestToTable(t.tisch_id);}
+      else if(!g){openTableModal(t.tisch_id);}
+    });
+
     svg.appendChild(grp);
   });
-  const belegt=tabs.filter(t=>t.belegt).length;
-  el('fp-info').textContent=tabs.filter(t=>t.aktiv).length+' Tische'+(belegt>0?' · '+belegt+' belegt':'');
+
+  const belegt=baseTables.filter(t=>byT[t.tisch_id]).length;
+  el('fp-info').textContent=baseTables.filter(t=>t.aktiv).length+' Tische'+(belegt>0?' · '+belegt+' belegt':'');
 }
 
+/* ── Tooltip ── */
+function hideTip(){el('tip').classList.remove('on');if(tipTimer){clearTimeout(tipTimer);tipTimer=null;}}
+function autoHideTip(){if(tipTimer) clearTimeout(tipTimer);tipTimer=setTimeout(hideTip,2500);}
 function showTip(e,g,t){
   const zc=ZC[g.zugewiesene_zone]||'#5A7A96';
   el('tt-nm').textContent=g.nachname+', '+g.vorname;el('tt-nm').style.color=zc;
-  el('tt-rm').textContent=g.zimmernummer;
-  el('tt-ct').textContent=g.zimmerkategorie;
+  el('tt-rm').textContent=g.zimmernummer;el('tt-ct').textContent=g.zimmerkategorie;
   el('tt-ty').textContent=g.gast_typ+(g.vip?' · ⭐ VIP':'');
   el('tt-ps').textContent=g.anzahl_personen+(g.kinder_unter_12>0?' + '+g.kinder_unter_12+' Kinder':'');
   el('tt-oc').textContent=g.besonderer_anlass||'—';
   el('tt-tb').textContent=t.tisch_id+' (Zone '+t.zone+')';
   el('tt-sc').textContent='★ '+g.prioritaet_score+' / 100';el('tt-sc').style.color=zc;
   const tip=el('tip');
-  tip.style.left=Math.min(e.clientX+14,window.innerWidth-240)+'px';
-  tip.style.top=Math.min(e.clientY-20,window.innerHeight-200)+'px';
+  const cx=e.clientX||0,cy=e.clientY||0;
+  tip.style.left=Math.min(cx+14,window.innerWidth-240)+'px';
+  tip.style.top=Math.min(cy-20,window.innerHeight-200)+'px';
   tip.classList.add('on');
 }
 
+/* ── Guest list ── */
 function renderGuestList(gs){
   const body=el('gl-body');
-  if(!gs||!gs.length){body.innerHTML='<div class="ges"><div class="b">&#128101;</div><div>Keine Gäste</div></div>';return}
+  if(!gs||!gs.length){body.innerHTML='<div class="ges"><div class="b">&#128101;</div><div>Keine Gäste</div></div>';return;}
   const sorted=[...gs].sort((a,b)=>b.prioritaet_score-a.prioritaet_score);
   el('gl-cnt').textContent=sorted.length+' Gäste';
   body.innerHTML=sorted.map(g=>{
     const z=g.zugewiesene_zone||'—';
     const zc=ZC[z]||'#2A4060';
     const sc=g.prioritaet_score||0;
-    return '<div class="gr">'
+    const isSel=g.gast_id===selectedGuestId;
+    return '<div class="gr'+(isSel?' sel':'')+'" data-id="'+g.gast_id+'">'
       +'<div class="gsc" style="'+(sc?'background:'+zc+'22;color:'+zc:'color:#2A4060')+'">'+(sc||'—')+'</div>'
       +'<div class="gnm"><div class="n">'+g.nachname+', '+g.vorname+'</div>'
       +'<div class="k">'+g.gast_typ+(g.besonderer_anlass?' · '+g.besonderer_anlass:'')+'</div></div>'
       +'<div class="zbg" style="background:'+zc+'">Z'+z+'</div>'
-      +'<div class="tch">'+(g.zugewiesener_tisch||'—')+'</div></div>';
+      +'<div class="tch">'+(g.zugewiesener_tisch||'—')+'</div>'
+      +'</div>';
   }).join('');
+  body.querySelectorAll('.gr').forEach(row=>{
+    row.addEventListener('click',()=>{
+      selectGuest(row.dataset.id);
+      if(window.innerWidth<=768) showTab('fp');
+    });
+  });
 }
 
 function renderWarnings(ws){
@@ -593,22 +759,23 @@ function renderWarnings(ws){
     :ws.map(w=>'<div class="wi'+(w.includes('🔴')?' cr':'')+'">'+w+'</div>').join('');
 }
 
+/* ── Mobile tabs ── */
 function showTab(id){
-  document.querySelectorAll('[data-tab]').forEach(el2=>{
-    el2.classList.toggle('hidden',el2.id!==id);
-  });
+  document.querySelectorAll('[data-tab]').forEach(el2=>el2.classList.toggle('hidden',el2.id!==id));
   document.querySelectorAll('#tabs button').forEach((b,i)=>{
-    const ids=['sidebar','fp','gl'];
-    b.classList.toggle('act',ids[i]===id);
+    b.classList.toggle('act',['sidebar','fp','gl'][i]===id);
   });
 }
-
 if(window.innerWidth<=768){
-  document.querySelectorAll('[data-tab]').forEach((el2,i)=>{if(i>0)el2.classList.add('hidden')});
+  document.querySelectorAll('[data-tab]').forEach((el2,i)=>{if(i>0)el2.classList.add('hidden');});
 }
 window.addEventListener('resize',()=>{
   document.querySelectorAll('[data-tab]').forEach(el2=>el2.classList.remove('hidden'));
 });
+
+/* dismiss tooltip on scroll */
+document.addEventListener('scroll',hideTip,{passive:true});
+el('fp-wrap').addEventListener('scroll',hideTip,{passive:true});
 
 const d=new Date();
 document.title='Hotel Seat Intelligence — '+d.toLocaleDateString('de-DE');
