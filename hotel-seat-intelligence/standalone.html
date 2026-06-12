@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Hotel Seat Intelligence</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1925;--panel:#111E2C;--card:#172433;--border:#1E3045;
+  --gold:#C8A84B;--gold-glow:rgba(200,168,75,.12);
+  --green:#2ECC71;--red:#E55;--text:#D8E4F0;--dim:#5A7A96;
+  --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;
+  --r:10px;--hdr:56px;
+}
+html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+          background:var(--bg);color:var(--text);overflow:hidden}
+
+/* Header */
+#hdr{height:var(--hdr);background:#090F17;border-bottom:1px solid var(--border);
+     display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.logo{font-size:14px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap}
+.logo em{color:var(--gold);font-style:normal;font-weight:600}
+#stbar{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--dim);flex:1;min-width:0;overflow:hidden}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .3s}
+.dot.go{background:var(--green)}.dot.spin{background:var(--gold);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+#stxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Tab nav (mobile) */
+#tabs{display:none;background:#090F17;border-bottom:1px solid var(--border)}
+#tabs button{flex:1;padding:10px;background:none;border:none;color:var(--dim);
+             font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+             cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+#tabs button.act{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* Desktop 3-column */
+#app{height:calc(100vh - var(--hdr));display:grid;
+     grid-template-columns:250px 1fr 288px;overflow:hidden}
+
+/* Sidebar */
+#sidebar{background:var(--panel);border-right:1px solid var(--border);
+         display:flex;flex-direction:column;overflow-y:auto;padding:14px 12px;gap:10px}
+.slbl{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+      color:var(--dim);padding:4px 4px 6px}
+.sep{height:1px;background:var(--border);margin:2px 0}
+
+/* Upload buttons */
+.upbtn{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card);border:1.5px dashed var(--border);
+  border-radius:var(--r);padding:13px 12px;cursor:pointer;
+  transition:all .2s;position:relative;text-align:left;width:100%;
+}
+.upbtn:hover{border-color:var(--gold);background:var(--gold-glow)}
+.upbtn.ok{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
+.upbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upbtn .ico{font-size:18px;flex-shrink:0}
+.upbtn .info .t{font-size:11px;font-weight:600}
+.upbtn .info .s{font-size:9px;color:var(--dim);margin-top:2px}
+
+/* Action buttons */
+.btn{width:100%;padding:10px 12px;border:none;border-radius:var(--r);
+     font-size:11px;font-weight:600;cursor:pointer;transition:all .18s;
+     text-align:left;display:flex;align-items:center;gap:8px}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#090F17}
+.btn-gold:not(:disabled):hover{background:#D4AF5A;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:not(:disabled):hover{border-color:var(--dim)}
+
+/* Stats */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sc{background:var(--card);border-radius:6px;padding:9px;text-align:center;border:1px solid var(--border)}
+.sc .v{font-size:20px;font-weight:700;color:var(--gold)}
+.sc .k{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* Legend */
+.leg{display:flex;flex-direction:column;gap:5px}
+.li{display:flex;align-items:center;gap:8px;font-size:10px}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* Warnings */
+#warns{display:flex;flex-direction:column;gap:4px;max-height:100px;overflow-y:auto}
+.wi{padding:6px 9px;border-radius:5px;font-size:9px;line-height:1.4;
+    border-left:2.5px solid var(--gold);background:rgba(200,168,75,.08)}
+.wi.cr{border-color:var(--red);background:rgba(238,85,85,.08)}
+.wok{font-size:10px;color:var(--dim)}
+
+/* Floor plan */
+#fp{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+#fp-hdr{padding:10px 16px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;
+        letter-spacing:2px;text-transform:uppercase;color:var(--dim);display:flex;align-items:center}
+#fp-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden}
+#fp-svg{width:100%;height:100%;display:none}
+#fp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:10px;color:var(--dim);text-align:center}
+#fp-empty .big{font-size:36px}
+#fp-empty .msg{font-size:11px;line-height:1.6}
+
+/* Guest list */
+#gl{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#gl-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700;
+        letter-spacing:2px;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+#gl-body{flex:1;overflow-y:auto;padding:6px 8px}
+.gr{display:grid;grid-template-columns:38px 1fr 34px 40px;align-items:center;gap:4px;
+    padding:5px 6px;border-radius:6px;transition:background .12s;cursor:default}
+.gr:hover{background:var(--card)}
+.gsc{font-size:11px;font-weight:700;text-align:center;padding:2px 0;border-radius:5px;background:var(--card)}
+.gnm .n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnm .k{font-size:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zbg{font-size:7.5px;font-weight:700;padding:2px 5px;border-radius:4px;text-align:center;color:#090F17}
+.tch{font-size:9px;font-weight:700;color:var(--dim);text-align:center}
+
+/* Tooltip */
+#tip{position:fixed;z-index:999;background:#090F17;border:1px solid var(--border);
+     border-radius:9px;padding:13px 15px;font-size:11px;pointer-events:none;opacity:0;
+     transition:opacity .15s;max-width:220px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#tip.on{opacity:1}
+.tn{font-weight:700;font-size:13px;margin-bottom:8px}
+.tr{display:flex;justify-content:space-between;gap:16px;margin-top:4px}
+.tr .tk{color:var(--dim)}.tr .tv{color:var(--text);font-weight:500}
+.tsc{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);
+     font-size:16px;font-weight:700;text-align:center}
+
+/* Empty states */
+.ges{display:flex;flex-direction:column;align-items:center;justify-content:center;
+     height:200px;gap:8px;color:var(--dim);text-align:center;font-size:11px}
+.ges .b{font-size:28px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Mobile layout */
+@media(max-width:768px){
+  html,body{overflow:auto}
+  #tabs{display:flex}
+  #app{grid-template-columns:1fr;height:auto;overflow:visible}
+  #sidebar,#fp,#gl{height:auto}
+  #sidebar{max-height:none;border-right:none;border-bottom:1px solid var(--border)}
+  #fp{min-height:65vw;border-right:none;border-bottom:1px solid var(--border)}
+  #fp-wrap{min-height:55vw}
+  #gl{min-height:300px;border-left:none}
+  #gl-body{max-height:50vh;overflow-y:auto}
+  /* Tab visibility */
+  [data-tab].hidden{display:none}
+  #app{grid-template-columns:1fr}
+}
+
+@media(max-width:480px){
+  .logo{font-size:12px;letter-spacing:2px}
+  #hdr{padding:0 12px}
+}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="logo"><em>Hotel</em> Seat Intelligence</div>
+  <div id="stbar"><div class="dot" id="dot"></div><span id="stxt">CSV-Dateien laden</span></div>
+</div>
+
+<div id="tabs">
+  <button class="act" onclick="showTab('sidebar')">⚙ Setup</button>
+  <button onclick="showTab('fp')">🗺 Grundriss</button>
+  <button onclick="showTab('gl')">👥 Gäste</button>
+</div>
+
+<div id="app">
+
+  <!-- Sidebar -->
+  <div id="sidebar" data-tab="sidebar">
+
+    <div class="slbl">Daten Import</div>
+
+    <label class="upbtn" id="ub-g">
+      <input type="file" accept=".csv" id="fi-g">
+      <span class="ico" id="ico-g">👤</span>
+      <div class="info">
+        <div class="t">Gäste-CSV</div>
+        <div class="s" id="sub-g">Tippen zum Auswählen</div>
+      </div>
+    </label>
+
+    <label class="upbtn" id="ub-t">
+      <input type="file" accept=".csv" id="fi-t">
+      <span class="ico" id="ico-t">🗺</span>
+      <div class="info">
+        <div class="t">Tische-CSV</div>
+        <div class="s" id="sub-t">Tippen zum Auswählen</div>
+      </div>
+    </label>
+
+    <div class="sep"></div>
+
+    <button class="btn btn-gold" id="btn-run" disabled>
+      <span>▶</span> Zuweisung berechnen
+    </button>
+    <button class="btn btn-ghost" id="btn-print" disabled>
+      <span>🖨</span> Drucken / Speichern
+    </button>
+
+    <div class="sep"></div>
+
+    <div class="slbl">Statistik</div>
+    <div class="sgrid">
+      <div class="sc"><div class="v" id="sv-g">0</div><div class="k">Gäste</div></div>
+      <div class="sc"><div class="v" id="sv-t">0</div><div class="k">Tische</div></div>
+      <div class="sc"><div class="v" id="sv-a">—</div><div class="k">Zugewiesen</div></div>
+      <div class="sc"><div class="v" id="sv-f">—</div><div class="k">Auslastung</div></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="slbl">Zonen</div>
+    <div class="leg">
+      <div class="li"><div class="ld" style="background:var(--za)"></div>Zone A — Premium / Fenster</div>
+      <div class="li"><div class="ld" style="background:var(--zb)"></div>Zone B — Standard-Plus</div>
+      <div class="li"><div class="ld" style="background:var(--zc)"></div>Zone C — Standard</div>
+      <div class="li"><div class="ld" style="background:var(--zf)"></div>Zone F — Familie</div>
+      <div class="li"><div class="ld" style="background:var(--zq)"></div>Zone Q — Ruhig</div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="slbl">Hinweise</div>
+    <div id="warns"><div class="wok">— noch keine Zuweisung —</div></div>
+
+  </div>
+
+  <!-- Floor plan -->
+  <div id="fp" data-tab="fp">
+    <div id="fp-hdr">
+      Grundriss — Restaurant
+      <span style="margin-left:auto;font-weight:400;letter-spacing:0;color:var(--dim)" id="fp-info"></span>
+    </div>
+    <div id="fp-wrap">
+      <div id="fp-empty">
+        <div class="big">🏨</div>
+        <div class="msg">Tische-CSV laden<br>um Grundriss anzuzeigen</div>
+      </div>
+      <svg id="fp-svg" viewBox="0 0 820 530" xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <!-- Guest list -->
+  <div id="gl" data-tab="gl">
+    <div id="gl-hdr">
+      <span>Prioritätsliste</span>
+      <span id="gl-cnt" style="font-weight:400;letter-spacing:0;color:var(--dim)"></span>
+    </div>
+    <div id="gl-body">
+      <div class="ges"><div class="b">👥</div><div>Gäste-CSV laden</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tooltip -->
+<div id="tip">
+  <div class="tn" id="tt-nm"></div>
+  <div class="tr"><span class="tk">Zimmer</span><span class="tv" id="tt-rm"></span></div>
+  <div class="tr"><span class="tk">Kategorie</span><span class="tv" id="tt-ct"></span></div>
+  <div class="tr"><span class="tk">Typ</span><span class="tv" id="tt-ty"></span></div>
+  <div class="tr"><span class="tk">Personen</span><span class="tv" id="tt-ps"></span></div>
+  <div class="tr"><span class="tk">Anlass</span><span class="tv" id="tt-oc"></span></div>
+  <div class="tr"><span class="tk">Tisch</span><span class="tv" id="tt-tb"></span></div>
+  <div class="tsc" id="tt-sc"></div>
+</div>
+
+<script>
+'use strict';
+/* ─── Algorithm constants ──────────────────────────────────────────────────── */
+const GASTTYP_P={Honeymoon:25,Geburtstag:22,Jubilaeum:22,VIP:20,Stammgast:15,Familie:12,Einzelgast:8,Gruppe:6};
+const ANLASS_P={Hochzeitstag:15,Honeymoon:15,Geburtstag:12,Jubilaeum:12,Abschluss:8,Sonstiges:5};
+const KAT_R={Presidential:1,Suite:.9,Deluxe:.75,Superior:.6,Standard:.4};
+const ZC={A:'#C8A84B',B:'#3BB87A',C:'#5A7A96',F:'#3AB4E0',Q:'#9B72C0'};
+const SVG_W=820,SVG_H=530,M=38,FW=SVG_W-2*M,FH=SVG_H-2*M;
+
+/* ─── State ────────────────────────────────────────────────────────────────── */
+let guests=[],tables=[],gLoaded=false,tLoaded=false;
+
+/* ─── Helpers ──────────────────────────────────────────────────────────────── */
+const el=id=>document.getElementById(id);
+const bool=v=>/^(ja|yes|1|true)$/i.test(String(v||'').trim());
+const int=(v,d=0)=>{const n=parseInt(String(v||'').trim());return isNaN(n)?d:n};
+const flt=(v,d=0)=>{const n=parseFloat(String(v||'').replace(',','.').trim());return isNaN(n)?d:n};
+const pct=(arr,p)=>{const s=[...arr].sort((a,b)=>a-b);const i=(p/100)*(s.length-1);const lo=Math.floor(i);return s[lo]+(s[Math.ceil(i)]-s[lo])*(i-lo)};
+
+/* ─── CSV Parser ───────────────────────────────────────────────────────────── */
+function parseCSV(text){
+  const lines=text.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return[];
+  const hdrs=lines[0].split(';').map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const vals=line.split(';');
+    return Object.fromEntries(hdrs.map((h,i)=>[h,vals[i]?.trim()||'']));
+  });
+}
+
+function rowToGuest(r){
+  return{
+    gast_id:r.GastID||'',
+    nachname:r.Nachname||'',
+    vorname:r.Vorname||'',
+    zimmernummer:r.Zimmernummer||'',
+    zimmerkategorie:r.Zimmerkategorie||'Standard',
+    tagesrate:flt(r.Tagesrate),
+    verbleibende_naechte:int(r.VerbleibendeNaechte,1),
+    gast_typ:r.GastTyp||'Einzelgast',
+    anzahl_personen:int(r.AnzahlPersonen,1),
+    kinder_unter_12:int(r.KinderUnter12),
+    besonderer_anlass:r.BesondererAnlass||'',
+    praeferenzen:r.Praeferenzen||'',
+    gruppen_id:r.GruppenID||'',
+    vip:bool(r.VIP),
+    wiederholungs_besuche:int(r.WiederholungsBesuche),
+    mobilitaet:r.Mobilitaet||'',
+    prioritaet_score:0,
+    zugewiesene_zone:'',
+    zugewiesener_tisch:'',
+  };
+}
+
+function rowToTable(r){
+  return{
+    tisch_id:r.TischID||'',
+    zone:r.Zone||'C',
+    kapazitaet:int(r.Kapazitaet,2),
+    fensterlage:bool(r.Fensterlage),
+    ruhig:bool(r.Ruhig),
+    familie_geeignet:bool(r.FamilieGeeignet),
+    steckdose:bool(r.Steckdose),
+    barrierefrei:bool(r.Barrierefrei),
+    beschreibung:r.Beschreibung||'',
+    aktiv:r.Aktiv===''?true:bool(r.Aktiv),
+    x_pos:flt(r.X,50),
+    y_pos:flt(r.Y,50),
+    belegt:false,
+  };
+}
+
+/* ─── Algorithm ────────────────────────────────────────────────────────────── */
+function scoreGuest(g,rateThreshold){
+  const rr=Math.min(g.tagesrate/Math.max(rateThreshold,1),1);
+  const kr=KAT_R[g.zimmerkategorie]||.5;
+  const fin=(rr*.7+kr*.3)*30;
+  const auf=Math.min(g.verbleibende_naechte/14,1)*20;
+  let gtyp=GASTTYP_P[g.gast_typ]||5;
+  if(g.wiederholungs_besuche>=5) gtyp=Math.min(gtyp+3,25);
+  else if(g.wiederholungs_besuche>=2) gtyp=Math.min(gtyp+1,25);
+  const an=ANLASS_P[g.besonderer_anlass]||0;
+  const pr=g.praeferenzen?5:0;
+  return Math.round(fin+auf+gtyp+an+pr);
+}
+
+function zoneFor(g){
+  if(g.kinder_unter_12>0||g.gast_typ==='Familie') return'F';
+  if(g.prioritaet_score>=85) return'A';
+  if(g.prioritaet_score>=70) return'B';
+  return'C';
+}
+
+function prefScore(g,t){
+  const p=(g.praeferenzen||'').toLowerCase();
+  let s=0;
+  if(p.includes('fenster')&&t.fensterlage) s+=3;
+  if(p.includes('ruhig')&&t.ruhig) s+=2;
+  if(p.includes('steckdose')&&t.steckdose) s+=1;
+  s-=Math.abs(t.kapazitaet-g.anzahl_personen);
+  return s;
+}
+
+function findTable(g,zone,tabs){
+  const c=tabs.filter(t=>!t.belegt&&t.zone===zone&&t.kapazitaet>=g.anzahl_personen&&(!g.mobilitaet||t.barrierefrei));
+  if(!c.length) return null;
+  return c.reduce((b,t)=>prefScore(g,t)>prefScore(g,b)?t:b);
+}
+
+function findFallback(g,tabs){
+  return tabs.find(t=>!t.belegt&&t.kapazitaet>=g.anzahl_personen&&(!g.mobilitaet||t.barrierefrei))||null;
+}
+
+function runAlgorithm(gIn,tIn){
+  const rates=gIn.map(g=>g.tagesrate);
+  const threshold=pct(rates,75);
+  const gs=gIn.map(g=>({...g,prioritaet_score:scoreGuest({...g},threshold)}));
+  const ts=tIn.map(t=>({...t,belegt:false}));
+  const warnings=[];
+
+  const fam=gs.filter(g=>g.kinder_unter_12>0||g.gast_typ==='Familie');
+  const bar=gs.filter(g=>!(g.kinder_unter_12>0||g.gast_typ==='Familie')&&g.mobilitaet);
+  const nor=gs.filter(g=>!(g.kinder_unter_12>0||g.gast_typ==='Familie')&&!g.mobilitaet);
+  const sorted=[...fam,...bar,...nor.sort((a,b)=>b.prioritaet_score-a.prioritaet_score)];
+
+  sorted.forEach(g=>{
+    const zone=zoneFor(g);
+    const t=findTable(g,zone,ts);
+    if(t){
+      g.zugewiesene_zone=t.zone;
+      g.zugewiesener_tisch=t.tisch_id;
+      t.belegt=true;
+    } else {
+      const fb=findFallback(g,ts);
+      if(fb){
+        g.zugewiesene_zone=fb.zone;
+        g.zugewiesener_tisch=fb.tisch_id;
+        fb.belegt=true;
+        warnings.push(`⚠️ ${g.nachname}: Zone ${zone} voll → ${fb.zone}`);
+      } else {
+        warnings.push(`🔴 ${g.nachname}: Kein Tisch verfügbar!`);
+      }
+    }
+  });
+
+  return{guests:sorted,tables:ts,warnings};
+}
+
+/* ─── File loading ─────────────────────────────────────────────────────────── */
+function setStatus(msg,mode=''){
+  el('stxt').textContent=msg;
+  el('dot').className='dot'+(mode?' '+mode:'');
+}
+
+function readFile(file,cb){
+  const r=new FileReader();
+  r.onload=e=>cb(e.target.result);
+  r.readAsText(file,'utf-8');
+}
+
+el('fi-g').addEventListener('change',function(){
+  if(!this.files[0]) return;
+  setStatus('Gäste laden …','spin');
+  readFile(this.files[0],text=>{
+    const rows=parseCSV(text);
+    guests=rows.map(rowToGuest).filter(g=>g.nachname);
+    gLoaded=true;
+    el('ub-g').classList.add('ok');
+    el('ico-g').textContent='✅';
+    el('sub-g').textContent=`${guests.length} Gäste geladen`;
+    el('sv-g').textContent=guests.length;
+    renderGuestList(guests);
+    checkReady();
+    setStatus('Gäste geladen','go');
+  });
+});
+
+el('fi-t').addEventListener('change',function(){
+  if(!this.files[0]) return;
+  setStatus('Tische laden …','spin');
+  readFile(this.files[0],text=>{
+    const rows=parseCSV(text);
+    tables=rows.map(rowToTable).filter(t=>t.tisch_id);
+    tLoaded=true;
+    el('ub-t').classList.add('ok');
+    el('ico-t').textContent='✅';
+    el('sub-t').textContent=`${tables.length} Tische geladen`;
+    el('sv-t').textContent=tables.length;
+    renderFP(tables,guests);
+    checkReady();
+    setStatus('Tische geladen','go');
+  });
+});
+
+function checkReady(){el('btn-run').disabled=!(gLoaded&&tLoaded)}
+
+el('btn-run').addEventListener('click',()=>{
+  if(!gLoaded||!tLoaded){alert('Bitte erst beide CSV-Dateien laden.');return}
+  setStatus('Zuweisung berechnen …','spin');
+  setTimeout(()=>{
+    const res=runAlgorithm(guests,tables);
+    guests=res.guests; tables=res.tables;
+    const n=guests.filter(g=>g.zugewiesener_tisch).length;
+    el('sv-a').textContent=n;
+    el('sv-f').textContent=Math.round(n/Math.max(tables.length,1)*100)+'%';
+    renderFP(tables,guests);
+    renderGuestList(guests);
+    renderWarnings(res.warnings);
+    el('btn-print').disabled=false;
+    setStatus(`Zugewiesen: ${n}/${guests.length} Gäste`,'go');
+    if(window.innerWidth<=768) showTab('fp');
+  },50);
+});
+
+el('btn-print').addEventListener('click',()=>window.print());
+
+/* ─── Floor plan ───────────────────────────────────────────────────────────── */
+function renderFP(tabs,gs){
+  el('fp-empty').style.display='none';
+  const svg=el('fp-svg'); svg.style.display='block';
+  const ns='http://www.w3.org/2000/svg';
+  const byT={}; (gs||[]).forEach(g=>{if(g.zugewiesener_tisch) byT[g.zugewiesener_tisch]=g});
+  const mk=(tag,attrs,txt)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.textContent=txt;return e};
+
+  svg.innerHTML=`<defs><filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+
+  svg.appendChild(mk('rect',{x:0,y:0,width:SVG_W,height:SVG_H,fill:'#0D1925'}));
+  svg.appendChild(mk('rect',{x:M,y:M,width:FW,height:FH,rx:8,fill:'#111E2C',stroke:'#1E3045','stroke-width':1.5}));
+  svg.appendChild(mk('rect',{x:M,y:M,width:FW*.19,height:FH,rx:6,fill:'rgba(200,168,75,0.05)'}));
+  svg.appendChild(mk('line',{x1:M+FW*.19,y1:M,x2:M+FW*.19,y2:M+FH,stroke:'rgba(200,168,75,0.08)','stroke-width':1,'stroke-dasharray':'4,4'}));
+  svg.appendChild(mk('rect',{x:M+FW*.71,y:M+FH*.56,width:FW*.29,height:FH*.44,rx:6,fill:'rgba(58,180,224,0.05)'}));
+  svg.appendChild(mk('rect',{x:M+FW*.41,y:M+FH*.71,width:FW*.2,height:FH*.26,rx:6,fill:'rgba(155,114,192,0.05)'}));
+  svg.appendChild(mk('text',{x:M+5,y:M-10,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'← FENSTER'));
+  svg.appendChild(mk('text',{x:M+FW*.73,y:M+FH*.59,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'FAMILIENZONE'));
+  svg.appendChild(mk('text',{x:M+FW*.43,y:M+FH*.74,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'RUHIG'));
+
+  tabs.forEach(t=>{
+    if(!t.aktiv) return;
+    const cx=M+(t.x_pos/100)*FW, cy=M+(t.y_pos/100)*FH;
+    const tw=t.kapazitaet<=2?54:t.kapazitaet<=4?66:80;
+    const th=t.kapazitaet<=2?38:t.kapazitaet<=4?46:56;
+    const x1=cx-tw/2,y1=cy-th/2;
+    const zc=ZC[t.zone]||'#5A7A96';
+    const g=byT[t.tisch_id];
+
+    const grp=document.createElementNS(ns,'g');
+    if(g){grp.appendChild(mk('rect',{x:x1+2,y:y1+3,width:tw,height:th,rx:7,fill:zc,opacity:.15,filter:'url(#gw)'}))}
+
+    grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:th,rx:7,
+      fill:g?zc+'28':'rgba(255,255,255,0.02)',stroke:g?zc:'#1E3045','stroke-width':g?2:1.5}));
+    if(g) grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:3,rx:2,fill:zc,opacity:.8}));
+
+    grp.appendChild(mk('text',{x:cx.toFixed(1),y:(g?cy-8:cy-4).toFixed(1),'text-anchor':'middle',
+      'font-size':9,'font-weight':'700',fill:g?zc:'#2A4060','font-family':'system-ui'},t.tisch_id));
+
+    if(g){
+      const nm=g.nachname.length>10?g.nachname.slice(0,9)+'…':g.nachname;
+      grp.appendChild(mk('text',{x:cx.toFixed(1),y:(cy+4).toFixed(1),'text-anchor':'middle','font-size':8.5,fill:'#C0CDD8','font-family':'system-ui'},nm));
+      grp.appendChild(mk('text',{x:cx.toFixed(1),y:(cy+16).toFixed(1),'text-anchor':'middle','font-size':9.5,'font-weight':'700',fill:zc,'font-family':'system-ui'},'★ '+g.prioritaet_score));
+    } else {
+      grp.appendChild(mk('text',{x:cx.toFixed(1),y:(cy+7).toFixed(1),'text-anchor':'middle','font-size':10,fill:'#1E3045','font-family':'system-ui'},'· '.repeat(Math.min(t.kapazitaet,5)).trim()));
+    }
+
+    if(t.fensterlage) grp.appendChild(mk('text',{x:(x1+tw-3).toFixed(1),y:(y1+10).toFixed(1),'text-anchor':'end','font-size':8,fill:'rgba(200,168,75,.7)','font-family':'system-ui'},'W'));
+    if(t.barrierefrei) grp.appendChild(mk('text',{x:(x1+3).toFixed(1),y:(y1+10).toFixed(1),'font-size':8,fill:'rgba(90,122,150,.7)','font-family':'system-ui'},'♿'));
+
+    if(g){
+      grp.style.cursor='pointer';
+      grp.addEventListener('mousemove',e=>showTip(e,g,t));
+      grp.addEventListener('mouseleave',()=>el('tip').classList.remove('on'));
+      grp.addEventListener('touchstart',e=>{e.preventDefault();showTip(e.touches[0],g,t)},{passive:false});
+    }
+    svg.appendChild(grp);
+  });
+
+  const belegt=tabs.filter(t=>t.belegt).length;
+  el('fp-info').textContent=tabs.filter(t=>t.aktiv).length+' Tische'+(belegt>0?' · '+belegt+' belegt':'');
+}
+
+/* ─── Tooltip ──────────────────────────────────────────────────────────────── */
+function showTip(e,g,t){
+  const zc=ZC[g.zugewiesene_zone]||'#5A7A96';
+  el('tt-nm').textContent=`${g.nachname}, ${g.vorname}`;el('tt-nm').style.color=zc;
+  el('tt-rm').textContent=g.zimmernummer;
+  el('tt-ct').textContent=g.zimmerkategorie;
+  el('tt-ty').textContent=g.gast_typ+(g.vip?' · ⭐ VIP':'');
+  el('tt-ps').textContent=g.anzahl_personen+(g.kinder_unter_12>0?` + ${g.kinder_unter_12} Kinder`:'');
+  el('tt-oc').textContent=g.besonderer_anlass||'—';
+  el('tt-tb').textContent=`${t.tisch_id} (Zone ${t.zone})`;
+  el('tt-sc').textContent=`★ ${g.prioritaet_score} / 100`;el('tt-sc').style.color=zc;
+  const tip=el('tip');
+  tip.style.left=Math.min(e.clientX+14,window.innerWidth-240)+'px';
+  tip.style.top=Math.min(e.clientY-20,window.innerHeight-200)+'px';
+  tip.classList.add('on');
+}
+
+/* ─── Guest list ───────────────────────────────────────────────────────────── */
+function renderGuestList(gs){
+  const body=el('gl-body');
+  if(!gs||!gs.length){body.innerHTML='<div class="ges"><div class="b">👥</div><div>Keine Gäste</div></div>';return}
+  const sorted=[...gs].sort((a,b)=>b.prioritaet_score-a.prioritaet_score);
+  el('gl-cnt').textContent=sorted.length+' Gäste';
+  body.innerHTML=sorted.map(g=>{
+    const z=g.zugewiesene_zone||'—';
+    const zc=ZC[z]||'#2A4060';
+    const sc=g.prioritaet_score||0;
+    return`<div class="gr">
+      <div class="gsc" style="${sc?`background:${zc}22;color:${zc}`:'color:#2A4060'}">${sc||'—'}</div>
+      <div class="gnm"><div class="n">${g.nachname}, ${g.vorname}</div>
+        <div class="k">${g.gast_typ}${g.besonderer_anlass?' · '+g.besonderer_anlass:''}</div></div>
+      <div class="zbg" style="background:${zc}">Z${z}</div>
+      <div class="tch">${g.zugewiesener_tisch||'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── Warnings ─────────────────────────────────────────────────────────────── */
+function renderWarnings(ws){
+  const el2=el('warns');
+  el2.innerHTML=!ws||!ws.length
+    ?'<div class="wok">✓ Alle optimal platziert</div>'
+    :ws.map(w=>`<div class="wi ${w.includes('🔴')?'cr':''}">\${w}</div>`).join('');
+}
+
+/* ─── Mobile tabs ──────────────────────────────────────────────────────────── */
+function showTab(id){
+  document.querySelectorAll('[data-tab]').forEach(el2=>{
+    el2.classList.toggle('hidden',el2.id!==id);
+  });
+  document.querySelectorAll('#tabs button').forEach((b,i)=>{
+    const ids=['sidebar','fp','gl'];
+    b.classList.toggle('act',ids[i]===id);
+  });
+}
+
+if(window.innerWidth<=768){
+  document.querySelectorAll('[data-tab]').forEach((el2,i)=>{if(i>0)el2.classList.add('hidden')});
+}
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('[data-tab]').forEach(el2=>el2.classList.remove('hidden'));
+});
+
+const d=new Date();
+document.title=`Hotel Seat Intelligence — ${d.toLocaleDateString('de-DE')}`;
+</script>
+</body>
+</html>
