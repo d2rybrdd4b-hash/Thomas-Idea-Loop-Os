@@ -163,9 +163,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </div>
 
 <div id="tabs">
-  <button class="act" onclick="showTab('sidebar')">⚙ Setup</button>
-  <button onclick="showTab('fp')">🗺 Grundriss</button>
-  <button onclick="showTab('gl')">👥 Gäste</button>
+  <button class="act" onclick="showTab('sidebar')">&#9881; Setup</button>
+  <button onclick="showTab('fp')">&#128506; Grundriss</button>
+  <button onclick="showTab('gl')">&#128101; G&auml;ste</button>
 </div>
 
 <div id="app">
@@ -177,68 +177,72 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <label class="upbtn" id="ub-g">
       <input type="file" accept=".csv" id="fi-g">
-      <span class="ico" id="ico-g">👤</span>
+      <span class="ico" id="ico-g">&#128100;</span>
       <div class="info">
-        <div class="t">Gäste-CSV</div>
-        <div class="s" id="sub-g">Tippen zum Auswählen</div>
+        <div class="t">G&auml;ste-CSV</div>
+        <div class="s" id="sub-g">Tippen zum Ausw&auml;hlen</div>
       </div>
     </label>
 
     <label class="upbtn" id="ub-t">
       <input type="file" accept=".csv" id="fi-t">
-      <span class="ico" id="ico-t">🗺</span>
+      <span class="ico" id="ico-t">&#128506;</span>
       <div class="info">
         <div class="t">Tische-CSV</div>
-        <div class="s" id="sub-t">Tippen zum Auswählen</div>
+        <div class="s" id="sub-t">Tippen zum Ausw&auml;hlen</div>
       </div>
     </label>
+
+    <button class="btn btn-ghost" id="btn-demo" style="border-color:rgba(200,168,75,.4);color:var(--gold)">
+      <span>&#128203;</span> Demo-Daten laden
+    </button>
 
     <div class="sep"></div>
 
     <button class="btn btn-gold" id="btn-run" disabled>
-      <span>▶</span> Zuweisung berechnen
+      <span>&#9654;</span> Zuweisung berechnen
     </button>
     <button class="btn btn-ghost" id="btn-print" disabled>
-      <span>🖨</span> Drucken / Speichern
+      <span>&#128424;</span> Drucken / Speichern
     </button>
 
     <div class="sep"></div>
 
     <div class="slbl">Statistik</div>
     <div class="sgrid">
-      <div class="sc"><div class="v" id="sv-g">0</div><div class="k">Gäste</div></div>
+      <div class="sc"><div class="v" id="sv-g">0</div><div class="k">G&auml;ste</div></div>
       <div class="sc"><div class="v" id="sv-t">0</div><div class="k">Tische</div></div>
-      <div class="sc"><div class="v" id="sv-a">—</div><div class="k">Zugewiesen</div></div>
-      <div class="sc"><div class="v" id="sv-f">—</div><div class="k">Auslastung</div></div>
+      <div class="sc"><div class="v" id="sv-a">&mdash;</div><div class="k">Zugewiesen</div></div>
+      <div class="sc"><div class="v" id="sv-f">&mdash;</div><div class="k">Auslastung</div></div>
     </div>
 
     <div class="sep"></div>
 
     <div class="slbl">Zonen</div>
     <div class="leg">
-      <div class="li"><div class="ld" style="background:var(--za)"></div>Zone A — Premium / Fenster</div>
-      <div class="li"><div class="ld" style="background:var(--zb)"></div>Zone B — Standard-Plus</div>
-      <div class="li"><div class="ld" style="background:var(--zc)"></div>Zone C — Standard</div>
-      <div class="li"><div class="ld" style="background:var(--zf)"></div>Zone F — Familie</div>
-      <div class="li"><div class="ld" style="background:var(--zq)"></div>Zone Q — Ruhig</div>
+      <div class="li"><div class="ld" style="background:var(--za)"></div>Zone A &mdash; Premium / Fenster</div>
+      <div class="li"><div class="ld" style="background:var(--zb)"></div>Zone B &mdash; Standard-Plus</div>
+      <div class="li"><div class="ld" style="background:var(--zc)"></div>Zone C &mdash; Standard</div>
+      <div class="li"><div class="ld" style="background:var(--zf)"></div>Zone F &mdash; Familie</div>
+      <div class="li"><div class="ld" style="background:var(--zq)"></div>Zone Q &mdash; Ruhig</div>
     </div>
 
     <div class="sep"></div>
 
     <div class="slbl">Hinweise</div>
-    <div id="warns"><div class="wok">— noch keine Zuweisung —</div></div>
+    <div id="warns"><div class="wok">&mdash; noch keine Zuweisung &mdash;</div></div>
 
   </div>
 
   <!-- Floor plan -->
   <div id="fp" data-tab="fp">
     <div id="fp-hdr">
-      Grundriss — Restaurant
+      Grundriss &mdash; Restaurant
       <span style="margin-left:auto;font-weight:400;letter-spacing:0;color:var(--dim)" id="fp-info"></span>
     </div>
     <div id="fp-wrap">
       <div id="fp-empty">
-        <div class="big">🏨</div>
+        <div class="big">&#127976;</div>
         <div class="msg">Tische-CSV laden<br>um Grundriss anzuzeigen</div>
       </div>
       <svg id="fp-svg" viewBox="0 0 820 530" xmlns="http://www.w3.org/2000/svg"
@@ -249,11 +253,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <!-- Guest list -->
   <div id="gl" data-tab="gl">
     <div id="gl-hdr">
-      <span>Prioritätsliste</span>
+      <span>Priorit&auml;tsliste</span>
       <span id="gl-cnt" style="font-weight:400;letter-spacing:0;color:var(--dim)"></span>
     </div>
     <div id="gl-body">
-      <div class="ges"><div class="b">👥</div><div>Gäste-CSV laden</div></div>
+      <div class="ges"><div class="b">&#128101;</div><div>G&auml;ste-CSV laden</div></div>
     </div>
   </div>
 
@@ -273,24 +277,55 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <script>
 'use strict';
-/* ─── Algorithm constants ──────────────────────────────────────────────────── */
 const GASTTYP_P={Honeymoon:25,Geburtstag:22,Jubilaeum:22,VIP:20,Stammgast:15,Familie:12,Einzelgast:8,Gruppe:6};
 const ANLASS_P={Hochzeitstag:15,Honeymoon:15,Geburtstag:12,Jubilaeum:12,Abschluss:8,Sonstiges:5};
 const KAT_R={Presidential:1,Suite:.9,Deluxe:.75,Superior:.6,Standard:.4};
 const ZC={A:'#C8A84B',B:'#3BB87A',C:'#5A7A96',F:'#3AB4E0',Q:'#9B72C0'};
 const SVG_W=820,SVG_H=530,M=38,FW=SVG_W-2*M,FH=SVG_H-2*M;
 
-/* ─── State ────────────────────────────────────────────────────────────────── */
+const DEMO_G=`GastID;Nachname;Vorname;Zimmernummer;Zimmerkategorie;Tagesrate;CheckIn;CheckOut;VerbleibendeNaechte;GastTyp;AnzahlPersonen;KinderUnter12;BesondererAnlass;Praeferenzen;GruppenID;VIP;WiederholungsBesuche;Bemerkungen;Mobilitaet
+G001;Hartmann;Michael;101;Presidential;850;2026-06-09;2026-06-14;3;Honeymoon;2;0;Hochzeitstag;Fenster;;Ja;3;;
+G002;Müller;Hans;205;Suite;520;2026-06-10;2026-06-15;4;Stammgast;1;0;;Ruhig;;Nein;7;;
+G003;Weber;Familie;312;Deluxe;380;2026-06-08;2026-06-13;2;Familie;4;2;;;Familie;;Nein;1;;
+G004;Bauer;Klaus;418;Superior;280;2026-06-11;2026-06-12;1;VIP;2;0;;Fenster;;Ja;0;;
+G005;Fischer;Anna;220;Suite;490;2026-06-09;2026-06-16;5;Einzelgast;1;0;Geburtstag;Ruhig;Steckdose;Nein;2;;
+G006;Wagner;Peter;115;Standard;180;2026-06-11;2026-06-13;2;Einzelgast;2;0;;;;;Nein;0;;
+G007;Schneider;Familie;330;Deluxe;360;2026-06-10;2026-06-17;6;Familie;5;3;;;;;Nein;0;;
+G008;Koch;Robert;410;Presidential;780;2026-06-11;2026-06-15;4;Stammgast;2;0;;Fenster;;Nein;12;;
+G009;Becker;Sophie;108;Suite;510;2026-06-09;2026-06-14;3;Honeymoon;2;0;Honeymoon;Fenster;;Nein;0;;
+G010;Zimmermann;Franz;216;Superior;240;2026-06-11;2026-06-12;1;Einzelgast;1;0;;;;;Nein;0;;Rollstuhl`;
+
+const DEMO_T=`TischID;Zone;Kapazitaet;Fensterlage;Ruhig;FamilieGeeignet;Steckdose;Barrierefrei;Beschreibung;Aktiv;X;Y
+A01;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;12
+A02;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Süd;Ja;8;26
+A03;A;4;Ja;Nein;Nein;Nein;Ja;Fenster Süd barrierefrei;Ja;8;42
+A04;A;2;Ja;Nein;Nein;Nein;Nein;Fenster Nord;Ja;8;58
+B01;B;4;Nein;Nein;Nein;Ja;Nein;Mitte West;Ja;30;12
+B02;B;2;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;28
+B03;B;4;Nein;Nein;Nein;Nein;Nein;Mitte;Ja;30;44
+B04;B;6;Nein;Nein;Nein;Nein;Nein;Mitte Oval;Ja;30;60
+B05;B;2;Nein;Nein;Nein;Ja;Nein;Mitte Ost;Ja;48;12
+B06;B;4;Nein;Nein;Nein;Nein;Nein;Mitte Ost;Ja;48;30
+C01;C;4;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;12
+C02;C;2;Nein;Nein;Nein;Nein;Nein;Hinten links;Ja;66;28
+C03;C;4;Nein;Nein;Nein;Nein;Nein;Hinten;Ja;66;44
+C04;C;6;Nein;Nein;Nein;Nein;Nein;Hinten gross;Ja;66;60
+C05;C;2;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;12
+C06;C;4;Nein;Nein;Nein;Nein;Nein;Hinten rechts;Ja;82;30
+F01;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;82;58
+F02;F;6;Nein;Nein;Ja;Nein;Nein;Familienecke gross;Ja;82;74
+F03;F;4;Nein;Nein;Ja;Nein;Nein;Familienecke;Ja;68;74
+Q01;Q;2;Nein;Ja;Nein;Nein;Nein;Ruhige Nische;Ja;48;74
+Q02;Q;4;Nein;Ja;Nein;Ja;Nein;Ruhige Nische barrierefrei;Ja;48;88`;
+
 let guests=[],tables=[],gLoaded=false,tLoaded=false;
 
-/* ─── Helpers ──────────────────────────────────────────────────────────────── */
 const el=id=>document.getElementById(id);
 const bool=v=>/^(ja|yes|1|true)$/i.test(String(v||'').trim());
 const int=(v,d=0)=>{const n=parseInt(String(v||'').trim());return isNaN(n)?d:n};
 const flt=(v,d=0)=>{const n=parseFloat(String(v||'').replace(',','.').trim());return isNaN(n)?d:n};
 const pct=(arr,p)=>{const s=[...arr].sort((a,b)=>a-b);const i=(p/100)*(s.length-1);const lo=Math.floor(i);return s[lo]+(s[Math.ceil(i)]-s[lo])*(i-lo)};
 
-/* ─── CSV Parser ───────────────────────────────────────────────────────────── */
 function parseCSV(text){
   const lines=text.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2) return[];
@@ -303,47 +338,26 @@ function parseCSV(text){
 
 function rowToGuest(r){
   return{
-    gast_id:r.GastID||'',
-    nachname:r.Nachname||'',
-    vorname:r.Vorname||'',
-    zimmernummer:r.Zimmernummer||'',
-    zimmerkategorie:r.Zimmerkategorie||'Standard',
-    tagesrate:flt(r.Tagesrate),
-    verbleibende_naechte:int(r.VerbleibendeNaechte,1),
-    gast_typ:r.GastTyp||'Einzelgast',
-    anzahl_personen:int(r.AnzahlPersonen,1),
-    kinder_unter_12:int(r.KinderUnter12),
-    besonderer_anlass:r.BesondererAnlass||'',
-    praeferenzen:r.Praeferenzen||'',
-    gruppen_id:r.GruppenID||'',
-    vip:bool(r.VIP),
-    wiederholungs_besuche:int(r.WiederholungsBesuche),
-    mobilitaet:r.Mobilitaet||'',
-    prioritaet_score:0,
-    zugewiesene_zone:'',
-    zugewiesener_tisch:'',
+    gast_id:r.GastID||'',nachname:r.Nachname||'',vorname:r.Vorname||'',
+    zimmernummer:r.Zimmernummer||'',zimmerkategorie:r.Zimmerkategorie||'Standard',
+    tagesrate:flt(r.Tagesrate),verbleibende_naechte:int(r.VerbleibendeNaechte,1),
+    gast_typ:r.GastTyp||'Einzelgast',anzahl_personen:int(r.AnzahlPersonen,1),
+    kinder_unter_12:int(r.KinderUnter12),besonderer_anlass:r.BesondererAnlass||'',
+    praeferenzen:r.Praeferenzen||'',gruppen_id:r.GruppenID||'',vip:bool(r.VIP),
+    wiederholungs_besuche:int(r.WiederholungsBesuche),mobilitaet:r.Mobilitaet||'',
+    prioritaet_score:0,zugewiesene_zone:'',zugewiesener_tisch:'',
   };
 }
 
 function rowToTable(r){
   return{
-    tisch_id:r.TischID||'',
-    zone:r.Zone||'C',
-    kapazitaet:int(r.Kapazitaet,2),
-    fensterlage:bool(r.Fensterlage),
-    ruhig:bool(r.Ruhig),
-    familie_geeignet:bool(r.FamilieGeeignet),
-    steckdose:bool(r.Steckdose),
-    barrierefrei:bool(r.Barrierefrei),
-    beschreibung:r.Beschreibung||'',
-    aktiv:r.Aktiv===''?true:bool(r.Aktiv),
-    x_pos:flt(r.X,50),
-    y_pos:flt(r.Y,50),
-    belegt:false,
+    tisch_id:r.TischID||'',zone:r.Zone||'C',kapazitaet:int(r.Kapazitaet,2),
+    fensterlage:bool(r.Fensterlage),ruhig:bool(r.Ruhig),familie_geeignet:bool(r.FamilieGeeignet),
+    steckdose:bool(r.Steckdose),barrierefrei:bool(r.Barrierefrei),beschreibung:r.Beschreibung||'',
+    aktiv:r.Aktiv===''?true:bool(r.Aktiv),x_pos:flt(r.X,50),y_pos:flt(r.Y,50),belegt:false,
   };
 }
 
-/* ─── Algorithm ────────────────────────────────────────────────────────────── */
 function scoreGuest(g,rateThreshold){
   const rr=Math.min(g.tagesrate/Math.max(rateThreshold,1),1);
   const kr=KAT_R[g.zimmerkategorie]||.5;
@@ -390,36 +404,28 @@ function runAlgorithm(gIn,tIn){
   const gs=gIn.map(g=>({...g,prioritaet_score:scoreGuest({...g},threshold)}));
   const ts=tIn.map(t=>({...t,belegt:false}));
   const warnings=[];
-
   const fam=gs.filter(g=>g.kinder_unter_12>0||g.gast_typ==='Familie');
   const bar=gs.filter(g=>!(g.kinder_unter_12>0||g.gast_typ==='Familie')&&g.mobilitaet);
   const nor=gs.filter(g=>!(g.kinder_unter_12>0||g.gast_typ==='Familie')&&!g.mobilitaet);
   const sorted=[...fam,...bar,...nor.sort((a,b)=>b.prioritaet_score-a.prioritaet_score)];
-
   sorted.forEach(g=>{
     const zone=zoneFor(g);
     const t=findTable(g,zone,ts);
     if(t){
-      g.zugewiesene_zone=t.zone;
-      g.zugewiesener_tisch=t.tisch_id;
-      t.belegt=true;
+      g.zugewiesene_zone=t.zone;g.zugewiesener_tisch=t.tisch_id;t.belegt=true;
     } else {
       const fb=findFallback(g,ts);
       if(fb){
-        g.zugewiesene_zone=fb.zone;
-        g.zugewiesener_tisch=fb.tisch_id;
-        fb.belegt=true;
-        warnings.push(`⚠️ ${g.nachname}: Zone ${zone} voll → ${fb.zone}`);
+        g.zugewiesene_zone=fb.zone;g.zugewiesener_tisch=fb.tisch_id;fb.belegt=true;
+        warnings.push('⚠️ '+g.nachname+': Zone '+zone+' voll → '+fb.zone);
       } else {
-        warnings.push(`🔴 ${g.nachname}: Kein Tisch verfügbar!`);
+        warnings.push('🔴 '+g.nachname+': Kein Tisch verfügbar!');
       }
     }
   });
-
   return{guests:sorted,tables:ts,warnings};
 }
 
-/* ─── File loading ─────────────────────────────────────────────────────────── */
 function setStatus(msg,mode=''){
   el('stxt').textContent=msg;
   el('dot').className='dot'+(mode?' '+mode:'');
@@ -431,48 +437,55 @@ function readFile(file,cb){
   r.readAsText(file,'utf-8');
 }
 
+function loadGuestData(text){
+  const rows=parseCSV(text);
+  guests=rows.map(rowToGuest).filter(g=>g.nachname);
+  gLoaded=true;
+  el('ub-g').classList.add('ok');
+  el('ico-g').textContent='✅';
+  el('sub-g').textContent=guests.length+' Gäste geladen';
+  el('sv-g').textContent=guests.length;
+  renderGuestList(guests);
+}
+
+function loadTableData(text){
+  const rows=parseCSV(text);
+  tables=rows.map(rowToTable).filter(t=>t.tisch_id);
+  tLoaded=true;
+  el('ub-t').classList.add('ok');
+  el('ico-t').textContent='✅';
+  el('sub-t').textContent=tables.length+' Tische geladen';
+  el('sv-t').textContent=tables.length;
+  renderFP(tables,guests);
+}
+
 el('fi-g').addEventListener('change',function(){
   if(!this.files[0]) return;
   setStatus('Gäste laden …','spin');
-  readFile(this.files[0],text=>{
-    const rows=parseCSV(text);
-    guests=rows.map(rowToGuest).filter(g=>g.nachname);
-    gLoaded=true;
-    el('ub-g').classList.add('ok');
-    el('ico-g').textContent='✅';
-    el('sub-g').textContent=`${guests.length} Gäste geladen`;
-    el('sv-g').textContent=guests.length;
-    renderGuestList(guests);
-    checkReady();
-    setStatus('Gäste geladen','go');
-  });
+  readFile(this.files[0],text=>{loadGuestData(text);checkReady();setStatus('Gäste geladen','go');});
 });
 
 el('fi-t').addEventListener('change',function(){
   if(!this.files[0]) return;
   setStatus('Tische laden …','spin');
-  readFile(this.files[0],text=>{
-    const rows=parseCSV(text);
-    tables=rows.map(rowToTable).filter(t=>t.tisch_id);
-    tLoaded=true;
-    el('ub-t').classList.add('ok');
-    el('ico-t').textContent='✅';
-    el('sub-t').textContent=`${tables.length} Tische geladen`;
-    el('sv-t').textContent=tables.length;
-    renderFP(tables,guests);
-    checkReady();
-    setStatus('Tische geladen','go');
-  });
+  readFile(this.files[0],text=>{loadTableData(text);checkReady();setStatus('Tische geladen','go');});
 });
 
 function checkReady(){el('btn-run').disabled=!(gLoaded&&tLoaded)}
 
+el('btn-demo').addEventListener('click',()=>{
+  loadGuestData(DEMO_G);
+  loadTableData(DEMO_T);
+  checkReady();
+  setStatus('Demo geladen — Zuweisung berechnen!','go');
+});
+
 el('btn-run').addEventListener('click',()=>{
-  if(!gLoaded||!tLoaded){alert('Bitte erst beide CSV-Dateien laden.');return}
+  if(!gLoaded||!tLoaded){alert('Bitte erst Daten laden.');return}
   setStatus('Zuweisung berechnen …','spin');
   setTimeout(()=>{
     const res=runAlgorithm(guests,tables);
-    guests=res.guests; tables=res.tables;
+    guests=res.guests;tables=res.tables;
     const n=guests.filter(g=>g.zugewiesener_tisch).length;
     el('sv-a').textContent=n;
     el('sv-f').textContent=Math.round(n/Math.max(tables.length,1)*100)+'%';
@@ -480,24 +493,20 @@ el('btn-run').addEventListener('click',()=>{
     renderGuestList(guests);
     renderWarnings(res.warnings);
     el('btn-print').disabled=false;
-    setStatus(`Zugewiesen: ${n}/${guests.length} Gäste`,'go');
+    setStatus('Zugewiesen: '+n+'/'+guests.length+' Gäste','go');
     if(window.innerWidth<=768) showTab('fp');
   },50);
 });
 
 el('btn-print').addEventListener('click',()=>window.print());
 
-/* ─── Floor plan ───────────────────────────────────────────────────────────── */
 function renderFP(tabs,gs){
   el('fp-empty').style.display='none';
-  const svg=el('fp-svg'); svg.style.display='block';
+  const svg=el('fp-svg');svg.style.display='block';
   const ns='http://www.w3.org/2000/svg';
-  const byT={}; (gs||[]).forEach(g=>{if(g.zugewiesener_tisch) byT[g.zugewiesener_tisch]=g});
+  const byT={};(gs||[]).forEach(g=>{if(g.zugewiesener_tisch) byT[g.zugewiesener_tisch]=g});
   const mk=(tag,attrs,txt)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.textContent=txt;return e};
-
-  svg.innerHTML=`<defs><filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-
+  svg.innerHTML='<defs><filter id="gw"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   svg.appendChild(mk('rect',{x:0,y:0,width:SVG_W,height:SVG_H,fill:'#0D1925'}));
   svg.appendChild(mk('rect',{x:M,y:M,width:FW,height:FH,rx:8,fill:'#111E2C',stroke:'#1E3045','stroke-width':1.5}));
   svg.appendChild(mk('rect',{x:M,y:M,width:FW*.19,height:FH,rx:6,fill:'rgba(200,168,75,0.05)'}));
@@ -507,26 +516,21 @@ function renderFP(tabs,gs){
   svg.appendChild(mk('text',{x:M+5,y:M-10,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'← FENSTER'));
   svg.appendChild(mk('text',{x:M+FW*.73,y:M+FH*.59,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'FAMILIENZONE'));
   svg.appendChild(mk('text',{x:M+FW*.43,y:M+FH*.74,'font-size':8.5,fill:'#2A4060','font-family':'system-ui','font-weight':'600','letter-spacing':'1'},'RUHIG'));
-
   tabs.forEach(t=>{
     if(!t.aktiv) return;
-    const cx=M+(t.x_pos/100)*FW, cy=M+(t.y_pos/100)*FH;
+    const cx=M+(t.x_pos/100)*FW,cy=M+(t.y_pos/100)*FH;
     const tw=t.kapazitaet<=2?54:t.kapazitaet<=4?66:80;
     const th=t.kapazitaet<=2?38:t.kapazitaet<=4?46:56;
     const x1=cx-tw/2,y1=cy-th/2;
     const zc=ZC[t.zone]||'#5A7A96';
     const g=byT[t.tisch_id];
-
     const grp=document.createElementNS(ns,'g');
-    if(g){grp.appendChild(mk('rect',{x:x1+2,y:y1+3,width:tw,height:th,rx:7,fill:zc,opacity:.15,filter:'url(#gw)'}))}
-
+    if(g) grp.appendChild(mk('rect',{x:x1+2,y:y1+3,width:tw,height:th,rx:7,fill:zc,opacity:.15,filter:'url(#gw)'}));
     grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:th,rx:7,
       fill:g?zc+'28':'rgba(255,255,255,0.02)',stroke:g?zc:'#1E3045','stroke-width':g?2:1.5}));
     if(g) grp.appendChild(mk('rect',{x:x1.toFixed(1),y:y1.toFixed(1),width:tw,height:3,rx:2,fill:zc,opacity:.8}));
-
     grp.appendChild(mk('text',{x:cx.toFixed(1),y:(g?cy-8:cy-4).toFixed(1),'text-anchor':'middle',
       'font-size':9,'font-weight':'700',fill:g?zc:'#2A4060','font-family':'system-ui'},t.tisch_id));
-
     if(g){
       const nm=g.nachname.length>10?g.nachname.slice(0,9)+'…':g.nachname;
       grp.appendChild(mk('text',{x:cx.toFixed(1),y:(cy+4).toFixed(1),'text-anchor':'middle','font-size':8.5,fill:'#C0CDD8','font-family':'system-ui'},nm));
@@ -534,10 +538,8 @@ function renderFP(tabs,gs){
     } else {
       grp.appendChild(mk('text',{x:cx.toFixed(1),y:(cy+7).toFixed(1),'text-anchor':'middle','font-size':10,fill:'#1E3045','font-family':'system-ui'},'· '.repeat(Math.min(t.kapazitaet,5)).trim()));
     }
-
     if(t.fensterlage) grp.appendChild(mk('text',{x:(x1+tw-3).toFixed(1),y:(y1+10).toFixed(1),'text-anchor':'end','font-size':8,fill:'rgba(200,168,75,.7)','font-family':'system-ui'},'W'));
     if(t.barrierefrei) grp.appendChild(mk('text',{x:(x1+3).toFixed(1),y:(y1+10).toFixed(1),'font-size':8,fill:'rgba(90,122,150,.7)','font-family':'system-ui'},'♿'));
-
     if(g){
       grp.style.cursor='pointer';
       grp.addEventListener('mousemove',e=>showTip(e,g,t));
@@ -546,57 +548,51 @@ function renderFP(tabs,gs){
     }
     svg.appendChild(grp);
   });
-
   const belegt=tabs.filter(t=>t.belegt).length;
   el('fp-info').textContent=tabs.filter(t=>t.aktiv).length+' Tische'+(belegt>0?' · '+belegt+' belegt':'');
 }
 
-/* ─── Tooltip ──────────────────────────────────────────────────────────────── */
 function showTip(e,g,t){
   const zc=ZC[g.zugewiesene_zone]||'#5A7A96';
-  el('tt-nm').textContent=`${g.nachname}, ${g.vorname}`;el('tt-nm').style.color=zc;
+  el('tt-nm').textContent=g.nachname+', '+g.vorname;el('tt-nm').style.color=zc;
   el('tt-rm').textContent=g.zimmernummer;
   el('tt-ct').textContent=g.zimmerkategorie;
   el('tt-ty').textContent=g.gast_typ+(g.vip?' · ⭐ VIP':'');
-  el('tt-ps').textContent=g.anzahl_personen+(g.kinder_unter_12>0?` + ${g.kinder_unter_12} Kinder`:'');
+  el('tt-ps').textContent=g.anzahl_personen+(g.kinder_unter_12>0?' + '+g.kinder_unter_12+' Kinder':'');
   el('tt-oc').textContent=g.besonderer_anlass||'—';
-  el('tt-tb').textContent=`${t.tisch_id} (Zone ${t.zone})`;
-  el('tt-sc').textContent=`★ ${g.prioritaet_score} / 100`;el('tt-sc').style.color=zc;
+  el('tt-tb').textContent=t.tisch_id+' (Zone '+t.zone+')';
+  el('tt-sc').textContent='★ '+g.prioritaet_score+' / 100';el('tt-sc').style.color=zc;
   const tip=el('tip');
   tip.style.left=Math.min(e.clientX+14,window.innerWidth-240)+'px';
   tip.style.top=Math.min(e.clientY-20,window.innerHeight-200)+'px';
   tip.classList.add('on');
 }
 
-/* ─── Guest list ───────────────────────────────────────────────────────────── */
 function renderGuestList(gs){
   const body=el('gl-body');
-  if(!gs||!gs.length){body.innerHTML='<div class="ges"><div class="b">👥</div><div>Keine Gäste</div></div>';return}
+  if(!gs||!gs.length){body.innerHTML='<div class="ges"><div class="b">&#128101;</div><div>Keine Gäste</div></div>';return}
   const sorted=[...gs].sort((a,b)=>b.prioritaet_score-a.prioritaet_score);
   el('gl-cnt').textContent=sorted.length+' Gäste';
   body.innerHTML=sorted.map(g=>{
     const z=g.zugewiesene_zone||'—';
     const zc=ZC[z]||'#2A4060';
     const sc=g.prioritaet_score||0;
-    return`<div class="gr">
-      <div class="gsc" style="${sc?`background:${zc}22;color:${zc}`:'color:#2A4060'}">${sc||'—'}</div>
-      <div class="gnm"><div class="n">${g.nachname}, ${g.vorname}</div>
-        <div class="k">${g.gast_typ}${g.besonderer_anlass?' · '+g.besonderer_anlass:''}</div></div>
-      <div class="zbg" style="background:${zc}">Z${z}</div>
-      <div class="tch">${g.zugewiesener_tisch||'—'}</div>
-    </div>`;
+    return '<div class="gr">'
+      +'<div class="gsc" style="'+(sc?'background:'+zc+'22;color:'+zc:'color:#2A4060')+'">'+(sc||'—')+'</div>'
+      +'<div class="gnm"><div class="n">'+g.nachname+', '+g.vorname+'</div>'
+      +'<div class="k">'+g.gast_typ+(g.besonderer_anlass?' · '+g.besonderer_anlass:'')+'</div></div>'
+      +'<div class="zbg" style="background:'+zc+'">Z'+z+'</div>'
+      +'<div class="tch">'+(g.zugewiesener_tisch||'—')+'</div></div>';
   }).join('');
 }
 
-/* ─── Warnings ─────────────────────────────────────────────────────────────── */
 function renderWarnings(ws){
   const el2=el('warns');
   el2.innerHTML=!ws||!ws.length
     ?'<div class="wok">✓ Alle optimal platziert</div>'
-    :ws.map(w=>`<div class="wi ${w.includes('🔴')?'cr':''}">\${w}</div>`).join('');
+    :ws.map(w=>'<div class="wi'+(w.includes('🔴')?' cr':'')+'">'+w+'</div>').join('');
 }
 
-/* ─── Mobile tabs ──────────────────────────────────────────────────────────── */
 function showTab(id){
   document.querySelectorAll('[data-tab]').forEach(el2=>{
     el2.classList.toggle('hidden',el2.id!==id);
@@ -615,7 +611,7 @@ window.addEventListener('resize',()=>{
 });
 
 const d=new Date();
-document.title=`Hotel Seat Intelligence — ${d.toLocaleDateString('de-DE')}`;
+document.title='Hotel Seat Intelligence — '+d.toLocaleDateString('de-DE');
 </script>
 </body>
 </html>
