@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="night">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
@@ -10,34 +10,45 @@
 :root{
   --bg:#0D1925;--panel:#111E2C;--card:#172433;--border:#1E3045;
   --gold:#C8A84B;--gold-glow:rgba(200,168,75,.12);
-  --green:#2ECC71;--red:#E55;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
+  --green:#2ECC71;--red:#E55555;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
   --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;
-  --r:10px;
+  --hdr:#090F17;--r:10px;
+}
+[data-theme="day"]{
+  --bg:#F5F0E8;--panel:#FFFFFF;--card:#FAFAF7;--border:#E2DDD4;
+  --gold:#9B6B1A;--gold-glow:rgba(155,107,26,.1);
+  --green:#1F7A45;--red:#B5342A;--orange:#C05C10;--text:#1A1A2E;--dim:#7C7A8C;
+  --za:#9B6B1A;--zb:#1F7A45;--zc:#3A5070;--zf:#1A5F8A;--zq:#5A3A8A;
+  --hdr:#1E2B4A;
 }
 html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-          background:var(--bg);color:var(--text);overflow:hidden}
+          background:var(--bg);color:var(--text);overflow:hidden;transition:background .25s,color .25s}
 
 /* ── HEADER ── */
-#hdr{height:52px;background:#090F17;border-bottom:1px solid var(--border);
+#hdr{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.08);
      display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
-.logo{font-size:13px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap}
+#theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+           color:rgba(255,255,255,.75);border-radius:20px;padding:4px 12px;
+           font-size:10px;cursor:pointer;white-space:nowrap;transition:all .2s}
+#theme-btn:hover{background:rgba(255,255,255,.18)}
+.logo{font-size:13px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.8)}
 .logo em{color:var(--gold);font-style:normal;font-weight:600}
 #hdr-steps{display:flex;align-items:center;gap:0;flex:1;justify-content:center}
 .hstep{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;
-       letter-spacing:.5px;text-transform:uppercase;color:var(--dim);
+       letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.35);
        padding:6px 12px;cursor:pointer;transition:color .2s;white-space:nowrap}
-.hstep .snum{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--dim);
+.hstep .snum{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);
              display:flex;align-items:center;justify-content:center;font-size:9px;
              flex-shrink:0;transition:all .2s}
 .hstep.act{color:var(--gold)}
 .hstep.act .snum{border-color:var(--gold);background:var(--gold);color:#090F17}
 .hstep.done{color:var(--green)}
 .hstep.done .snum{border-color:var(--green);background:var(--green);color:#090F17}
-.harrow{color:var(--border);font-size:10px}
-#hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .3s}
+.harrow{color:rgba(255,255,255,.2);font-size:10px}
+#hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);flex-shrink:0;transition:background .3s}
 .dot.go{background:var(--green)}.dot.spin{background:var(--gold);animation:blink 1s infinite}
-#stxt{font-size:9px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stxt{font-size:9px;color:rgba(255,255,255,.45);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes blink{50%{opacity:.3}}
 
 /* ── MAIN AREA ── */
@@ -293,6 +304,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
   </div>
   <div id="hdr-right">
+    <button id="theme-btn" onclick="toggleTheme()">☀️ Tag</button>
     <div class="dot" id="sdot"></div>
     <div id="stxt">Bereit</div>
   </div>
@@ -1540,40 +1552,61 @@ let planFilterVal='';
 function filterPlan(val){planFilterVal=val;renderPlanTable(assignedGuests,val);}
 
 // ══════════════════════════════════════════════════════════════
+//  THEME TOGGLE
+// ══════════════════════════════════════════════════════════════
+function zoneColors(){
+  const s=getComputedStyle(document.documentElement);
+  const g=p=>s.getPropertyValue(p).trim();
+  return{A:g('--za'),B:g('--zb'),C:g('--zc'),F:g('--zf'),Q:g('--zq'),
+         bg:g('--bg'),card:g('--card'),border:g('--border'),dim:g('--dim')};
+}
+function toggleTheme(){
+  const html=document.documentElement;
+  const isNight=html.getAttribute('data-theme')==='night';
+  html.setAttribute('data-theme',isNight?'day':'night');
+  el('theme-btn').textContent=isNight?'🌙 Nacht':'☀️ Tag';
+  localStorage.setItem('hsi_theme',isNight?'day':'night');
+  if(calcDone) renderFP(lastTables,assignedGuests);
+}
+
+// ══════════════════════════════════════════════════════════════
 //  FLOOR PLAN RENDER
 // ══════════════════════════════════════════════════════════════
+let lastTables=[];
 function renderFP(tables,guests){
+  lastTables=tables;
   const container=el('fp-render');
   if(!container) return;
 
   const gMap={};
   guests.forEach(g=>{if(g.zugewiesener_tisch) gMap[g.zugewiesener_tisch]=g;});
 
-  const zoneColor={'A':'#C8A84B','B':'#3BB87A','C':'#5A7A96','F':'#3AB4E0','Q':'#9B72C0'};
+  const zc=zoneColors();
+  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
 
   let maxX=600,maxY=400;
   tables.forEach(t=>{if(t.x>maxX-60) maxX=t.x+60;if(t.y>maxY-60) maxY=t.y+60;});
 
   const svg=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
-    <rect width="${maxX}" height="${maxY}" fill="#0D1925"/>
+    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}"/>
     ${tables.filter(t=>t.aktiv).map(t=>{
       const g=gMap[t.tisch_id];
-      const col=zoneColor[t.zone]||'#5A7A96';
-      const fill=g?col+'22':'#172433';
-      const stroke=g?col:'#1E3045';
+      const col=zoneColor[t.zone]||zc.dim;
+      const fill=g?col+'22':zc.card;
+      const stroke=g?col:zc.border;
       const r=t.kapazitaet>4?28:t.kapazitaet>2?24:20;
       return`<g>
         <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${g?2:1}"/>
-        <text x="${t.x}" y="${t.y-6}" text-anchor="middle" font-size="9" fill="${g?col:'#5A7A96'}" font-weight="600">${t.tisch_id}</text>
+        <text x="${t.x}" y="${t.y-6}" text-anchor="middle" font-size="9" fill="${g?col:zc.dim}" font-weight="600">${t.tisch_id}</text>
         ${g?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${col}">${g.zimmer}</text>`:''}
-        ${g&&g.pax?`<text x="${t.x}" y="${t.y+16}" text-anchor="middle" font-size="7" fill="#5A7A96">${g.pax}P</text>`:''}
-        ${t.blocked_for?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="#9B72C0">VORG.</text>`:''}
+        ${g&&g.pax?`<text x="${t.x}" y="${t.y+16}" text-anchor="middle" font-size="7" fill="${zc.dim}">${g.pax}P</text>`:''}
+        ${t.blocked_for?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${zc.Q||zc.dim}">VORG.</text>`:''}
       </g>`;
     }).join('')}
     ${['A','B','C','F','Q'].map(z=>{
       const first=tables.find(t=>t.zone===z&&t.aktiv);
       if(!first) return'';
-      const col=zoneColor[z]||'#5A7A96';
+      const col=zoneColor[z]||zc.dim;
       return`<text x="${first.x}" y="${first.y-36}" text-anchor="middle" font-size="10" fill="${col}" font-weight="700" letter-spacing="2">ZONE ${z}</text>`;
     }).join('')}
   </svg>`;
@@ -1820,6 +1853,12 @@ function markStepDone(step,done){
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
+// Restore theme
+(()=>{
+  const t=localStorage.getItem('hsi_theme')||'night';
+  document.documentElement.setAttribute('data-theme',t);
+  el('theme-btn').textContent=t==='day'?'🌙 Nacht':'☀️ Tag';
+})();
 loadPMSProfiles();
 loadRules();
 loadWeights();
