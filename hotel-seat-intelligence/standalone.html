@@ -156,6 +156,16 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .cstep .ctxt p{font-size:10px;color:var(--dim);line-height:1.5}
 .cstep .cres{margin-top:6px;font-size:10px;color:var(--green)}
 #s3-results{display:none}
+#demo-banner{margin-bottom:14px}
+.demo-banner-inner{background:rgba(243,156,18,.1);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.demo-banner-txt{flex:1;color:var(--gold);font-size:11px;font-weight:600}
+.demo-banner-btn{background:var(--gold);color:#090F17;border:none;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.s1-demo-hero{background:rgba(243,156,18,.08);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;cursor:pointer}
+.s1-demo-hero:hover{background:rgba(243,156,18,.15)}
+.s1-demo-ico{font-size:28px;flex-shrink:0}
+.s1-demo-txt h3{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:3px}
+.s1-demo-txt p{font-size:10px;color:var(--dim)}
+.s1-demo-arrow{font-size:20px;color:var(--gold);flex-shrink:0}
 .res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
 .rcard{background:var(--card);border-radius:12px;padding:16px;text-align:center;border:1px solid var(--border)}
 .rcard .rv{font-size:26px;font-weight:700;color:var(--gold);margin-bottom:4px}
@@ -429,11 +439,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="1" onclick="goStep(1)">
-      <div class="snum">1</div><span class="slabel">Dateien&nbsp;laden</span>
+      <div class="snum">1</div><span class="slabel">Gäste&nbsp;laden</span>
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="2" onclick="goStep(2)">
-      <div class="snum">2</div><span class="slabel">Daten&nbsp;prüfen</span>
+      <div class="snum">2</div><span class="slabel">Prüfen</span>
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="3" onclick="goStep(3)">
@@ -493,14 +503,14 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="dstat ds-red"><div class="dv" id="ds-warns">0</div><div class="dk">Warnungen</div></div>
     </div>
     <div class="dash-actions">
-      <div class="daction" onclick="goStep(1)">
+      <div class="daction" onclick="isDemoMode=false;el('demo-banner').style.display='none';goStep(1)">
         <div class="dico">📋</div>
-        <div class="dtit">Neuer Plan</div>
-        <div class="dsub">Dateien laden &amp; starten</div>
+        <div class="dtit">Eigene Daten</div>
+        <div class="dsub">Gästeliste hochladen</div>
       </div>
-      <div class="daction" onclick="loadDemoAndStart()">
+      <div class="daction" onclick="loadDemoAndCalc()">
         <div class="dico">🎭</div>
-        <div class="dtit">Demo laden</div>
+        <div class="dtit">Demo</div>
         <div class="dsub">60 Testgäste sofort</div>
       </div>
       <div class="daction" id="da-plan" onclick="calcDone?goStep(3):goStep(1)"
@@ -523,16 +533,25 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ─── SCHRITT 1: Dateien laden ─── -->
 <div class="page act" id="s1">
   <div class="page-hdr">
-    <h1>Schritt 1 — <em>Hoteldateien laden</em></h1>
-    <p>Laden Sie die Tages-Exportdateien aus Ihrem PMS. CSV oder Excel werden erkannt.</p>
+    <h1>Gästeliste hochladen</h1>
+    <p>Laden Sie die Tagesliste aus Ihrem PMS — oder starten Sie mit der Demo.</p>
+  </div>
+
+  <div class="s1-demo-hero" onclick="loadDemoAndCalc()">
+    <div class="s1-demo-ico">🎭</div>
+    <div class="s1-demo-txt">
+      <h3>Demo starten — sofort loslegen</h3>
+      <p>60 Testgäste · Bleibegäste · VIP · Familien · Allergien · kein Upload nötig</p>
+    </div>
+    <div class="s1-demo-arrow">›</div>
   </div>
 
   <div class="file-grid">
     <div class="fcard" id="fc-vortag" onclick="el('fi-vortag').click()">
       <input type="file" id="fi-vortag" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('vortag',this)">
       <div class="fico">📋</div>
-      <div class="ftit">Vortages-Tischplan</div>
-      <div class="fsub">Welcher Gast saß gestern wo?<br>Für Bleibegäste-Zuordnung nötig.</div>
+      <div class="ftit">Tischplan von gestern</div>
+      <div class="fsub">Welcher Gast saß gestern wo?<br>Nötig für Stammgäste.</div>
       <div class="fbadge" id="fb-vortag">Pflicht</div>
       <div class="fname" id="fn-vortag"></div>
       <div class="fcard-hint">oder Datei hierher ziehen</div>
@@ -541,8 +560,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="fcard" id="fc-ankuenfte" onclick="el('fi-ankuenfte').click()">
       <input type="file" id="fi-ankuenfte" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('ankuenfte',this)">
       <div class="fico">🛬</div>
-      <div class="ftit">PMS — Ankünfte</div>
-      <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS-System.</div>
+      <div class="ftit">Anreisen</div>
+      <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS.</div>
       <div class="fbadge" id="fb-ankuenfte">Pflicht</div>
       <div class="fname" id="fn-ankuenfte"></div>
       <div class="fcard-hint">oder Datei hierher ziehen</div>
@@ -551,8 +570,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="fcard" id="fc-inhaus" onclick="el('fi-inhaus').click()">
       <input type="file" id="fi-inhaus" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('inhaus',this)">
       <div class="fico">🏨</div>
-      <div class="ftit">PMS — Inhouse Gäste</div>
-      <div class="fsub">Alle aktuell belegten Zimmer.<br>Bleibegäste & Stammgäste.</div>
+      <div class="ftit">Inhaus-Gäste</div>
+      <div class="fsub">Alle aktuell belegten Zimmer.<br>Stammgäste & Bleibegäste.</div>
       <div class="fbadge" id="fb-inhaus">Pflicht</div>
       <div class="fname" id="fn-inhaus"></div>
       <div class="fcard-hint">oder Datei hierher ziehen</div>
@@ -595,19 +614,18 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 
   <div class="bot">
-    <button class="btn btn-ghost" onclick="loadDemo()">🎭 Demo-Daten laden</button>
+    <button class="btn btn-ghost" onclick="goStep(0)">← Zurück</button>
     <button class="btn btn-gold" id="btn-s1-next" onclick="goStep(2)" disabled>
-      Weiter — Daten prüfen →
+      Weiter →
     </button>
   </div>
-  <div class="demo-note">Demo enthält alle Testfälle inkl. Bleibegäste, Gruppen, VIP, Kinder und Prognose</div>
 </div>
 
 <!-- ─── SCHRITT 2: Daten prüfen ─── -->
 <div class="page" id="s2">
   <div class="page-hdr">
-    <h1>Schritt 2 — <em>Daten prüfen</em></h1>
-    <p>Spalten zuordnen und Datenqualität prüfen bevor der Tischplan berechnet wird.</p>
+    <h1>Daten kurz prüfen</h1>
+    <p>Felder werden automatisch erkannt. Nur bei Bedarf manuell anpassen.</p>
   </div>
   <div class="s2-inner">
     <!-- Stats -->
@@ -678,10 +696,17 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ─── SCHRITT 3: Tischplan berechnen ─── -->
 <div class="page" id="s3">
   <div class="page-hdr">
-    <h1>Schritt 3 — <em>Tischplan erstellen</em></h1>
-    <p>Optimale Tischzuordnung nach Priorität, Stammgast-Regeln und Sonderregeln.</p>
+    <h1>Tischplan</h1>
+    <p>Optimale Zuweisung nach Stammgästen, VIP, Familien und Sonderregeln.</p>
   </div>
   <div class="s3-inner">
+    <div id="demo-banner" style="display:none">
+      <div class="demo-banner-inner">
+        <span>🎭</span>
+        <span class="demo-banner-txt">Demo-Modus · 60 Testgäste · Keine echten Hoteldaten</span>
+        <button class="demo-banner-btn" onclick="isDemoMode=false;el('demo-banner').style.display='none';goStep(1)">Eigene Daten laden →</button>
+      </div>
+    </div>
     <div class="calc-steps" id="calc-steps">
       <div class="cstep" id="cs1">
         <div class="cnum">1</div>
@@ -1012,6 +1037,7 @@ let scoreGewichte={};
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
 let currentStep=0;
 let calcDone=false;
+let isDemoMode=false;
 let activeMapping={};  // fieldName -> columnName mapping
 
 const DEFAULT_SW={
@@ -1839,6 +1865,7 @@ function runCalc(){
   el('btn-s3-next').disabled=false;
   calcDone=true;
   setStatus('Tischplan fertig — '+assigned+' Gäste zugewiesen','go');
+  el('demo-banner').style.display=isDemoMode?'':'none';
 
   // Update step 4
   renderWarnings();
@@ -2615,6 +2642,13 @@ function loadDemoAndStart(){
   setTimeout(()=>{goStep(2);},300);
 }
 
+function loadDemoAndCalc(){
+  loadDemo();
+  isDemoMode=true;
+  currentStep=2;
+  setTimeout(()=>{goStep(3);},200);
+}
+
 function markStepDone(step,done){
   const hs=document.querySelector(`.hstep[data-step="${step}"]`);
   if(hs){
@@ -2637,11 +2671,14 @@ loadRules();
 loadWeights();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
-setStatus('Bereit — Dateien laden oder Demo starten','');
+setStatus('Bereit','');
 setupDragDrop();
 updateDashboard();
 updateStickyBar(0);
 updateStepUI(0);
+
+// Demo-First: App startet direkt mit Ergebnis
+setTimeout(()=>{ loadDemoAndCalc(); }, 400);
 
 // Add rules for Zimmer 307 demo
 if(zimmerRegeln.length===0){
