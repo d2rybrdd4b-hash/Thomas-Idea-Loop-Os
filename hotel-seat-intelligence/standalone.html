@@ -557,14 +557,14 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div class="page act" id="s1">
   <div class="page-hdr">
     <h1>Gästeliste hochladen</h1>
-    <p>Laden Sie die Tagesliste aus Ihrem PMS — oder starten Sie mit der Demo.</p>
+    <p>Lade den Tagesexport aus deinem Hotelprogramm hoch — oder starte direkt mit der Demo.</p>
   </div>
 
   <div class="s1-demo-hero" onclick="loadDemoAndCalc()">
     <div class="s1-demo-ico">🎭</div>
     <div class="s1-demo-txt">
       <h3>Demo starten — sofort loslegen</h3>
-      <p>60 Testgäste · Bleibegäste · VIP · Familien · Allergien · kein Upload nötig</p>
+      <p>Zum Testen mit Beispielhotel starten. Keine eigenen Daten nötig.</p>
     </div>
     <div class="s1-demo-arrow">›</div>
   </div>
@@ -663,7 +663,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Column mapping -->
     <div class="s2-sec" id="map-sec">
-      <h3>📐 Spalten-Zuordnung</h3>
+      <h3>🔍 PMS-Daten erkannt?</h3>
       <div id="map-rows"></div>
       <div class="flex mt-8" style="gap:8px">
         <button class="btn btn-blue btn-sm" onclick="autoMap()">🔄 Auto-Erkennung</button>
@@ -676,7 +676,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Warnings from data check -->
     <div class="s2-sec">
-      <h3>⚠️ Daten-Befund</h3>
+      <h3>⚠️ Fehlende Angaben</h3>
       <div id="s2-warns"></div>
     </div>
 
@@ -693,11 +693,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <h3>⚙️ Einstellungen</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div>
-          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">REFERENZDATUM</label>
+          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">DATUM</label>
           <input type="date" id="ref-date" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
         </div>
         <div>
-          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">MAHLZEIT</label>
+          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">WAS WIRD GEPLANT?</label>
           <select id="slot-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
             <option value="fruehstueck">🌅 Frühstück</option>
             <option value="mittag">☀️ Mittagessen</option>
@@ -708,7 +708,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">AKTIONEN</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn btn-blue btn-sm" onclick="showRulesModal()">📏 Sonderregeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">⚖️ Gewichte</button>
+            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">⚖️ Tischregeln</button>
           </div>
         </div>
       </div>
@@ -727,7 +727,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div class="page" id="s3">
   <div class="page-hdr">
     <h1>Tischplan</h1>
-    <p>Optimale Zuweisung nach Stammgästen, VIP, Familien und Sonderregeln.</p>
+    <p>Die App schlägt Plätze vor — du kannst alles manuell anpassen.</p>
   </div>
   <div class="s3-inner">
     <div id="demo-banner" style="display:none">
@@ -765,8 +765,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="cstep" id="cs4">
         <div class="cnum">4</div>
         <div class="ctxt">
-          <h4>Prioritätsscore berechnen</h4>
-          <p>VIP, Langzeitgäste, Allergien, Kinder — gewichtet nach Hotelprofil.</p>
+          <h4>Tische zuweisen</h4>
+          <p>VIP, Langzeitgäste, Allergien, Kinder — nach Hotelprofil gewichtet.</p>
           <div class="cres" id="cs4-res"></div>
         </div>
       </div>
@@ -819,8 +819,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <button class="btn btn-ghost" onclick="goStep(2)">← Zurück</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-blue btn-sm" onclick="runCalc()">🔄 Neu</button>
-        <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Warnungen</button>
-        <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>⬇ Exportieren</button>
+        <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Hinweise</button>
+        <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>🖨 Druckmappe</button>
       </div>
     </div>
   </div>
@@ -829,19 +829,19 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ─── SCHRITT 4: Warnungen lösen ─── -->
 <div class="page" id="s4">
   <div class="page-hdr">
-    <h1>Schritt 4 — <em>Prüfung &amp; Freigabe</em></h1>
-    <p>Alle kritischen Hinweise prüfen und lösen bevor der Export freigegeben wird.</p>
+    <h1>Hinweise &amp; Freigabe</h1>
+    <p>Kritische Hinweise prüfen — dann direkt drucken oder exportieren.</p>
   </div>
   <div class="s4-inner">
     <div class="warn-summary" id="warn-summary"></div>
     <div id="warn-sections"></div>
     <div id="s4-proceed-note" class="hidden">
-      ✅ Alle kritischen Warnungen gelöst — Export ist freigegeben.
+      ✅ Alle kritischen Hinweise geklärt — Druckmappe ist freigegeben.
     </div>
     <div class="bot">
       <button class="btn btn-ghost" onclick="goStep(3)">← Zurück</button>
       <button class="btn btn-gold" id="btn-s4-next" onclick="goStep(5)" disabled>
-        Zum Export →
+        🖨 Druckmappe öffnen →
       </button>
     </div>
   </div>
@@ -850,20 +850,21 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ─── SCHRITT 5: Exportieren ─── -->
 <div class="page" id="s5">
   <div class="page-hdr">
-    <h1>Schritt 5 — <em>Excel exportieren</em></h1>
-    <p>Fertiger Tischplan als Excel-Datei mit drei Arbeitsblättern.</p>
+    <h1>Drucken &amp; Weitergeben</h1>
+    <p>Serviceplan, Rezeptionsliste und Schichtübergabe — bereit zum Drucken oder Exportieren.</p>
+    <p style="font-size:11px;color:var(--dim);margin-top:6px">Diese Listen kannst du direkt an Rezeption, Service oder Küche weitergeben.</p>
   </div>
   <div class="s5-inner">
     <div id="s5-locked">
-      <strong>🔒 Export gesperrt</strong><br>
-      Es gibt noch ungelöste kritische Punkte. Der Tischplan kann so nicht gedruckt oder exportiert werden.<br>
+      <strong>⚠️ Vor dem Drucken bitte prüfen</strong><br>
+      Es gibt noch offene Hinweise. Bitte kurz prüfen — dann ist die Druckmappe freigegeben.<br>
       <div class="s5-lock-action">
-        <button class="btn btn-red btn-sm" onclick="goStep(4)">→ Zu Schritt 4 — Warnungen lösen</button>
+        <button class="btn btn-red btn-sm" onclick="goStep(4)">→ Hinweise ansehen</button>
       </div>
     </div>
 
     <div class="print-btns">
-      <button class="btn btn-ghost" onclick="openPrint('service')">📋 Service-Liste</button>
+      <button class="btn btn-ghost" onclick="openPrint('service')">📋 Serviceplan</button>
       <button class="btn btn-ghost" onclick="openPrint('reception')">🏨 Rezeptionsliste</button>
       <button class="btn btn-ghost" onclick="openPrint('special')">⚠️ Sonderhinweise</button>
     </div>
@@ -872,28 +873,28 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="ecard">
         <div class="eico">📊</div>
         <h4>Tischplan</h4>
-        <p>Alle Gäste sortiert nach Tisch mit Zone, Status und Priorität.</p>
+        <p>Alle Gäste sortiert nach Tisch mit Zone, Status und Sonderhinweisen.</p>
       </div>
       <div class="ecard">
-        <div class="eico">🔢</div>
-        <h4>Sortierung Zimmer</h4>
-        <p>Gleiche Ansicht sortiert nach Zimmernummer für den Front Desk.</p>
+        <div class="eico">🏨</div>
+        <h4>Nach Zimmer</h4>
+        <p>Gleiche Ansicht sortiert nach Zimmernummer — für die Rezeption.</p>
       </div>
       <div class="ecard">
         <div class="eico">📋</div>
-        <h4>Kontrollbericht</h4>
-        <p>Statistiken, Warnungen und Prüfprotokoll für die Schichtübergabe.</p>
+        <h4>Schichtübergabe</h4>
+        <p>Statistiken, Warnungen und Übergabenotizen für das nächste Team.</p>
       </div>
     </div>
 
     <div class="export-main">
       <button class="btn btn-gold big-btn" id="btn-export" onclick="exportExcel()">
-        ⬇ Tischplan als Excel herunterladen
+        ⬇ Als Excel herunterladen
       </button>
     </div>
 
     <div id="s5-done">
-      ✅ Excel-Datei wurde heruntergeladen. Viel Erfolg beim Frühstück!
+      ✅ Datei heruntergeladen — viel Erfolg beim Service!
     </div>
 
     <div style="background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);margin-top:16px">
@@ -973,7 +974,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div class="modal-bg hidden" id="weights-modal">
   <div class="modal">
     <div class="modal-hdr">
-      <h3>⚖️ Prioritäts-Gewichte</h3>
+      <h3>⚖️ Tischregeln &amp; Gewichtung</h3>
       <button class="close" onclick="closeModal('weights-modal')">×</button>
     </div>
     <div class="modal-body">
@@ -1443,7 +1444,7 @@ function updateS2Warnings(){
   // Data warnings
   const rows=getMappedRows();
   if(rows.length===0){
-    warns.push({level:'red',msg:'Keine Gästedaten gefunden. Bitte Spalten-Zuordnung prüfen.'});
+    warns.push({level:'red',msg:'Keine Gästedaten gefunden. Bitte PMS-Daten prüfen.'});
   } else {
     warns.push({level:'green',msg:`${rows.length} Gäste gefunden und bereit für die Berechnung.`});
     const noZimmer=rows.filter(r=>!r.Zimmernummer||!r[activeMapping.Zimmernummer||'Zimmernummer']);
@@ -2297,10 +2298,10 @@ function enrichWarning(w){
     auswirkung='Die Gruppe ist größer als der Tisch erlaubt.';
     loesung='Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.';
   } else if(m.includes('Empfohlenes Feld')){
-    title='Spalten-Zuordnung unvollständig';
+    title='PMS-Daten unvollständig';
     problem=m;
     auswirkung='Fehlende Felder reduzieren die Genauigkeit der Tischzuweisung.';
-    loesung='In Schritt 2 die Spalten-Zuordnung prüfen und ergänzen.';
+    loesung='Unter "Daten prüfen" das fehlende Feld manuell zuweisen.';
   } else {
     title=m.length>70?m.slice(0,67)+'…':m;
     problem=m;
@@ -2430,7 +2431,7 @@ function exportExcel(){
   ws2['!cols']=[{wch:8},{wch:16},{wch:12},{wch:5},{wch:7},{wch:8},{wch:6},{wch:8},{wch:5},{wch:14},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws2,'Sortierung Zimmer');
 
-  // Sheet 3: Kontrollbericht
+  // Sheet 3: Schichtübergabe
   const totalActive=assignedGuests.length;
   const totalAssigned=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
   const totalPax=assignedGuests.filter(g=>g.zugewiesener_tisch).reduce((s,g)=>s+g.pax,0);
@@ -2441,7 +2442,7 @@ function exportExcel(){
   const yellowW=warnings.filter(w=>w.level==='yellow').length;
 
   const sh3Data=[
-    [`${hotelName} — Kontrollbericht`],
+    [`${hotelName} — Schichtübergabe`],
     [`Erstellt: ${new Date().toLocaleString('de-DE')} | Mahlzeit: ${slot} | Datum: ${dateStr}`],
     [],
     ['KENNGRÖSSE','WERT'],
@@ -2467,7 +2468,7 @@ function exportExcel(){
   ];
   const ws3=XLSX.utils.aoa_to_sheet(sh3Data);
   ws3['!cols']=[{wch:28},{wch:50}];
-  XLSX.utils.book_append_sheet(wb,ws3,'Kontrollbericht');
+  XLSX.utils.book_append_sheet(wb,ws3,'Schichtübergabe');
 
   const filename=(el('export-name').value||`Tischplan_${dateStr}`)+'.xlsx';
   XLSX.writeFile(wb,filename);
@@ -2638,7 +2639,7 @@ function updateStepUI(n){
 }
 
 // ── STICKY BAR ──
-const STEP_NAMES=['Dashboard','Dateien laden','Daten prüfen','Tischplan','Warnungen','Export'];
+const STEP_NAMES=['Dashboard','Gäste laden','Daten prüfen','Tischplan','Hinweise','Drucken'];
 function updateStickyBar(n){
   el('sb-step-name').textContent=STEP_NAMES[n]||'';
   el('sb-step-sub').textContent=n===0?'Hotel Seat Intelligence':`Schritt ${n} von 5`;
@@ -2678,7 +2679,7 @@ function updateDashboard(){
       if(redCount>0){
         cb.style.display='block';
         cb.className='ds-conflict-bar red';
-        cb.innerHTML=`🔒 ${redCount} kritische${redCount===1?'r':''} Punkt${redCount===1?' muss':' e müssen'} gelöst werden — Export gesperrt. <u>Jetzt prüfen →</u>`;
+        cb.innerHTML=`⚠️ ${redCount} Hinweis${redCount===1?'':' e'} offen — vor dem Drucken bitte prüfen. <u>Jetzt ansehen →</u>`;
       } else if(yellowCount>0){
         cb.style.display='block';
         cb.className='ds-conflict-bar yellow';
@@ -2737,8 +2738,9 @@ function showTableDetail(tischId){
       <span class="fd-room">Zi.${g.zimmer}</span>
       <span class="fd-name">${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}${g.kinder>0?' 👶'+g.kinder:''}${g.allergie?` <span style="color:var(--orange);font-size:10px">⚠ ${g.allergie}</span>`:''}</span>
       <span class="fd-pax">${g.pax} PAX</span>
-      <span style="font-size:10px;color:var(--dim);margin-left:4px">${g.status||''}</span>
-    </div>`).join('');
+      ${g.essen_zeit?`<span style="font-size:10px;color:var(--dim);margin-left:4px">🕐 ${g.essen_zeit}</span>`:''}
+    </div>
+    ${g.begruendung?`<div style="font-size:9px;color:var(--dim);padding:2px 0 6px 44px;border-bottom:1px solid var(--border)">${g.begruendung}</div>`:''}`).join('');
   detail.style.display='';
   detail.innerHTML=`
     <div class="fd-header">
