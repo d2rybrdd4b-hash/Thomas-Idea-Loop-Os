@@ -734,8 +734,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div>
           <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">AKTIONEN</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-blue btn-sm" onclick="showRulesModal()">📏 Sonderregeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">⚖️ Tischregeln</button>
+            <button class="btn btn-blue btn-sm" onclick="showRulesModal()">📏 Zimmer-Regeln</button>
+            <button class="btn btn-blue btn-sm" onclick="showTischRegelModal()">🪑 Tisch-Regeln</button>
+            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">⚖️ Priorität</button>
           </div>
         </div>
       </div>
@@ -993,6 +994,27 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 </div>
 
+<!-- Tisch-Sonderregeln modal -->
+<div class="modal-bg hidden" id="tisch-rules-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>🪑 Tisch-Sonderregeln</h3>
+      <button class="close" onclick="closeModal('tisch-rules-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:10px;color:var(--dim);margin-bottom:14px">
+        Tisch-spezifische Einschränkungen: maximale PAX, Bevorzugung für bestimmte Gruppengrößen.
+      </p>
+      <div id="tisch-rules-list"></div>
+      <button class="btn btn-blue btn-sm mt-8" onclick="addTischRuleRow()">+ Neue Tisch-Regel</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('tisch-rules-modal')">Abbrechen</button>
+      <button class="btn btn-gold btn-sm" onclick="saveTischRegeln()">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- Weights modal -->
 <div class="modal-bg hidden" id="weights-modal">
   <div class="modal">
@@ -1106,6 +1128,7 @@ let warnings=[];      // after runCalc
 let resolvedWarnings=new Set();
 let pmsProfiles={};
 let zimmerRegeln=[];
+let tischRegeln=[];
 let scoreGewichte={};
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
 let currentStep=0;
@@ -1147,34 +1170,46 @@ const IMPORTANT_FIELDS=['GastID','CheckIn','CheckOut','VorherigerTisch','GastTyp
 //  DEFAULT TABLES
 // ══════════════════════════════════════════════════════════════
 const DEFAULT_TABLES=[
-  // Zone A (Premium)
-  {tisch_id:'A01',zone:'A',kapazitaet:4,aktiv:true,x:60,y:60},
-  {tisch_id:'A02',zone:'A',kapazitaet:4,aktiv:true,x:60,y:120},
-  {tisch_id:'A03',zone:'A',kapazitaet:6,aktiv:true,x:60,y:180},
-  {tisch_id:'A04',zone:'A',kapazitaet:6,aktiv:true,x:60,y:240},
-  // Zone B (Fenster)
-  {tisch_id:'B01',zone:'B',kapazitaet:4,aktiv:true,x:160,y:60},
-  {tisch_id:'B02',zone:'B',kapazitaet:4,aktiv:true,x:160,y:120},
-  {tisch_id:'B03',zone:'B',kapazitaet:6,aktiv:true,x:160,y:180},
-  {tisch_id:'B04',zone:'B',kapazitaet:6,aktiv:true,x:160,y:240},
-  {tisch_id:'B05',zone:'B',kapazitaet:8,aktiv:true,x:160,y:310},
-  // Zone C (Mitte)
-  {tisch_id:'C01',zone:'C',kapazitaet:6,aktiv:true,x:270,y:80},
-  {tisch_id:'C02',zone:'C',kapazitaet:6,aktiv:true,x:270,y:160},
-  {tisch_id:'C03',zone:'C',kapazitaet:6,aktiv:true,x:270,y:240},
-  {tisch_id:'C04',zone:'C',kapazitaet:8,aktiv:true,x:270,y:320},
-  // Zone F (Familien)
-  {tisch_id:'F01',zone:'F',kapazitaet:8,aktiv:true,x:380,y:80},
-  {tisch_id:'F02',zone:'F',kapazitaet:8,aktiv:true,x:380,y:180},
-  {tisch_id:'F03',zone:'F',kapazitaet:10,aktiv:true,x:380,y:280},
-  // Zone Q (Quiet/Ruhig)
-  {tisch_id:'Q01',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:80},
-  {tisch_id:'Q02',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:140},
-  {tisch_id:'Q03',zone:'Q',kapazitaet:6,aktiv:true,x:490,y:200},
-  {tisch_id:'Q04',zone:'Q',kapazitaet:6,aktiv:true,x:490,y:270},
-  // Großtisch / Gruppenraum
-  {tisch_id:'S01',zone:'C',kapazitaet:12,aktiv:true,x:380,y:350},
+  // Zone A (Premium) — Kategorie 1–2
+  {tisch_id:'A01',zone:'A',kapazitaet:4,kategorie:1,aktiv:true,x:60,y:60},
+  {tisch_id:'A02',zone:'A',kapazitaet:4,kategorie:1,aktiv:true,x:60,y:120},
+  {tisch_id:'A03',zone:'A',kapazitaet:6,kategorie:2,aktiv:true,x:60,y:180},
+  {tisch_id:'A04',zone:'A',kapazitaet:6,kategorie:2,aktiv:true,x:60,y:240},
+  // Zone B (Fenster) — Kategorie 3–4
+  {tisch_id:'B01',zone:'B',kapazitaet:4,kategorie:3,aktiv:true,x:160,y:60},
+  {tisch_id:'B02',zone:'B',kapazitaet:4,kategorie:3,aktiv:true,x:160,y:120},
+  {tisch_id:'B03',zone:'B',kapazitaet:6,kategorie:4,aktiv:true,x:160,y:180},
+  {tisch_id:'B04',zone:'B',kapazitaet:6,kategorie:4,aktiv:true,x:160,y:240},
+  {tisch_id:'B05',zone:'B',kapazitaet:8,kategorie:4,aktiv:true,x:160,y:310},
+  // Zone C (Mitte) — Kategorie 5–6
+  {tisch_id:'C01',zone:'C',kapazitaet:6,kategorie:5,aktiv:true,x:270,y:80},
+  {tisch_id:'C02',zone:'C',kapazitaet:6,kategorie:5,aktiv:true,x:270,y:160},
+  {tisch_id:'C03',zone:'C',kapazitaet:6,kategorie:6,aktiv:true,x:270,y:240},
+  {tisch_id:'C04',zone:'C',kapazitaet:8,kategorie:6,aktiv:true,x:270,y:320},
+  // Zone F (Familien) — Kategorie 3–5
+  {tisch_id:'F01',zone:'F',kapazitaet:8,kategorie:3,aktiv:true,x:380,y:80},
+  {tisch_id:'F02',zone:'F',kapazitaet:8,kategorie:4,aktiv:true,x:380,y:180},
+  {tisch_id:'F03',zone:'F',kapazitaet:10,kategorie:5,aktiv:true,x:380,y:280},
+  // Zone Q (Quiet/Ruhig) — Kategorie 5–7
+  {tisch_id:'Q01',zone:'Q',kapazitaet:4,kategorie:5,aktiv:true,x:490,y:80},
+  {tisch_id:'Q02',zone:'Q',kapazitaet:4,kategorie:5,aktiv:true,x:490,y:140},
+  {tisch_id:'Q03',zone:'Q',kapazitaet:6,kategorie:6,aktiv:true,x:490,y:200},
+  {tisch_id:'Q04',zone:'Q',kapazitaet:6,kategorie:7,aktiv:true,x:490,y:270},
+  // Großtisch / Gruppenraum — Kategorie 8
+  {tisch_id:'S01',zone:'C',kapazitaet:12,kategorie:8,aktiv:true,x:380,y:350},
 ];
+
+// Zimmerstamm des Hotels — 70 Zimmer
+const ZIMMERSTAMM=new Set([
+  101,102,103,104,105,106,107,108,109,110,111,112,113,
+  116,117,118,119,120,121,
+  201,202,203,204,205,206,207,208,
+  215,216,217,218,219,
+  301,302,307,
+  401,402,403,404,405,406,407,
+  501,502,503,504,505,506,507,508,509,510,511,512,513,514,515,516,517,518,
+  2001,2002,2003,2004,2005,2006,2007,2008,2009,2010
+]);
 
 // ══════════════════════════════════════════════════════════════
 //  DEMO DATA — 60 Testgäste
@@ -1244,28 +1279,28 @@ G059,Trudi,Pohl,359,2,${d(2)},${d(5)},,PROG,1,0,Suite,,VIP Prognose Übermorgen,
 G060,Ernst,Seiler,460,2,${d(1)},${d(3)},,PROG,0,0,Standard,,Prognose morgen,`;
 })();
 
-const DEMO_CSV_TABLES=`Tisch,Zone,Kapazitaet,Aktiv
-A01,A,4,1
-A02,A,4,1
-A03,A,6,1
-A04,A,6,1
-B01,B,4,1
-B02,B,4,1
-B03,B,6,1
-B04,B,6,1
-B05,B,8,1
-C01,C,6,1
-C02,C,6,1
-C03,C,6,1
-C04,C,8,1
-F01,F,8,1
-F02,F,8,1
-F03,F,10,1
-Q01,Q,4,1
-Q02,Q,4,1
-Q03,Q,6,1
-Q04,Q,6,1
-S01,C,12,1`;
+const DEMO_CSV_TABLES=`Tisch,Zone,Kapazitaet,Aktiv,Kategorie
+A01,A,4,1,1
+A02,A,4,1,1
+A03,A,6,1,2
+A04,A,6,1,2
+B01,B,4,1,3
+B02,B,4,1,3
+B03,B,6,1,4
+B04,B,6,1,4
+B05,B,8,1,4
+C01,C,6,1,5
+C02,C,6,1,5
+C03,C,6,1,6
+C04,C,8,1,6
+F01,F,8,1,3
+F02,F,8,1,4
+F03,F,10,1,5
+Q01,Q,4,1,5
+Q02,Q,4,1,5
+Q03,Q,6,1,6
+Q04,Q,6,1,7
+S01,C,12,1,8`;
 
 // ══════════════════════════════════════════════════════════════
 //  CSV PARSER
@@ -1586,6 +1621,38 @@ function saveRules(){
   setStatus('Sonderregeln gespeichert','go');
 }
 
+function loadTischRegeln(){
+  try{tischRegeln=JSON.parse(localStorage.getItem('hsi_tisch_rules')||'[]')}catch(e){tischRegeln=[];}
+}
+function showTischRegelModal(){
+  renderTischRegelModal();openModal('tisch-rules-modal');
+}
+function renderTischRegelModal(){
+  el('tisch-rules-list').innerHTML=tischRegeln.map((r,i)=>`
+    <div class="mrow" style="gap:6px">
+      <input value="${r.tisch||''}" placeholder="Tisch-ID" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;width:70px"
+        oninput="tischRegeln[${i}].tisch=this.value">
+      <select style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px"
+        onchange="tischRegeln[${i}].typ=this.value">
+        <option value="max_pax" ${r.typ==='max_pax'?'selected':''}>Max PAX</option>
+        <option value="prefer_pax" ${r.typ==='prefer_pax'?'selected':''}>Bevorzugt PAX</option>
+      </select>
+      <input value="${r.wert||''}" placeholder="Wert" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;width:60px"
+        oninput="tischRegeln[${i}].wert=this.value">
+      <button onclick="tischRegeln.splice(${i},1);renderTischRegelModal()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px">×</button>
+    </div>
+  `).join('')||'<div style="font-size:11px;color:var(--dim)">Keine Tisch-Regeln definiert.</div>';
+}
+function addTischRuleRow(){
+  tischRegeln.push({tisch:'',typ:'max_pax',wert:''});
+  renderTischRegelModal();
+}
+function saveTischRegeln(){
+  localStorage.setItem('hsi_tisch_rules',JSON.stringify(tischRegeln));
+  closeModal('tisch-rules-modal');
+  setStatus('Tisch-Regeln gespeichert','go');
+}
+
 // ══════════════════════════════════════════════════════════════
 //  SCORE GEWICHTE
 // ══════════════════════════════════════════════════════════════
@@ -1711,15 +1778,18 @@ function scoreGuest(g,ref){
 function parseTables(rows){
   if(!rows||rows.length===0) return DEFAULT_TABLES.map(t=>({...t,belegt:false,gast_id:null}));
   const posMap={};
-  DEFAULT_TABLES.forEach(t=>{posMap[t.tisch_id]={x:t.x,y:t.y};});
+  const katMap={};
+  DEFAULT_TABLES.forEach(t=>{posMap[t.tisch_id]={x:t.x,y:t.y};katMap[t.tisch_id]=t.kategorie||5;});
   return rows.map(r=>{
     const ak=r.Aktiv||r.aktiv||r.Active||'1';
     const id=r.Tisch||r.TischID||r.table_id||r.ID||'';
     const pos=posMap[id]||{x:0,y:0};
+    const kat=parseInt(r.Kategorie||r.kategorie||r.Category||katMap[id]||5);
     return{
       tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
       kapazitaet:parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
+      kategorie:kat,
       aktiv:ak!=='0'&&ak!=='false'&&ak!=='nein',
       x:parseInt(r.X||r.x||pos.x||0),
       y:parseInt(r.Y||r.y||pos.y||0),
@@ -1727,6 +1797,24 @@ function parseTables(rows){
       gast_id:null
     };
   });
+}
+
+// Finds best available table: respects kategorie, stay length, and tischRegeln
+function findBestTable(ts, prefZone, pax, nights){
+  const avail=ts.filter(t=>{
+    if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
+    for(const r of tischRegeln){
+      if(r.tisch!==t.tisch_id) continue;
+      if(r.typ==='max_pax'&&pax>parseInt(r.wert||99)) return false;
+    }
+    return true;
+  });
+  if(avail.length===0) return null;
+  const inZone=avail.filter(t=>t.zone===prefZone);
+  const pool=inZone.length>0?inZone:avail;
+  // Long stays get better tables (lower kategorie); short stays get higher kategorie
+  pool.sort((a,b)=>nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
+  return pool[0]||null;
 }
 
 function applyZimmerRegeln(g){
@@ -1832,6 +1920,14 @@ function runCalc(){
   const groupWarns=detectGroups(active);
   warns.push(...groupWarns);
 
+  // Zimmerstamm validation
+  active.forEach(g=>{
+    const zimNr=parseInt(g.zimmer);
+    if(g.zimmer&&!ZIMMERSTAMM.has(zimNr)){
+      warns.push({level:'yellow',msg:`⚠️ Zimmer ${g.zimmer} (${g.nachname}) nicht im Zimmerstamm — bitte prüfen`});
+    }
+  });
+
   // Apply rules
   stepAnim(3);
   const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false}));
@@ -1902,8 +1998,8 @@ function runCalc(){
     }
     if(!targetTisch){
       const pref=getZoneForGuest(g);
-      targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet-t.belegtPax>=g.pax)
-        ||ts.find(t=>!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
+      const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
+      targetTisch=findBestTable(ts,pref,g.pax,nights);
     }
     if(targetTisch){
       targetTisch.belegtPax+=g.pax;
@@ -1980,9 +2076,10 @@ function renderPlanTable(guests,filter=''){
   }
   const zoneColor={'A':'var(--za)','B':'var(--zb)','C':'var(--zc)','F':'var(--zf)','Q':'var(--zq)'};
   const statusBadge=s=>{
-    if(!s) return'';
-    const cls={AN:'an',AB:'ab','AN·AB':'anab',BL:'bl'}[s]||'';
-    return`<span class="sbadge ${cls}">${s}</span>`;
+    if(!s||s==='BL') return'';
+    const disp={'AN·AB':'AN/AB'}[s]||s;
+    const cls={AN:'an',AB:'ab','AN·AB':'anab'}[s]||'';
+    return`<span class="sbadge ${cls}">${disp}</span>`;
   };
   tbl.innerHTML=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
   <tbody>${rows.map(g=>{
@@ -2439,7 +2536,7 @@ function exportExcel(){
       g.zugewiesener_tisch,
       g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'',
       g.zimmer,g.nachname,g.vorname||'',g.pax,g.kinder||0,
-      g.status||'',g.vip?'VIP':'',g.allergie||'',
+      (!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status),g.vip?'VIP':'',g.allergie||'',
       g.prioritaet_score,g.bemerkung||''
     ]);
   });
@@ -2916,6 +3013,7 @@ function showTableDetail(tischId){
     <div class="fd-header">
       <div class="fd-tid">${tischId}</div>
       <div class="fd-zone">${zoneName}</div>
+      ${t.kategorie?`<div style="font-size:10px;color:var(--gold);background:var(--gold-glow);border:1px solid rgba(200,168,75,.3);border-radius:5px;padding:2px 7px;margin-left:4px">Kat.${t.kategorie}</div>`:''}
       <div style="font-size:11px;color:var(--dim);margin-left:8px">${usedPax}/${t.kapazitaet} PAX belegt</div>
       ${gs.length>0?`<button class="fd-free-btn" onclick="freeTable('${tischId}')">Freigeben</button>`:''}
       <button class="fd-close" onclick="el('fp-detail').style.display='none';el('fp-detail').dataset.open=''">✕</button>
@@ -2955,6 +3053,7 @@ function markStepDone(step,done){
 })();
 loadPMSProfiles();
 loadRules();
+loadTischRegeln();
 loadWeights();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
@@ -2967,11 +3066,17 @@ updateStepUI(0);
 // Demo-First: App startet direkt mit Ergebnis
 setTimeout(()=>{ loadDemoAndCalc(); }, 400);
 
-// Add rules for Zimmer 307 demo
+// Demo-Zimmerregeln vorbelegen
 if(zimmerRegeln.length===0){
   zimmerRegeln=[
     {zimmer:'307',typ:'zone',wert:'A'},
-    {zimmer:'721',typ:'max_pax',wert:'2'}
+  ];
+}
+// Demo-Tischregeln vorbelegen (Masterprompt: Tisch 721 max 2 PAX, Tisch 747 prefer 3 PAX)
+if(tischRegeln.length===0){
+  tischRegeln=[
+    {tisch:'Q01',typ:'max_pax',wert:'2'},
+    {tisch:'Q02',typ:'prefer_pax',wert:'3'},
   ];
 }
 
