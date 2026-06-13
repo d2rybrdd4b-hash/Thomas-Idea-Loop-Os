@@ -419,8 +419,21 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .eico-svg svg{width:28px;height:28px;fill:none;stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── FLOOR PLAN ── */
-#fp-render{width:100%;height:480px;position:relative;background:var(--bg);
-           border-radius:10px;overflow:hidden}
+#fp-render{width:100%;height:min(480px,56vh);min-height:280px;position:relative;
+           background:var(--bg);border-radius:10px;overflow:hidden}
+/* Fullscreen mode */
+#s3-fp-container.fp-fs{position:fixed;inset:0;z-index:150;border-radius:0!important;
+  border:none!important;margin:0!important;padding:0!important;background:var(--bg)!important;
+  display:flex;flex-direction:column}
+#s3-fp-container.fp-fs #fp-render{height:calc(100vh - 52px)!important;border-radius:0;flex:1}
+#s3-fp-container.fp-fs #fp-detail{display:none!important}
+#s3-fp-container.fp-fs .fp-header{display:none}
+.fp-fs-bar{display:none;align-items:center;gap:12px;padding:10px 16px;height:52px;flex-shrink:0;
+           background:var(--panel);border-bottom:1px solid var(--border)}
+#s3-fp-container.fp-fs .fp-fs-bar{display:flex}
+.fp-fs-close,.fp-fs-open{background:none;border:1px solid var(--border);color:var(--dim);
+  padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s}
+.fp-fs-close:hover,.fp-fs-open:hover{border-color:var(--gold);color:var(--gold)}
 .fp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .fp-header h3{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
 #fp-detail{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
@@ -836,9 +849,19 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="s3-warn-strip" class="warn-strip" style="display:none"></div>
 
       <div id="s3-fp-container" style="background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+        <!-- Vollbild-Toolbar (nur im Fullscreen sichtbar) -->
+        <div class="fp-fs-bar">
+          <span style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">GRUNDRISS</span>
+          <span id="fp-fs-hotel" style="font-size:11px;color:var(--gold)"></span>
+          <div style="flex:1"></div>
+          <button class="fp-fs-close" onclick="closeFPFullscreen()">✕ Schließen</button>
+        </div>
         <div class="fp-header">
           <h3>GRUNDRISS</h3>
-          <span style="font-size:10px;color:var(--dim)">Tisch antippen für Details</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--dim)">Tisch antippen für Details</span>
+            <button class="fp-fs-open" onclick="openFPFullscreen()" title="Vollbild">⤢ Vollbild</button>
+          </div>
         </div>
         <div id="fp-render"></div>
         <div id="fp-detail" style="display:none"></div>
@@ -2287,107 +2310,158 @@ function renderFP(tables,guests){
   const zc=zoneColors();
   const zCol={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
 
-  // Radius by capacity
-  const getR=kap=>kap<=4?30:kap<=6?36:kap<=8?40:44;
+  // Table rectangle dimensions by capacity
+  const getDim=kap=>({
+    w:kap<=2?72:kap<=4?84:kap<=6?98:kap<=8?112:kap<=10?124:136,
+    h:kap<=2?38:kap<=4?42:kap<=6?46:kap<=8?50:kap<=10?54:58
+  });
 
   // Canvas size
-  let maxX=640,maxY=440;
-  tables.forEach(t=>{
-    const r=getR(t.kapazitaet);
-    if(t.x+r+20>maxX) maxX=t.x+r+20;
-    if(t.y+r+36>maxY) maxY=t.y+r+36;
+  let maxX=560,maxY=420;
+  tables.filter(t=>t.aktiv).forEach(t=>{
+    const {w,h}=getDim(t.kapazitaet);
+    if(t.x+w/2+20>maxX) maxX=t.x+w/2+20;
+    if(t.y+h/2+44>maxY) maxY=t.y+h/2+44;
   });
 
   // Zone bounding boxes
   const zB={};
   tables.filter(t=>t.aktiv).forEach(t=>{
-    const r=getR(t.kapazitaet);
+    const {w,h}=getDim(t.kapazitaet);
+    const pad=14;
     if(!zB[t.zone]) zB[t.zone]={x1:9999,x2:-9999,y1:9999,y2:-9999};
     const b=zB[t.zone];
-    b.x1=Math.min(b.x1,t.x-r-12); b.x2=Math.max(b.x2,t.x+r+12);
-    b.y1=Math.min(b.y1,t.y-r-22); b.y2=Math.max(b.y2,t.y+r+12);
+    b.x1=Math.min(b.x1,t.x-w/2-pad);
+    b.x2=Math.max(b.x2,t.x+w/2+pad);
+    b.y1=Math.min(b.y1,t.y-h/2-20);
+    b.y2=Math.max(b.y2,t.y+h/2+pad);
   });
 
-  // Zone background rects
+  // Zone background areas
   const zoneBg=Object.entries(zB).map(([z,b])=>{
     const col=zCol[z]||zc.dim;
     const name=ZONE_NAMES[z]||('Zone '+z);
     const cx=(b.x1+b.x2)/2;
     return`<g>
       <rect x="${b.x1}" y="${b.y1}" width="${b.x2-b.x1}" height="${b.y2-b.y1}"
-            rx="12" fill="${col}12" stroke="${col}" stroke-width="1.5" stroke-dasharray="6,3"/>
-      <text x="${cx}" y="${b.y1+14}" text-anchor="middle"
-            font-size="9" fill="${col}" font-weight="800" letter-spacing="2" opacity=".95">${name.toUpperCase()}</text>
+            rx="14" fill="${col}0d" stroke="${col}38" stroke-width="1"/>
+      <text x="${cx}" y="${b.y1+13}" text-anchor="middle"
+            font-size="8" fill="${col}" font-weight="800" letter-spacing="2.5" opacity=".75">${name.toUpperCase()}</text>
     </g>`;
   }).join('');
 
-  // Table circles
+  // Table rectangles
   const tableSvg=tables.filter(t=>t.aktiv).map(t=>{
     const gs=tG[t.tisch_id]||[];
     const usedPax=gs.reduce((s,g)=>s+g.pax,0);
     const col=zCol[t.zone]||zc.dim;
-    const r=getR(t.kapazitaet);
+    const {w,h}=getDim(t.kapazitaet);
+    const rx=t.x-w/2, ry=t.y-h/2;
     const overloaded=usedPax>t.kapazitaet;
     const hasConflikt=!!t.konflikt;
     const occupied=gs.length>0;
-    const blocked=!!t.blocked_for;
-
     const zukunft=!!t.zukunft_belegt&&!occupied;
+
     let fill=zc.card,stroke=zc.border,sw=1.5,strokeDash='';
-    if(zukunft){fill=col+'10';stroke='#c8a84b';sw=1.5;strokeDash='stroke-dasharray="6,3"';}
-    else if(blocked&&!occupied){fill=col+'14';stroke=col;sw=1.5;}
+    if(zukunft){fill=col+'0c';stroke='#c8a84b';sw=1.5;strokeDash='stroke-dasharray="5,3"';}
     else if(occupied){
-      if(overloaded||hasConflikt){fill='rgba(229,85,85,.15)';stroke=zc.red||'#E55555';sw=3;}
-      else if(usedPax>=t.kapazitaet){fill=col+'25';stroke=col;sw=3;}
-      else{fill=col+'18';stroke=col;sw=2;}
+      if(overloaded||hasConflikt){fill='rgba(229,85,85,.1)';stroke='#E55555';sw=2.5;}
+      else if(usedPax>=t.kapazitaet){fill=col+'1e';stroke=col;sw=2.5;}
+      else{fill=col+'14';stroke=col;sw=2;}
     }
 
-    // Text content
-    const firstG=gs[0];
-    const lastName=firstG?(firstG.nachname.length>8?firstG.nachname.substring(0,7)+'…':firstG.nachname):'';
-    const extraLabel=gs.length>1?` +${gs.length-1}`:'';
-    const gNameLabel=firstG?(lastName+extraLabel):'';
-    const pacLabel=occupied?`${usedPax}/${t.kapazitaet}`:t.kapazitaet+'P';
+    // Occupancy fill bar
+    const fillRatio=t.kapazitaet>0?Math.min(usedPax/t.kapazitaet,1):0;
+    const fillBarW=Math.max((w-14)*fillRatio,0);
+    const barY=ry+h-6;
+    const occupancyBar=`<rect x="${rx+7}" y="${barY}" width="${w-14}" height="3" rx="1.5" fill="${col}" opacity=".12"/>
+      ${fillRatio>0?`<rect x="${rx+7}" y="${barY}" width="${fillBarW}" height="3" rx="1.5" fill="${overloaded?'#E55555':col}" opacity=".7"/>`:''}`;
+
+    // Guest display
+    const g0=gs[0];
+    const lastName=g0?(g0.nachname.length>12?g0.nachname.slice(0,11)+'…':g0.nachname):'';
+    const initFirst=g0?.vorname?g0.vorname.charAt(0)+'.':'' ;
+    const guestMain=g0?(initFirst?initFirst+' '+lastName:lastName):'';
+    const extraTxt=gs.length>1?`+${gs.length-1} weitere`:'';
+
     const hasVip=gs.some(g=>g.vip);
     const hasKids=gs.some(g=>g.kinder>0);
     const hasAllergie=gs.some(g=>g.allergie);
 
-    const pacColor=overloaded?(zc.red||'#E55555'):(usedPax>=t.kapazitaet?stroke:'#888');
+    // Conflict badge
+    const conflictBadge=(overloaded||hasConflikt)?
+      `<circle cx="${rx+w-7}" cy="${ry+7}" r="7" fill="#E55555"/>
+       <text x="${rx+w-7}" y="${ry+11}" text-anchor="middle" font-size="9" fill="white" font-weight="900">!</text>`:'';
 
-    return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer">
-      <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${strokeDash}/>
-      <text x="${t.x}" y="${t.y-r+16}" text-anchor="middle" font-size="10" fill="${occupied?stroke:zc.dim}" font-weight="800">${t.tisch_id}</text>
-      <text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="${r>=36?13:11}" fill="${pacColor}" font-weight="700">${pacLabel}</text>
-      ${gNameLabel&&r>=30?`<text x="${t.x}" y="${t.y+r-8}" text-anchor="middle" font-size="${r>=36?9:8}" fill="${zc.dim}">${gNameLabel}</text>`:''}
-      ${hasVip?`<text x="${t.x+r-8}" y="${t.y-r+10}" text-anchor="middle" font-size="11">⭐</text>`:''}
-      ${hasKids?`<text x="${t.x-r+9}" y="${t.y-r+11}" text-anchor="middle" font-size="11">👶</text>`:''}
-      ${hasAllergie&&!hasKids?`<text x="${t.x-r+9}" y="${t.y-r+11}" text-anchor="middle" font-size="10" fill="${zc.dim}">⚠</text>`:''}
-      ${(overloaded||hasConflikt)?`<circle cx="${t.x+r-7}" cy="${t.y+r-7}" r="8" fill="${zc.red||'#E55555'}"/><text x="${t.x+r-7}" y="${t.y+r-3}" text-anchor="middle" font-size="10" fill="white" font-weight="900">!</text>`:''}
-      ${zukunft?`<text x="${t.x}" y="${t.y+14}" text-anchor="middle" font-size="11" opacity=".9">⏳</text><text x="${t.x}" y="${t.y+26}" text-anchor="middle" font-size="7" fill="#c8a84b" opacity=".85">ab ${(t.zukunft_info?.check_in||'').slice(5)}</text>`:''}
+    // VIP / Kids badge (text pill, top-right when no conflict)
+    const badgeTxt=hasVip?'VIP':hasKids?'KID':'';
+    const badgeCol=hasVip?'#c8a84b':(zc.F||'#3AB4E0');
+    const badge=badgeTxt&&!(overloaded||hasConflikt)?
+      `<rect x="${rx+w-22}" y="${ry+2}" width="20" height="11" rx="3" fill="${badgeCol}20"/>
+       <text x="${rx+w-12}" y="${ry+10}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
+
+    // Allergy dot bottom-right
+    const allergieDot=hasAllergie?
+      `<circle cx="${rx+w-6}" cy="${ry+h-6}" r="4" fill="${zc.orange||'#E8843A'}33" stroke="${zc.orange||'#E8843A'}" stroke-width="1"/>
+       <text x="${rx+w-6}" y="${ry+h-3}" text-anchor="middle" font-size="6" fill="${zc.orange||'#E8843A'}" font-weight="900">A</text>`:'';
+
+    // Future reservation info
+    const futureTxt=zukunft?`<text x="${t.x}" y="${ry+h/2+4}" text-anchor="middle" font-size="9" fill="#c8a84b" opacity=".8">ab ${(t.zukunft_info?.check_in||'').slice(5)}</text>`:'';
+
+    return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer;transition:opacity .12s" onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+      <rect x="${rx}" y="${ry}" width="${w}" height="${h}" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${strokeDash}/>
+      <text x="${rx+7}" y="${ry+10}" font-size="8" fill="${occupied?stroke:zc.dim}" font-weight="800" letter-spacing=".3" opacity=".9">${t.tisch_id}</text>
+      <text x="${rx+w-6}" y="${ry+10}" text-anchor="end" font-size="8" fill="${overloaded?'#E55555':occupied?col:'#888'}" font-weight="600">${usedPax||0}/${t.kapazitaet}</text>
+      ${occupied&&guestMain?`<text x="${t.x}" y="${ry+h/2+4}" text-anchor="middle" font-size="${w>=98?11:10}" fill="${stroke}" font-weight="700">${guestMain}</text>`:''}
+      ${occupied&&extraTxt?`<text x="${t.x}" y="${ry+h-11}" text-anchor="middle" font-size="7" fill="${zc.dim}" opacity=".8">${extraTxt}</text>`:''}
+      ${!occupied&&!zukunft?`<text x="${t.x}" y="${ry+h/2+4}" text-anchor="middle" font-size="9" fill="${zc.dim}" opacity=".4">frei</text>`:''}
+      ${futureTxt}
+      ${occupancyBar}
+      ${conflictBadge}
+      ${badge}
+      ${allergieDot}
     </g>`;
   }).join('');
 
-  // Horizontal legend at bottom
-  const legItems=[
+  // Legend
+  const legData=[
     {col:zc.green||'#2ECC71',label:'Belegt'},
-    {col:zc.red||'#E55555',label:'Konflikt'},
-    {col:'#c8a84b',label:'Zukunft ⏳',dash:true},
+    {col:'#E55555',label:'Konflikt / Überlastet'},
+    {col:'#c8a84b',label:'Reserviert (Zukunft)',dash:true},
     {col:zc.border,label:'Frei'}
   ];
-  const legW=60,legY=maxY-14;
-  const legStartX=(maxX-(legItems.length*legW))/2;
-  const leg=legItems.map((e,i)=>`<g transform="translate(${legStartX+i*legW},${legY})">
-    <circle r="5" cx="6" cy="-1" fill="${e.col}30" stroke="${e.col}" stroke-width="1.5" ${e.dash?'stroke-dasharray="4,2"':''}/>
-    <text x="15" y="3" font-size="8" fill="${zc.dim}">${e.label}</text>
+  const legItemW=110,legY=maxY-16;
+  const legStartX=Math.max(8,(maxX-legData.length*legItemW)/2);
+  const leg=legData.map((e,i)=>`<g transform="translate(${legStartX+i*legItemW},${legY})">
+    <rect x="0" y="-6" width="10" height="10" rx="2" fill="${e.col}28" stroke="${e.col}" stroke-width="1.2" ${e.dash?'stroke-dasharray="4,2"':''}/>
+    <text x="14" y="3" font-size="8" fill="${zc.dim}">${e.label}</text>
   </g>`).join('');
 
   container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
-    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}" rx="12"/>
+    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}" rx="10"/>
     ${zoneBg}
     ${tableSvg}
     ${leg}
   </svg>`;
 }
+
+// ══════════════════════════════════════════════════════════════
+//  FLOOR PLAN FULLSCREEN
+// ══════════════════════════════════════════════════════════════
+function openFPFullscreen(){
+  const c=el('s3-fp-container');
+  c.classList.add('fp-fs');
+  const hotel=el('dash-hotel-name')?.value||'Hotel Seat Intelligence';
+  el('fp-fs-hotel').textContent=hotel;
+  document.addEventListener('keydown',fpEscHandler);
+  document.body.style.overflow='hidden';
+}
+function closeFPFullscreen(){
+  el('s3-fp-container').classList.remove('fp-fs');
+  document.removeEventListener('keydown',fpEscHandler);
+  document.body.style.overflow='';
+}
+function fpEscHandler(e){if(e.key==='Escape') closeFPFullscreen();}
 
 // ══════════════════════════════════════════════════════════════
 //  AUTO-FIX HELPERS
