@@ -347,33 +347,41 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .mt-8{margin-top:8px}
 
 /* ── STEP 0 DASHBOARD ── */
-#s0{padding:28px 24px}
+#s0{padding:24px 20px}
 .dash-wrap{max-width:760px;margin:0 auto}
-.dash-hotel{text-align:center;margin-bottom:24px}
-.dash-hotel h2{font-size:24px;font-weight:300;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
-.dash-hotel p{font-size:11px;color:var(--dim)}
-.dash-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
-.dash-ctrl label{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;
-                 text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-.dash-ctrl input,.dash-ctrl select{
-  width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);
-  border-radius:var(--r);padding:9px 12px;font-size:12px;transition:border-color .2s}
-.dash-ctrl input:focus,.dash-ctrl select:focus{outline:none;border-color:var(--gold)}
-.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.dash-hotel{text-align:center;margin-bottom:20px}
+.dash-hotel h2{font-size:26px;font-weight:300;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
+.dash-tagline{font-size:12px;color:var(--dim);margin:6px 0 16px;line-height:1.6}
+.dash-meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:4px}
+.dash-meta input,.dash-meta select{background:var(--card);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;font-size:11px;transition:border-color .2s}
+.dash-meta input:focus,.dash-meta select:focus{outline:none;border-color:var(--gold)}
+.dash-meta input{width:130px}.dash-meta select{width:150px}
+.meal-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.meal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
+           padding:22px 14px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
+.meal-card:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
+.meal-card.sel{border-color:var(--gold);background:var(--gold-glow)}
+.meal-card .meal-ico{font-size:34px;margin-bottom:10px}
+.meal-card .meal-tit{font-size:13px;font-weight:700;margin-bottom:4px}
+.meal-card .meal-sub{font-size:10px;color:var(--dim);line-height:1.4}
+.dash-demo-card{background:rgba(200,168,75,.06);border:1px dashed rgba(200,168,75,.4);
+                border-radius:10px;padding:11px 16px;text-align:center;cursor:pointer;
+                font-size:11px;color:var(--dim);margin-bottom:16px;transition:all .2s}
+.dash-demo-card:hover{background:var(--gold-glow);color:var(--gold);border-color:var(--gold)}
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .dstat{background:var(--card);border:1px solid var(--border);border-radius:12px;
-       padding:16px;position:relative;overflow:hidden}
+       padding:14px 16px;position:relative;overflow:hidden}
 .dstat::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
 .dstat.ds-green::before{background:var(--green)}
 .dstat.ds-red::before{background:var(--red)}
 .dstat.ds-blue::before{background:#3AB4E0}
-.dstat.ds-purple::before{background:var(--zq)}
-.dstat .dv{font-size:26px;font-weight:700;color:var(--gold);line-height:1}
+.dstat .dv{font-size:24px;font-weight:700;color:var(--gold);line-height:1}
 .dstat.ds-green .dv{color:var(--green)}
 .dstat.ds-red .dv{color:var(--red)}
 .dstat.ds-blue .dv{color:#3AB4E0}
-.dstat.ds-purple .dv{color:var(--zq)}
 .dstat .dk{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
-.dstat .dsub{font-size:10px;color:var(--dim);margin-top:4px}
+.dstat .dsub{font-size:9px;color:var(--dim);margin-top:3px;line-height:1.3}
 .dash-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .daction{background:var(--card);border:1px solid var(--border);border-radius:12px;
          padding:16px 12px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
@@ -384,12 +392,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 /* ── STICKY BAR (mobile) ── */
 #sticky-bar{position:fixed;bottom:0;left:0;right:0;
-            background:rgba(9,15,23,.96);border-top:1px solid rgba(200,168,75,.3);
-            padding:10px 16px;display:none;align-items:center;gap:10px;z-index:50;
+            background:rgba(9,15,23,.97);border-top:1px solid rgba(200,168,75,.3);
+            padding:10px 16px;display:none;align-items:center;gap:8px;z-index:50;
             backdrop-filter:blur(8px)}
-[data-theme="day"] #sticky-bar{background:rgba(30,43,74,.95)}
-#sticky-bar .sb-info{font-size:10px;color:rgba(255,255,255,.6);flex:1}
-#sticky-bar .sb-info strong{color:rgba(255,255,255,.9);display:block;font-size:11px}
+[data-theme="day"] #sticky-bar{background:rgba(30,43,74,.97)}
+#sb-cta{flex:1;font-size:13px;padding:12px 16px;border-radius:10px;font-weight:700}
 @media(max-width:900px){#sticky-bar{display:flex}}
 
 /* ── PRINT ── */
@@ -496,57 +503,71 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div class="dash-wrap">
     <div class="dash-hotel">
       <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
-      <p>Tischplan-Assistent — <span id="dash-date-display"></span></p>
-    </div>
-    <div class="dash-controls">
-      <div class="dash-ctrl">
-        <label>Hotel-Name</label>
-        <input type="text" id="dash-hotel-name" placeholder="z.B. Grand Hotel am See"
+      <div class="dash-meta">
+        <input type="text" id="dash-hotel-name" placeholder="Hotelname eingeben"
           oninput="localStorage.setItem('hsi_hotel',this.value);el('dash-hotel-title').textContent=this.value||'Hotel Seat Intelligence'">
-      </div>
-      <div class="dash-ctrl">
-        <label>Datum</label>
         <input type="date" id="dash-date" onchange="updateDashboard()">
-      </div>
-      <div class="dash-ctrl">
-        <label>Mahlzeit</label>
-        <select id="dash-meal" onchange="updateDashboard()">
+        <select id="dash-meal" onchange="updateDashboard();updateMealCards()">
           <option value="fruehstueck">🌅 Frühstück</option>
           <option value="mittag">☀️ Mittagessen</option>
           <option value="abend" selected>🌙 Abendessen</option>
         </select>
       </div>
+      <p class="dash-tagline">Tischpläne für Frühstück, Mittagessen und Abendessen —<br>mit Drucklisten für Rezeption, Service und Küche.</p>
     </div>
+
+    <div class="meal-actions">
+      <div class="meal-card" id="mc-fruehstueck" onclick="startMeal('fruehstueck')">
+        <div class="meal-ico">🌅</div>
+        <div class="meal-tit">Frühstück</div>
+        <div class="meal-sub">Morgenservice planen</div>
+      </div>
+      <div class="meal-card" id="mc-mittag" onclick="startMeal('mittag')">
+        <div class="meal-ico">☀️</div>
+        <div class="meal-tit">Mittagessen</div>
+        <div class="meal-sub">Mittagsservice planen</div>
+      </div>
+      <div class="meal-card sel" id="mc-abend" onclick="startMeal('abend')">
+        <div class="meal-ico">🌙</div>
+        <div class="meal-tit">Abendessen</div>
+        <div class="meal-sub">Abendservice planen</div>
+      </div>
+    </div>
+
+    <div class="dash-demo-card" onclick="loadDemoAndCalc()">
+      🎭 Demo mit Beispielhotel starten — 60 Testgäste, sofort loslegen, kein Upload nötig
+    </div>
+
     <div class="dash-stats">
-      <div class="dstat"><div class="dv" id="ds-datum">—</div><div class="dk">Datum</div></div>
-      <div class="dstat"><div class="dv" id="ds-mahlzeit">—</div><div class="dk">Mahlzeit</div></div>
-      <div class="dstat ds-green"><div class="dv" id="ds-gaeste">0</div><div class="dk">Gäste aktiv</div></div>
-      <div class="dstat ds-blue"><div class="dv" id="ds-ankuenfte">0</div><div class="dk">Ankünfte</div></div>
-      <div class="dstat"><div class="dv" id="ds-tische">0</div><div class="dk">Tische frei</div></div>
-      <div class="dstat ds-red"><div class="dv" id="ds-warns">0</div><div class="dk">Warnungen</div></div>
-    </div>
-    <div class="dash-actions">
-      <div class="daction" onclick="isDemoMode=false;el('demo-banner').style.display='none';goStep(1)">
-        <div class="dico">📋</div>
-        <div class="dtit">Eigene Daten</div>
-        <div class="dsub">Gästeliste hochladen</div>
+      <div class="dstat ds-green">
+        <div class="dv" id="ds-gaeste">—</div>
+        <div class="dk">Gäste aktiv</div>
+        <div class="dsub" id="ds-gaeste-sub">Demo starten</div>
       </div>
-      <div class="daction" onclick="loadDemoAndCalc()">
-        <div class="dico">🎭</div>
-        <div class="dtit">Demo</div>
-        <div class="dsub">60 Testgäste sofort</div>
+      <div class="dstat ds-blue">
+        <div class="dv" id="ds-ankuenfte">—</div>
+        <div class="dk">Ankünfte heute</div>
+        <div class="dsub" id="ds-ankuenfte-sub">—</div>
       </div>
-      <div class="daction" id="da-plan" onclick="calcDone?goStep(3):goStep(1)"
-           style="opacity:.5">
-        <div class="dico">📊</div>
-        <div class="dtit">Tischplan</div>
-        <div class="dsub">Ergebnis anzeigen</div>
+      <div class="dstat">
+        <div class="dv" id="ds-tische">—</div>
+        <div class="dk">Tische frei</div>
+        <div class="dsub" id="ds-tische-sub">—</div>
       </div>
-      <div class="daction" id="da-export" onclick="calcDone?goStep(5):goStep(1)"
-           style="opacity:.5">
-        <div class="dico">⬇️</div>
-        <div class="dtit">Exportieren</div>
-        <div class="dsub">Excel &amp; Druck</div>
+      <div class="dstat ds-red">
+        <div class="dv" id="ds-warns">—</div>
+        <div class="dk">Hinweise</div>
+        <div class="dsub" id="ds-warns-sub">—</div>
+      </div>
+      <div class="dstat" id="da-plan" style="cursor:pointer" onclick="calcDone?goStep(3):loadDemoAndCalc()">
+        <div class="dv">📊</div>
+        <div class="dk">Tischplan</div>
+        <div class="dsub" id="ds-plan-sub">Demo starten</div>
+      </div>
+      <div class="dstat" id="da-export" style="cursor:pointer" onclick="calcDone?goStep(5):loadDemoAndCalc()">
+        <div class="dv">🖨</div>
+        <div class="dk">Druckmappe</div>
+        <div class="dsub" id="ds-export-sub">Nach Berechnung</div>
       </div>
     </div>
     <div id="ds-conflict-bar" class="ds-conflict-bar" onclick="goStep(4)"></div>
@@ -926,12 +947,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <!-- ══════════════════════ STICKY BAR ══════════════════════ -->
 <div id="sticky-bar">
-  <div class="sb-info">
-    <strong id="sb-step-name">Dashboard</strong>
-    <span id="sb-step-sub">Hotel Seat Intelligence</span>
-  </div>
-  <button class="btn btn-ghost btn-sm" id="sb-back" onclick="goBack()">← Zurück</button>
-  <button class="btn btn-gold btn-sm" id="sb-next" onclick="goNext()">Weiter →</button>
+  <button class="btn btn-ghost btn-sm" id="sb-back" onclick="goBack()">←</button>
+  <button class="btn btn-gold" id="sb-cta" onclick="doNextAction()">Demo starten</button>
 </div>
 
 <!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
@@ -2636,44 +2653,85 @@ function updateStepUI(n){
     s.classList.toggle('act',sn===n);
     s.classList.toggle('done',sn<n);
   });
+  updateStickyBar(n);
+}
+function doNextAction(){
+  const btn=el('sb-cta');
+  if(btn&&btn.onclick) btn.onclick();
 }
 
 // ── STICKY BAR ──
-const STEP_NAMES=['Dashboard','Gäste laden','Daten prüfen','Tischplan','Hinweise','Drucken'];
 function updateStickyBar(n){
-  el('sb-step-name').textContent=STEP_NAMES[n]||'';
-  el('sb-step-sub').textContent=n===0?'Hotel Seat Intelligence':`Schritt ${n} von 5`;
-  el('sb-back').disabled=n===0;
-  el('sb-next').disabled=(n===5)||(n>=2&&!fileStatus.vortag&&!calcDone&&n>1);
-  el('sb-next').textContent=n===5?'Fertig →':'Weiter →';
+  const back=el('sb-back');
+  if(back) back.disabled=n===0;
+  updateNextActionBtn();
+}
+function updateNextActionBtn(){
+  const btn=el('sb-cta');
+  if(!btn) return;
+  btn.style.background='';
+  if(currentStep===5){
+    btn.textContent='⬇ Excel herunterladen';
+    btn.onclick=exportExcel;
+  } else if(calcDone){
+    const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    if(reds>0){
+      btn.textContent=`⚠️ ${reds} Hinweis${reds>1?'e':''} prüfen`;
+      btn.onclick=()=>goStep(4);
+      btn.style.background='var(--red)';
+    } else {
+      btn.textContent='🖨 Druckmappe öffnen';
+      btn.onclick=()=>goStep(5);
+    }
+  } else {
+    btn.textContent='Demo starten';
+    btn.onclick=loadDemoAndCalc;
+  }
 }
 function goBack(){if(currentStep>0) goStep(currentStep-1);}
-function goNext(){
-  const next=currentStep+1;
-  if(next<=5) goStep(next);
+function goNext(){const next=currentStep+1;if(next<=5) goStep(next);}
+
+function startMeal(meal){
+  el('dash-meal').value=meal;
+  el('slot-sel').value=meal;
+  updateDashboard();
+  updateMealCards();
+  if(calcDone){goStep(3);}
+  else if(fileStatus.ankuenfte||fileStatus.inhaus){currentStep=2;goStep(3);}
+  else{loadDemoAndCalc();}
+}
+function updateMealCards(){
+  const meal=el('dash-meal').value;
+  ['fruehstueck','mittag','abend'].forEach(m=>{
+    const c=el('mc-'+m);
+    if(c) c.classList.toggle('sel',m===meal);
+  });
 }
 
 // ── DASHBOARD ──
 function updateDashboard(){
-  const d=new Date();
   const dm=el('dash-date');
   if(dm&&!dm.value) dm.value=getTodayStr();
   const dateStr=dm?dm.value:getTodayStr();
-  el('ds-datum').textContent=dateStr;
   const meal=el('dash-meal');
   const mealNames={fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'};
-  el('ds-mahlzeit').textContent=meal?mealNames[meal.value]||'—':'—';
   el('dash-date-display').textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   if(calcDone){
     el('ds-gaeste').textContent=assignedGuests.length;
-    el('ds-ankuenfte').textContent=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    el('ds-gaeste-sub').textContent='Gäste mit Tisch';
+    const ank=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    el('ds-ankuenfte').textContent=ank;
+    el('ds-ankuenfte-sub').textContent=ank===1?'Anreise heute':'Anreisen heute';
     const fr=lastTables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
     el('ds-tische').textContent=fr;
+    el('ds-tische-sub').textContent=fr===1?'Tisch frei':'Tische frei';
     const redCount=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
     const yellowCount=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg)).length;
-    el('ds-warns').textContent=redCount;
-    const da=el('da-plan');if(da) da.style.opacity='1';
-    const db=el('da-export');if(db) db.style.opacity='1';
+    el('ds-warns').textContent=redCount+yellowCount;
+    el('ds-warns-sub').textContent=redCount>0?`${redCount} kritisch`:(yellowCount>0?'zur Prüfung':'Alles OK ✓');
+    el('ds-plan-sub').textContent='Tischplan ansehen →';
+    el('ds-export-sub').textContent='Druckmappe öffnen →';
+    updateNextActionBtn();
     const cb=el('ds-conflict-bar');
     if(cb){
       if(redCount>0){
@@ -2688,6 +2746,22 @@ function updateDashboard(){
         cb.style.display='none';
       }
     }
+  } else {
+    // Empty states — no plan calculated yet
+    ['ds-gaeste','ds-ankuenfte','ds-tische','ds-warns'].forEach(id=>{
+      const e=el(id); if(e) e.textContent='—';
+    });
+    const subs={
+      'ds-gaeste-sub':'Noch kein Plan berechnet',
+      'ds-ankuenfte-sub':'—',
+      'ds-tische-sub':'—',
+      'ds-warns-sub':'—',
+      'ds-plan-sub':'Demo starten →',
+      'ds-export-sub':'Nach Berechnung verfügbar'
+    };
+    Object.entries(subs).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
+    const cb=el('ds-conflict-bar');if(cb) cb.style.display='none';
+    updateNextActionBtn();
   }
   const hn=localStorage.getItem('hsi_hotel');
   if(hn){
