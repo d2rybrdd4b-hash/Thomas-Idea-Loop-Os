@@ -1741,7 +1741,7 @@ function runCalc(){
   stepAnim(5);
   prognoseFuture.filter(g=>g.vip).forEach(g=>{
     const zone='A';
-    const free=ts.find(t=>!t.belegt&&!t.blocked_for&&t.aktiv&&t.zone===zone&&t.kapazitaet>=g.pax);
+    const free=ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.zone===zone&&t.kapazitaet>=g.pax);
     if(free){
       free.blocked_for=g.id+'('+g.check_in+')';
       warns.push({level:'yellow',msg:`📅 Tisch ${free.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} am ${g.check_in} freigehalten`});
@@ -1754,9 +1754,9 @@ function runCalc(){
 
   let bl_ok=0,bl_fail=0;
   bleib.forEach(g=>{
-    const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&!t.belegt&&!t.blocked_for&&t.aktiv);
+    const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv);
     if(t&&t.kapazitaet>=g.pax){
-      t.belegt=true;t.gast_id=g.id;
+      t.belegt=true;t.belegtPax=t.kapazitaet;t.gast_id=g.id; // Stammtisch ist exklusiv
       g.zugewiesener_tisch=t.tisch_id;
       g.begruendung='Bleibegast → Stammtisch '+t.tisch_id+' beibehalten';
       bl_ok++;
@@ -1764,7 +1764,7 @@ function runCalc(){
       bl_fail++;
       const confliktT=ts.find(t=>t.tisch_id===g.vorheriger_tisch);
       if(confliktT) confliktT.konflikt=true;
-      if(confliktT&&confliktT.belegt){
+      if(confliktT&&confliktT.belegtPax>0){
         warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} bereits belegt`});
       } else if(!confliktT){
         warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} nicht gefunden`});
@@ -1791,21 +1791,30 @@ function runCalc(){
     if(override){
       if(override.warning){warns.push({level:'yellow',msg:override.warning});return;}
       if(override.tisch){
-        const t=ts.find(t=>t.tisch_id===override.tisch&&!t.belegt&&t.aktiv);
-        if(t&&t.kapazitaet>=g.pax){targetTisch=t;ruleApplied++;}
-        else warns.push({level:'red',msg:`🔴 Sonderregel Zimmer ${g.zimmer}: Tisch ${override.tisch} nicht verfügbar`});
+        const t=ts.find(t=>t.tisch_id===override.tisch&&!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
+        if(t){targetTisch=t;ruleApplied++;}
+        else warns.push({level:'red',msg:`🔴 Sonderregel Zimmer ${g.zimmer}: Tisch ${override.tisch} nicht verfügbar oder voll`});
       } else if(override.zone){
-        targetTisch=ts.find(t=>!t.belegt&&!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet>=g.pax);
+        targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
         if(targetTisch) ruleApplied++;
       }
     }
     if(!targetTisch){
       const pref=getZoneForGuest(g);
-      targetTisch=ts.find(t=>!t.belegt&&!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet>=g.pax)
-        ||ts.find(t=>!t.belegt&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=g.pax);
+      // Familien bevorzugt an leere Tische (kein Teilen mit Fremden)
+      const familyOnly=g.kinder>0;
+      if(familyOnly){
+        targetTisch=ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet>=g.pax)
+          ||ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=g.pax);
+      } else {
+        targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet-t.belegtPax>=g.pax)
+          ||ts.find(t=>!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
+      }
     }
     if(targetTisch){
-      targetTisch.belegt=true;targetTisch.gast_id=g.id;
+      targetTisch.belegtPax+=g.pax;
+      if(targetTisch.belegtPax>=targetTisch.kapazitaet) targetTisch.belegt=true;
+      targetTisch.gast_id=g.id;
       g.zugewiesener_tisch=targetTisch.tisch_id;
       g.begruendung=buildBegruendung(g,targetTisch.zone);
       assigned++;
@@ -1852,7 +1861,7 @@ function stepAnim(n){
 function renderResults(guests,tables,warns){
   // Stats
   const assigned=guests.filter(g=>g.zugewiesener_tisch).length;
-  const freeT=tables.filter(t=>!t.belegt&&t.aktiv).length;
+  const freeT=tables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
   const redW=warns.filter(w=>w.level==='red').length;
   el('res-grid').innerHTML=`
     <div class="rcard"><div class="rv">${guests.length}</div><div class="rk">Gäste aktiv</div></div>
@@ -2577,7 +2586,7 @@ function updateDashboard(){
   if(calcDone){
     el('ds-gaeste').textContent=assignedGuests.length;
     el('ds-ankuenfte').textContent=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
-    const fr=lastTables.filter(t=>!t.belegt&&t.aktiv).length;
+    const fr=lastTables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
     el('ds-tische').textContent=fr;
     const redCount=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
     const yellowCount=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg)).length;
