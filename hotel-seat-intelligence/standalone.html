@@ -172,36 +172,65 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 #s3 .bot{display:flex;justify-content:space-between;align-items:center;
          max-width:900px;margin:24px auto 0;gap:12px}
 
-/* ── STEP 4 ── */
+/* ── STEP 4 — WARNINGS ── */
 #s4 .s4-inner{max-width:860px;margin:0 auto}
-.warn-summary{display:flex;gap:12px;margin-bottom:20px}
-.wscard{flex:1;border-radius:10px;padding:14px;text-align:center;border:1px solid}
+.warn-summary{display:flex;gap:12px;margin-bottom:16px}
+.wscard{flex:1;border-radius:12px;padding:16px;text-align:center;border:1px solid;cursor:default}
 .wscard.red{border-color:var(--red);background:rgba(238,85,85,.08)}
 .wscard.yellow{border-color:var(--orange);background:rgba(232,132,58,.08)}
 .wscard.green{border-color:var(--green);background:rgba(46,204,113,.08)}
-.wscard .wsc-n{font-size:28px;font-weight:700}
+.wscard .wsc-n{font-size:30px;font-weight:700;line-height:1}
 .wscard.red .wsc-n{color:var(--red)}
 .wscard.yellow .wsc-n{color:var(--orange)}
 .wscard.green .wsc-n{color:var(--green)}
-.wscard .wsc-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-top:4px}
-.warn-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-.witem{background:var(--card);border-radius:10px;padding:14px 16px;
-       border-left:4px solid;display:flex;align-items:flex-start;gap:12px}
+.wscard .wsc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-top:6px}
+.wscard .wsc-sub{font-size:9px;color:var(--dim);margin-top:2px;opacity:.7}
+.w-status-bar{padding:12px 16px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:20px;line-height:1.4}
+.w-status-bar.red{background:rgba(238,85,85,.1);color:var(--red);border:1px solid rgba(238,85,85,.25)}
+.w-status-bar.yellow{background:rgba(232,132,58,.1);color:var(--orange);border:1px solid rgba(232,132,58,.25)}
+.w-status-bar.green{background:rgba(46,204,113,.1);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.warn-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.witem{background:var(--card);border-radius:12px;border-left:4px solid;overflow:hidden}
 .witem.red{border-color:var(--red)}
 .witem.yellow{border-color:var(--orange)}
 .witem.green{border-color:var(--green)}
-.witem.resolved{opacity:.5;border-color:var(--dim)}
-.witem .wico{font-size:20px;margin-bottom:6px}
-.witem .wtitle{font-size:12px;font-weight:700;margin-bottom:4px}
-.witem .wmsg{font-size:10px;color:var(--dim);margin-bottom:5px;line-height:1.4}
-.witem .wrisk{font-size:10px;margin-bottom:4px}
-.witem .wrisk b{color:var(--red)}
-.witem .wrec{font-size:10px;color:var(--dim);font-style:italic;margin-bottom:8px}
-.witem .wact{display:flex;gap:6px;flex-wrap:wrap}
+.witem.resolved{opacity:.55;border-color:var(--dim)}
+.witem-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.witem-hdr .wico{font-size:18px;flex-shrink:0}
+.wbadge{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+        padding:2px 9px;border-radius:10px;flex-shrink:0}
+.wbadge.red{background:rgba(238,85,85,.15);color:var(--red)}
+.wbadge.yellow{background:rgba(232,132,58,.15);color:var(--orange)}
+.wbadge.green{background:rgba(46,204,113,.15);color:var(--green)}
+.wbadge.resolved{background:var(--border);color:var(--dim)}
+.witem-hdr .wtitle{font-size:13px;font-weight:700;flex:1;line-height:1.3}
+.witem-body{padding:10px 16px 14px}
+.wrow{display:flex;gap:10px;margin:5px 0;align-items:flex-start}
+.wrow-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+            color:var(--dim);min-width:86px;padding-top:2px;flex-shrink:0}
+.wrow-text{font-size:11px;line-height:1.5;color:var(--text)}
+.wrow.auswirkung .wrow-text{color:var(--orange)}
+.wrow.loesung .wrow-text{color:var(--green);font-weight:600}
+.witem .wact{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.btn-autofix{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.3);
+             border-radius:8px;padding:5px 13px;font-size:10px;font-weight:700;cursor:pointer;
+             transition:all .18s;display:inline-flex;align-items:center;gap:5px}
+.btn-autofix:hover{background:rgba(46,204,113,.22);transform:translateY(-1px)}
 .warn-section h3{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
                  color:var(--dim);margin-bottom:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 #s4 .bot{display:flex;justify-content:space-between;align-items:center;
          max-width:860px;margin:24px auto 0;gap:12px}
+/* Dashboard conflict bar */
+.ds-conflict-bar{padding:12px 16px;border-radius:10px;font-size:11px;font-weight:600;
+                 margin-top:16px;display:none;cursor:pointer;transition:opacity .2s;line-height:1.5}
+.ds-conflict-bar:hover{opacity:.85}
+.ds-conflict-bar.red{background:rgba(238,85,85,.1);color:var(--red);border:1px solid rgba(238,85,85,.25)}
+.ds-conflict-bar.yellow{background:rgba(232,132,58,.1);color:var(--orange);border:1px solid rgba(232,132,58,.25)}
+/* S5 locked */
+#s5-locked{background:rgba(238,85,85,.08);border:1px solid rgba(238,85,85,.25);border-radius:12px;
+           padding:16px 20px;margin-bottom:20px;display:none;font-size:12px;line-height:1.6}
+#s5-locked strong{color:var(--red)}
+#s5-locked .s5-lock-action{margin-top:10px;display:flex;gap:8px}
 #s4-proceed-note{font-size:10px;color:var(--dim);text-align:center;margin-top:8px}
 
 /* ── STEP 5 ── */
@@ -476,6 +505,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div class="dsub">Excel &amp; Druck</div>
       </div>
     </div>
+    <div id="ds-conflict-bar" class="ds-conflict-bar" onclick="goStep(4)"></div>
   </div>
 </div>
 
@@ -758,8 +788,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
   <div class="s5-inner">
     <div id="s5-locked">
-      🔒 Export gesperrt — es gibt noch ungelöste <strong>rote Warnungen</strong>.
-      Bitte zuerst zu Schritt 4 gehen und alle kritischen Punkte lösen.
+      <strong>🔒 Export gesperrt</strong><br>
+      Es gibt noch ungelöste kritische Punkte. Der Tischplan kann so nicht gedruckt oder exportiert werden.<br>
+      <div class="s5-lock-action">
+        <button class="btn btn-red btn-sm" onclick="goStep(4)">→ Zu Schritt 4 — Warnungen lösen</button>
+      </div>
     </div>
 
     <div class="print-btns">
@@ -1896,6 +1929,36 @@ function renderFP(tables,guests){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  AUTO-FIX HELPERS
+// ══════════════════════════════════════════════════════════════
+function autoFixEssenszeit(encodedMsg){
+  let count=0;
+  rawGuests.forEach(g=>{if(!g.EssenZeit){g.EssenZeit='19:00';count++;}});
+  if(count>0){
+    setStatus(count+' Gäste mit Standard-Essenszeit 19:00 versehen','go');
+    resolvedWarnings.add(decodeURIComponent(encodedMsg||''));
+    setTimeout(()=>runCalc(),100);
+  }
+}
+function autoFixPersonenzahl(encodedMsg){
+  let count=0;
+  rawGuests.forEach(g=>{if(!g.AnzahlPersonen||Number(g.AnzahlPersonen)<1){g.AnzahlPersonen=2;count++;}});
+  if(count>0){
+    setStatus(count+' Gäste: Personenzahl auf 2 gesetzt','go');
+    resolvedWarnings.add(decodeURIComponent(encodedMsg||''));
+    setTimeout(()=>runCalc(),100);
+  }
+}
+function autoFixLadeDemo(){
+  loadDemo();
+  setTimeout(()=>{setStatus('Demo-Daten geladen — berechne…','spin');runCalc();},400);
+}
+function autoFixLadeTische(){
+  parsedFiles.tische=null;
+  setStatus('Standard-Tischkonfiguration geladen','go');
+  setTimeout(()=>runCalc(),100);
+}
+
 //  WARNINGS — STEP 4
 // ══════════════════════════════════════════════════════════════
 function renderWarnings(){
@@ -1906,95 +1969,214 @@ function renderWarnings(){
 
   // Summary cards
   el('warn-summary').innerHTML=`
-    <div class="wscard red"><div class="wsc-n">${reds.length}</div><div class="wsc-l">Kritisch (Rot)</div></div>
-    <div class="wscard yellow"><div class="wsc-n">${yellows.length}</div><div class="wsc-l">Hinweise (Gelb)</div></div>
-    <div class="wscard green"><div class="wsc-n">${greens.length+resolvedList.length}</div><div class="wsc-l">OK / Gelöst</div></div>
+    <div class="wscard red">
+      <div class="wsc-n">${reds.length}</div>
+      <div class="wsc-l">Kritisch</div>
+      <div class="wsc-sub">muss gelöst werden</div>
+    </div>
+    <div class="wscard yellow">
+      <div class="wsc-n">${yellows.length}</div>
+      <div class="wsc-l">Hinweise</div>
+      <div class="wsc-sub">bitte prüfen</div>
+    </div>
+    <div class="wscard green">
+      <div class="wsc-n">${greens.length+resolvedList.length}</div>
+      <div class="wsc-l">Erledigt</div>
+      <div class="wsc-sub">OK oder gelöst</div>
+    </div>
   `;
 
-  // Sections
-  let html='';
+  // Status banner
+  let statusBar='';
   if(reds.length>0){
-    html+=`<div class="warn-section"><h3>🔴 Kritische Warnungen — müssen gelöst werden</h3>
+    statusBar=`<div class="w-status-bar red">🔒 ${reds.length} kritische${reds.length===1?'r':''} Punkt${reds.length===1?' muss':' e müssen'} gelöst werden — Export ist gesperrt, bis alle roten Punkte geklärt sind.</div>`;
+  } else if(yellows.length>0){
+    statusBar=`<div class="w-status-bar yellow">⚠️ ${yellows.length} Hinweis${yellows.length===1?' zur Prüfung':'e zur Prüfung'} — bitte einzeln bestätigen oder ignorieren.</div>`;
+  } else {
+    statusBar=`<div class="w-status-bar green">✅ Alle Punkte geprüft — Export und Druck sind freigegeben.</div>`;
+  }
+
+  // Sections
+  let html=statusBar;
+  if(reds.length>0){
+    html+=`<div class="warn-section"><h3>🔴 Kritisch — vor dem Export lösen</h3>
     <div class="warn-list">${reds.map(w=>warnItem(w,'red')).join('')}</div></div>`;
   }
   if(yellows.length>0){
-    html+=`<div class="warn-section"><h3>⚠️ Hinweise — zur Kenntnis nehmen</h3>
+    html+=`<div class="warn-section"><h3>⚠️ Hinweise — prüfen und bestätigen</h3>
     <div class="warn-list">${yellows.map(w=>warnItem(w,'yellow')).join('')}</div></div>`;
   }
   if(resolvedList.length>0){
-    html+=`<div class="warn-section"><h3>✅ Gelöste / Geprüfte Einträge</h3>
+    html+=`<div class="warn-section"><h3>✅ Geprüft — werden im Übergabebericht dokumentiert</h3>
     <div class="warn-list">${resolvedList.map(w=>warnItem(w,'',true)).join('')}</div></div>`;
   }
   if(greens.length>0){
-    html+=`<div class="warn-section"><h3>✅ Positiv</h3>
-    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="wico">✅</div><div class="wtxt"><p>${w.msg}</p></div></div>`).join('')}</div></div>`;
+    html+=`<div class="warn-section"><h3>✅ Automatisch gelöst</h3>
+    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="witem-hdr"><span class="wico">✅</span><span class="wbadge green">Auto-Fix</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
   }
-  if(html==='') html='<div style="text-align:center;padding:40px;color:var(--green);font-size:14px">✅ Keine Warnungen — alles in Ordnung!</div>';
+  if(reds.length===0&&yellows.length===0&&greens.length===0&&resolvedList.length===0){
+    html+=`<div style="text-align:center;padding:40px;color:var(--green);font-size:14px">✅ Keine Warnungen — alles in Ordnung!</div>`;
+  }
 
   el('warn-sections').innerHTML=html;
 
   const allRedResolved=reds.length===0;
   el('btn-s4-next').disabled=!allRedResolved;
-  const note=el('s4-proceed-note');
-  note.classList.toggle('hidden',!allRedResolved);
+  el('s4-proceed-note').classList.toggle('hidden',!allRedResolved);
   markStepDone(4,allRedResolved);
 }
 
 function enrichWarning(w){
-  let title='',risk='',rec='';
-  const m=w.msg;
-  if(m.includes('bereits belegt')){
+  let title='',problem='',auswirkung='',loesung='',autofix=null;
+  const m=w.msg||'';
+
+  if(m.includes('Keine Gästedaten')||m.includes('Keine Gäste gefunden')){
+    title='Keine Gästedaten geladen';
+    problem=m;
+    auswirkung='Ohne Gästedaten kann kein Tischplan erstellt werden.';
+    loesung='Lade eine PMS-Datei hoch oder nutze die Demo-Daten.';
+    autofix={label:'Demo-Daten laden',fn:'autoFixLadeDemo'};
+  } else if(m.includes('Keine Tische')||m.includes('keine Tische')){
+    title='Keine Tische vorhanden';
+    problem=m;
+    auswirkung='Die App kann Gäste nicht platzieren — Grundriss fehlt.';
+    loesung='Standard-Tischkonfiguration laden oder Tische manuell anlegen.';
+    autofix={label:'Standard-Tische laden',fn:'autoFixLadeTische'};
+  } else if(m.includes('Personenzahl')||(m.includes('PAX')&&!m.includes('Max PAX'))){
+    title='Personenzahl fehlt';
+    problem=m;
+    auswirkung='Der Tisch könnte zu klein geplant werden — Überbelegung droht.';
+    loesung='Personenzahl ergänzen oder Standardwert 2 automatisch setzen.';
+    autofix={label:'Standardwert 2 setzen',fn:'autoFixPersonenzahl'};
+  } else if(m.includes('getrennt')||m.includes('aufgeteilt')){
+    title='Reisegruppe wurde aufgeteilt';
+    problem=m;
+    auswirkung='Gäste einer Gruppe sitzen an verschiedenen Tischen — möglicherweise unerwünscht.';
+    loesung='Größeren freien Tisch wählen oder Aufteilung bewusst bestätigen.';
+  } else if(m.includes('überbelegt')||m.includes('Überbelegung')||m.includes('überfüllt')){
+    title='Tisch ist überbelegt';
+    problem=m;
+    auswirkung='Mehr Gäste als Sitzplätze — der Plan ist so nicht umsetzbar.';
+    loesung='Gäste auf einen anderen Tisch verschieben oder Kapazität erhöhen.';
+  } else if(m.includes('bereits belegt')){
     title='Stammtisch doppelt belegt';
-    risk='Zwei Gäste wurden für denselben Tisch vorgemerkt.';
-    rec='Nächsten freien Tisch in gleicher Zone zuweisen.';
+    problem=m;
+    auswirkung='Zwei Gäste wurden für denselben Tisch vorgemerkt — einer bekommt keinen Platz.';
+    loesung='Nächsten freien Tisch in gleicher Zone zuweisen.';
+  } else if(m.includes('Bleibegast')||m.includes('bisherige')){
+    title='Bleibegast-Tisch ist bereits vergeben';
+    problem=m;
+    auswirkung='Ein Stammgast sitzt heute woanders als gestern — kann für Verwirrung sorgen.';
+    loesung='Alten Tisch freigeben oder neue Platzierung bestätigen.';
+  } else if(m.includes('VIP')&&(m.includes('Zone')||m.includes('Tisch')||m.includes('Fenster'))){
+    title='VIP-Gast nicht optimal platziert';
+    problem=m;
+    auswirkung='Der Gast könnte schlechter platziert sein als erwartet — mögliche Beschwerde.';
+    loesung='Fensterplatz, ruhige Zone oder bevorzugten Tisch manuell wählen.';
+  } else if(m.includes('freigehalten')){
+    title='Tisch für VIP reserviert';
+    problem=m;
+    auswirkung='';
+    loesung='Tisch ist für einen zukünftigen VIP-Gast geblockt — kein Handlungsbedarf.';
+  } else if(m.includes('Sonderwunsch')||m.includes('Sonderhinweis')){
+    title='Sonderwunsch nicht berücksichtigt';
+    problem=m;
+    auswirkung='Service oder Küche müssen diesen Hinweis manuell prüfen.';
+    loesung='Passenden Tisch wählen oder Hinweis im Servicebericht vermerken.';
+  } else if(m.includes('EssenZeit')||m.includes('Essenszeit')||m.includes('Slot')||m.includes('Zeitfenster')){
+    title='Essenszeit nicht gesetzt';
+    problem=m;
+    auswirkung='Gäste könnten unverteilt alle zur gleichen Zeit kommen.';
+    loesung='Standard-Essenszeit 19:00 Uhr setzen oder manuell anpassen.';
+    autofix={label:'Standard 19:00 setzen',fn:'autoFixEssenszeit'};
   } else if(m.includes('Kein passender Tisch')){
-    title='Kein freier Tisch verfügbar';
-    risk='Gast bleibt ohne Tischzuweisung — Kapazitätsproblem.';
-    rec='Tischkonfiguration prüfen oder Tische zusammenlegen.';
+    title='Kein freier Tisch für diesen Gast';
+    problem=m;
+    auswirkung='Gast bleibt ohne Tischzuweisung — er steht nicht im Plan.';
+    loesung='Tischkonfiguration prüfen: zu wenig Tische oder zu kleine Kapazität.';
   } else if(m.includes('Doppelname')){
-    title='Identischer Gastname mehrfach';
-    risk='Möglicher PMS-Datenfehler oder Doppelbuchung.';
-    rec='PMS-Datei auf Duplikate prüfen.';
+    title='Gastname kommt doppelt vor';
+    problem=m;
+    auswirkung='Möglicher PMS-Datenfehler oder tatsächliche Doppelbuchung.';
+    loesung='PMS-Datei auf Duplikate prüfen und ggf. bereinigen.';
   } else if(m.includes('Gleicher Nachname')){
     title='Mögliche Reisegruppe erkannt';
-    risk='Gäste könnten zusammengehören.';
-    rec='Prüfen ob Gruppe an benachbarte Tische soll.';
+    problem=m;
+    auswirkung='Gäste könnten zusammengehören und einen gemeinsamen Tisch wünschen.';
+    loesung='Prüfen ob Gruppe an benachbarten Tischen platziert werden soll.';
   } else if(m.includes('nicht gefunden')){
-    title='Stammtisch nicht in Konfiguration';
-    risk='Vortages-Tisch existiert nicht oder wurde umbenannt.';
-    rec='Tischkonfiguration prüfen.';
+    title='Stammtisch nicht mehr vorhanden';
+    problem=m;
+    auswirkung='Der Vortages-Tisch existiert nicht mehr oder wurde umbenannt.';
+    loesung='Tischkonfiguration prüfen oder Gast neu zuweisen.';
   } else if(m.includes('Sonderregel')){
-    title='Sonderregel-Konflikt';
-    risk='Zimmer-spezifische Zuweisung scheiterte.';
-    rec='Tischverfügbarkeit und Sonderregel prüfen.';
+    title='Zimmer-Sonderregel konnte nicht erfüllt werden';
+    problem=m;
+    auswirkung='Zimmer-spezifische Tischzuweisung ist fehlgeschlagen.';
+    loesung='Tischverfügbarkeit prüfen und Sonderregel ggf. anpassen.';
   } else if(m.includes('Max PAX')){
-    title='Kapazitätswarnung';
-    risk='Gästegruppe ist größer als erlaubt.';
-    rec='Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.';
-  } else if(m.includes('freigehalten')){
-    title='VIP-Tisch reserviert';
-    risk='';
-    rec='Tisch für zukünftigen VIP-Gast blockiert.';
+    title='Kapazitätsgrenze überschritten';
+    problem=m;
+    auswirkung='Die Gruppe ist größer als der Tisch erlaubt.';
+    loesung='Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.';
+  } else if(m.includes('Empfohlenes Feld')){
+    title='Spalten-Zuordnung unvollständig';
+    problem=m;
+    auswirkung='Fehlende Felder reduzieren die Genauigkeit der Tischzuweisung.';
+    loesung='In Schritt 2 die Spalten-Zuordnung prüfen und ergänzen.';
   } else {
-    title=m.slice(0,60);
+    title=m.length>70?m.slice(0,67)+'…':m;
+    problem=m;
+    auswirkung='';
+    loesung='';
   }
-  return{...w,title,risk,rec};
+  return{...w,title,problem,auswirkung,loesung,autofix};
 }
 
 function warnItem(w,cls,resolved=false){
   const ew=enrichWarning(w);
   const ico={'red':'🔴','yellow':'⚠️','green':'✅','':'ℹ️'}[cls]||'ℹ️';
+  const badgeLabel={'red':'Kritisch','yellow':'Hinweis','green':'Erledigt','':'Geprüft'}[cls]||(resolved?'Geprüft':'Info');
   const id=btoa(encodeURIComponent(w.msg)).slice(0,12);
+  const enc=encodeURIComponent(w.msg);
+  const badgeCls=resolved?'resolved':cls;
+
+  let rows='';
+  if(ew.problem&&ew.problem!==ew.title){
+    rows+=`<div class="wrow problem"><span class="wrow-label">Was ist los?</span><span class="wrow-text">${ew.problem}</span></div>`;
+  }
+  if(ew.auswirkung){
+    rows+=`<div class="wrow auswirkung"><span class="wrow-label">Auswirkung</span><span class="wrow-text">${ew.auswirkung}</span></div>`;
+  }
+  if(ew.loesung){
+    rows+=`<div class="wrow loesung"><span class="wrow-label">Was tun?</span><span class="wrow-text">${ew.loesung}</span></div>`;
+  }
+
+  let actions='';
+  if(!resolved){
+    if(ew.autofix){
+      actions+=`<button class="btn-autofix" onclick="${ew.autofix.fn}('${enc}')">⚡ ${ew.autofix.label}</button>`;
+    }
+    if(cls==='red'){
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')">✓ Als geprüft markieren</button>`;
+    }
+    if(cls==='yellow'){
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')">✓ Bestätigen</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" style="color:var(--dim);font-size:9px" onclick="markResolved('${id}','${enc}')">Für heute ignorieren</button>`;
+    }
+  } else {
+    actions+=`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${enc}')">↩ Rückgängig</button>`;
+  }
+
   return`<div class="witem ${resolved?'resolved':cls}" id="wi-${id}">
-    <div class="wico">${resolved?'✅':ico}</div>
-    <div class="wtitle">${ew.title}</div>
-    <div class="wmsg">${w.msg}</div>
-    ${ew.risk?`<div class="wrisk"><b>Risiko:</b> ${ew.risk}</div>`:''}
-    ${ew.rec?`<div class="wrec">→ ${ew.rec}</div>`:''}
-    <div class="wact">
-      ${!resolved&&cls==='red'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">✓ Als geprüft markieren</button>`:''}
-      ${!resolved&&cls==='yellow'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">Als OK markieren</button><button class="btn btn-red btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">Ignorieren</button>`:''}
-      ${resolved?`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${encodeURIComponent(w.msg)}')">Rückgängig</button>`:''}
+    <div class="witem-hdr">
+      <span class="wico">${resolved?'✅':ico}</span>
+      <span class="wbadge ${badgeCls}">${resolved?'Geprüft':badgeLabel}</span>
+      <span class="wtitle">${ew.title}</span>
+    </div>
+    <div class="witem-body">
+      ${rows}
+      ${actions?`<div class="wact">${actions}</div>`:''}
     </div>
   </div>`;
 }
@@ -2300,9 +2482,25 @@ function updateDashboard(){
     el('ds-ankuenfte').textContent=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
     const fr=lastTables.filter(t=>!t.belegt&&t.aktiv).length;
     el('ds-tische').textContent=fr;
-    el('ds-warns').textContent=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    const redCount=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    const yellowCount=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg)).length;
+    el('ds-warns').textContent=redCount;
     const da=el('da-plan');if(da) da.style.opacity='1';
     const db=el('da-export');if(db) db.style.opacity='1';
+    const cb=el('ds-conflict-bar');
+    if(cb){
+      if(redCount>0){
+        cb.style.display='block';
+        cb.className='ds-conflict-bar red';
+        cb.innerHTML=`🔒 ${redCount} kritische${redCount===1?'r':''} Punkt${redCount===1?' muss':' e müssen'} gelöst werden — Export gesperrt. <u>Jetzt prüfen →</u>`;
+      } else if(yellowCount>0){
+        cb.style.display='block';
+        cb.className='ds-conflict-bar yellow';
+        cb.innerHTML=`⚠️ ${yellowCount} Hinweis${yellowCount===1?' zur Prüfung':'e zur Prüfung'} offen. <u>Jetzt prüfen →</u>`;
+      } else {
+        cb.style.display='none';
+      }
+    }
   }
   const hn=localStorage.getItem('hsi_hotel');
   if(hn){
