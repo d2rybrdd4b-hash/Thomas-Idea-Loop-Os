@@ -221,6 +221,50 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
          border-radius:12px;padding:16px;text-align:center;font-size:11px;
          color:var(--green);margin-top:16px;display:none}
 #s5 .bot{display:flex;justify-content:flex-start;max-width:760px;margin:24px auto 0}
+.print-btns{display:flex;gap:8px;flex-wrap:wrap;max-width:760px;margin:0 auto 20px}
+
+/* ── PRINT OVERLAY ── */
+#print-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;
+               flex-direction:column;display:none}
+#print-toolbar{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.1);
+               display:flex;align-items:center;padding:0 20px;gap:8px;flex-shrink:0}
+.ptool-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+           color:rgba(255,255,255,.75);padding:6px 14px;border-radius:6px;
+           font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ptool-btn.active,.ptool-btn:hover{background:var(--gold);color:#090F17;border-color:var(--gold)}
+#print-content{flex:1;overflow-y:auto;padding:40px;background:var(--bg)}
+.pview-hdr{text-align:center;margin-bottom:28px;padding-bottom:20px;
+           border-bottom:2px solid var(--gold)}
+.pview-hdr h1{font-size:20px;font-weight:300;letter-spacing:1px}
+.pview-hdr h1 em{color:var(--gold);font-style:normal}
+.pview-hdr p{font-size:11px;color:var(--dim);margin-top:6px}
+.ptbl{width:100%;border-collapse:collapse;font-size:11px}
+.ptbl th{background:var(--panel);padding:7px 10px;text-align:left;font-size:9px;
+         font-weight:700;letter-spacing:1px;text-transform:uppercase;
+         border-bottom:2px solid var(--gold);color:var(--dim)}
+.ptbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.ptbl tr:last-child td{border-bottom:none}
+.pgroup-hdr{background:var(--card);padding:9px 12px;font-weight:700;font-size:11px;
+            border-left:3px solid var(--gold);margin-top:14px;
+            border-radius:4px 4px 0 0;color:var(--gold)}
+.sonder-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+             padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:16px}
+.sonder-card .sc-zimmer{font-size:22px;font-weight:700;color:var(--gold);min-width:50px}
+.sonder-card .sc-body{flex:1}
+.sonder-card .sc-name{font-size:13px;font-weight:600;margin-bottom:6px}
+.sonder-card .sc-tisch{font-size:10px;color:var(--dim);margin-bottom:6px}
+.sc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.sc-tag{padding:3px 10px;border-radius:10px;font-size:9px;font-weight:700;
+        letter-spacing:.5px;text-transform:uppercase}
+.sc-tag.allergy{background:rgba(232,132,58,.2);color:var(--orange);border:1px solid rgba(232,132,58,.3)}
+.sc-tag.vip{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
+.sc-tag.kids{background:rgba(58,180,224,.2);color:#3AB4E0;border:1px solid rgba(58,180,224,.3)}
+@media print{
+  #hdr,#sticky-bar,#print-toolbar,#main{display:none!important}
+  #print-overlay{position:static!important;display:block!important}
+  #print-content{overflow:visible!important;padding:20px!important}
+  body{overflow:visible!important;height:auto!important}
+}
 
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
@@ -700,6 +744,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       Bitte zuerst zu Schritt 4 gehen und alle kritischen Punkte lösen.
     </div>
 
+    <div class="print-btns">
+      <button class="btn btn-ghost" onclick="openPrint('service')">📋 Service-Liste</button>
+      <button class="btn btn-ghost" onclick="openPrint('reception')">🏨 Rezeptionsliste</button>
+      <button class="btn btn-ghost" onclick="openPrint('special')">⚠️ Sonderhinweise</button>
+    </div>
+
     <div class="export-cards">
       <div class="ecard">
         <div class="eico">📊</div>
@@ -754,6 +804,19 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </div>
 
 </div><!-- /main -->
+
+<!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
+<div id="print-overlay">
+  <div id="print-toolbar">
+    <button class="ptool-btn active" data-view="service" onclick="switchPrint('service')">📋 Service-Liste</button>
+    <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">🏨 Rezeptionsliste</button>
+    <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">⚠️ Sonderhinweise</button>
+    <div style="flex:1"></div>
+    <button class="ptool-btn" onclick="window.print()">🖨️ Drucken</button>
+    <button class="ptool-btn" onclick="closePrint()" style="margin-left:8px">✕ Schließen</button>
+  </div>
+  <div id="print-content"></div>
+</div>
 
 <!-- ══════════════════════ MODALS ══════════════════════ -->
 
@@ -1380,6 +1443,7 @@ function parseGuests(rows){
       allergie:getField(r,'Allergie')||'',
       bemerkung:getField(r,'Bemerkung')||'',
       sprache:getField(r,'Sprache')||'',
+      essen_zeit:getField(r,'EssenZeit')||getField(r,'EssensZeit')||'',
       zugewiesener_tisch:'',
       prioritaet_score:0,
       status:'',
@@ -1973,6 +2037,104 @@ function exportExcel(){
   XLSX.writeFile(wb,filename);
   el('s5-done').style.display='block';
   setStatus('Excel exportiert: '+filename,'go');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PRINT SYSTEM
+// ══════════════════════════════════════════════════════════════
+let activePrintView='service';
+function openPrint(type){
+  if(!calcDone){alert('Bitte erst den Tischplan berechnen (Schritt 3).');return;}
+  activePrintView=type;
+  renderPrintView(type);
+  el('print-overlay').style.display='flex';
+  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===type);
+  });
+}
+function closePrint(){el('print-overlay').style.display='none';}
+function switchPrint(type){
+  activePrintView=type;
+  renderPrintView(type);
+  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===type);
+  });
+}
+function getHotelName(){
+  return el('dash-hotel-name')?.value||el('export-hotel')?.value||'Hotel';
+}
+function getSlotLabel(){
+  const v=el('slot-sel')?.value||el('dash-meal')?.value||'fruehstueck';
+  return{fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'}[v]||v;
+}
+function renderPrintView(type){
+  const hotel=getHotelName();
+  const hdr=`<div class="pview-hdr"><h1>${hotel} — <em>${
+    {service:'Service-Liste',reception:'Rezeptionsliste',special:'Sonderhinweise'}[type]
+  }</em></h1><p>${refDate} | ${getSlotLabel()} | Erstellt: ${new Date().toLocaleTimeString('de-DE')}</p></div>`;
+
+  let body='';
+  if(type==='service') body=renderServiceList();
+  else if(type==='reception') body=renderReceptionList();
+  else body=renderSpecialList();
+
+  el('print-content').innerHTML=hdr+body;
+}
+function renderServiceList(){
+  const byTable={};
+  assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    if(!byTable[g.zugewiesener_tisch]) byTable[g.zugewiesener_tisch]=[];
+    byTable[g.zugewiesener_tisch].push(g);
+  });
+  const zc=zoneColors();
+  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
+  return Object.keys(byTable).sort().map(tid=>{
+    const zone=tid[0];
+    const col=zoneColor[zone]||zc.dim;
+    const rows=byTable[tid].map(g=>`<tr>
+      <td>${g.zimmer}</td>
+      <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+      <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
+      <td>${g.allergie||'—'}</td>
+      <td>${g.essen_zeit||'—'}</td>
+      <td>${g.bemerkung||'—'}</td>
+    </tr>`).join('');
+    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}</div>
+    <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  }).join('');
+}
+function renderReceptionList(){
+  const rows=[...assignedGuests].sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0));
+  const trs=rows.map(g=>`<tr>
+    <td><b>${g.zimmer}</b></td>
+    <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+    <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
+    <td>${g.zugewiesener_tisch||'—'}</td>
+    <td>${g.status||'—'}</td>
+    <td>${g.allergie||'—'}</td>
+    <td>${g.essen_zeit||'—'}</td>
+  </tr>`).join('');
+  return`<table class="ptbl"><thead><tr>
+    <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Status</th><th>Allergie</th><th>Zeit</th>
+  </tr></thead><tbody>${trs}</tbody></table>`;
+}
+function renderSpecialList(){
+  const special=assignedGuests.filter(g=>g.allergie||g.vip||g.kinder>0);
+  if(!special.length) return'<p style="color:var(--dim);text-align:center;padding:40px">Keine Sonderhinweise vorhanden.</p>';
+  return special.sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0)).map(g=>`
+    <div class="sonder-card">
+      <div class="sc-zimmer">${g.zimmer}</div>
+      <div class="sc-body">
+        <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
+        <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
+        <div class="sc-tags">
+          ${g.allergie?`<span class="sc-tag allergy">⚠️ ${g.allergie}</span>`:''}
+          ${g.vip?'<span class="sc-tag vip">⭐ VIP</span>':''}
+          ${g.kinder>0?`<span class="sc-tag kids">👶 ${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
