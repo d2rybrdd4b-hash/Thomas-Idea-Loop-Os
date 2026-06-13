@@ -853,7 +853,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="bot">
       <button class="btn btn-ghost" onclick="goStep(2)">← Zurück</button>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-blue btn-sm" onclick="runCalc()">🔄 Neu</button>
+        <button class="btn btn-blue btn-sm" onclick="resetAndCalc()">🔄 Neu</button>
         <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Hinweise</button>
         <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>🖨 Druckmappe</button>
       </div>
@@ -1136,6 +1136,7 @@ let resolvedWarnings=new Set();
 let pmsProfiles={};
 let zimmerRegeln=[];
 let tischRegeln=[];
+let tableOverrides=new Set(); // tisch_ids where user overrode future reservation
 let scoreGewichte={};
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
 let currentStep=0;
@@ -1806,20 +1807,23 @@ function parseTables(rows){
   });
 }
 
-// Finds best available table: respects kategorie, stay length, and tischRegeln
-function findBestTable(ts, prefZone, pax, nights){
+// Finds best available table: respects kategorie, stay length, tischRegeln, and future calendar
+function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
   const avail=ts.filter(t=>{
     if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
     for(const r of tischRegeln){
       if(r.tisch!==t.tisch_id) continue;
       if(r.typ==='max_pax'&&pax>parseInt(r.wert||99)) return false;
     }
+    // Skip tables with future reservations unless user overrode them
+    if(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id)){
+      if(!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut)) return false;
+    }
     return true;
   });
   if(avail.length===0) return null;
   const inZone=avail.filter(t=>t.zone===prefZone);
   const pool=inZone.length>0?inZone:avail;
-  // Long stays get better tables (lower kategorie); short stays get higher kategorie
   pool.sort((a,b)=>nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
   return pool[0]||null;
 }
@@ -1890,6 +1894,44 @@ function buildBegruendung(g,zone){
   return(m.length?m.join(' · ')+' → ':'Standard → ')+zoneName;
 }
 
+// ── Multi-Day Calendar ──────────────────────────────────────────
+function buildTableCalendar(guests,tables){
+  const cal=new Map();
+  tables.forEach(t=>cal.set(t.tisch_id,new Set()));
+  guests.filter(g=>g.zugewiesener_tisch&&g.check_in&&g.check_out).forEach(g=>{
+    let d=new Date(g.check_in);
+    const end=new Date(g.check_out);
+    while(d<end){
+      cal.get(g.zugewiesener_tisch)?.add(d.toISOString().slice(0,10));
+      d=new Date(d.getTime()+86400000);
+    }
+  });
+  return cal;
+}
+
+function isTableFreeForStay(cal,tisch_id,checkIn,checkOut){
+  if(!cal||!checkIn||!checkOut) return true;
+  const occ=cal.get(tisch_id);
+  if(!occ||occ.size===0) return true;
+  let d=new Date(checkIn);
+  const end=new Date(checkOut);
+  while(d<end){
+    if(occ.has(d.toISOString().slice(0,10))) return false;
+    d=new Date(d.getTime()+86400000);
+  }
+  return true;
+}
+
+function addStayToCalendar(cal,tisch_id,checkIn,checkOut){
+  if(!cal||!checkIn||!checkOut) return;
+  let d=new Date(checkIn);
+  const end=new Date(checkOut);
+  while(d<end){
+    cal.get(tisch_id)?.add(d.toISOString().slice(0,10));
+    d=new Date(d.getTime()+86400000);
+  }
+}
+
 function runCalc(){
   setStatus('Berechne Tischplan…','spin');
   const rows=getMappedRows();
@@ -1937,18 +1979,7 @@ function runCalc(){
 
   // Apply rules
   stepAnim(3);
-  const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false}));
-
-  // Forecast: reserve tables for next 3 days VIPs
-  stepAnim(5);
-  prognoseFuture.filter(g=>g.vip).forEach(g=>{
-    const zone='A';
-    const free=ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.zone===zone&&t.kapazitaet>=g.pax);
-    if(free){
-      free.blocked_for=g.id+'('+g.check_in+')';
-      warns.push({level:'yellow',msg:`📅 Tisch ${free.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} am ${g.check_in} freigehalten`});
-    }
-  });
+  const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false,zukunft_belegt:false,zukunft_info:null}));
 
   // Phase 1: Bleibegäste
   const bleib=active.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB');
@@ -1977,6 +2008,33 @@ function runCalc(){
   });
   el('cs1-res').textContent=bl_ok+' Bleibegäste gesichert'+(bl_fail?' | '+bl_fail+' Konflikte':'');
 
+  // Build calendar from bleibegäste + soft-reserve for PROGNOSE guests
+  stepAnim(5);
+  const tableCalendar=buildTableCalendar(bleib,ts);
+  let progReserved=0;
+  prognoseFuture
+    .filter(g=>g.check_in&&g.check_out)
+    .sort((a,b)=>(b.vip?1:0)-(a.vip?1:0))
+    .forEach(g=>{
+      const pref=getZoneForGuest(g);
+      const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
+      const cand=ts.filter(t=>{
+        if(!t.aktiv||t.belegtPax>0||tableOverrides.has(t.tisch_id)) return false;
+        return isTableFreeForStay(tableCalendar,t.tisch_id,g.check_in,g.check_out)&&t.kapazitaet>=g.pax;
+      }).sort((a,b)=>nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
+      const prefT=cand.find(t=>t.zone===pref)||cand[0];
+      if(prefT){
+        addStayToCalendar(tableCalendar,prefT.tisch_id,g.check_in,g.check_out);
+        prefT.zukunft_belegt=true;
+        prefT.zukunft_info={name:(g.vorname?g.vorname+' ':'')+g.nachname,zimmer:g.zimmer,check_in:g.check_in,check_out:g.check_out,pax:g.pax,vip:g.vip};
+        progReserved++;
+        if(g.vip) warns.push({level:'yellow',msg:`📅 Tisch ${prefT.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} ab ${g.check_in} freigehalten`});
+      } else {
+        warns.push({level:'red',msg:`🔴 Prognose: ${g.vorname} ${g.nachname} (Ankunft ${g.check_in}, ${g.pax} PAX) — kein Tisch für gesamten Aufenthalt frei`});
+      }
+    });
+  el('cs5-res').textContent=progReserved+' Prognose-Tische reserviert';
+
   el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise';
 
   // Phase 2: Neue Gäste — erst Gruppen gemeinsam, dann Einzelgäste
@@ -2001,11 +2059,13 @@ function runCalc(){
       const name=gs[0].nachname;
       const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
       const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
-      const groupTable=findBestTable(ts,pref,totalPax,nights);
+      const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
+      const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
       if(groupTable){
         groupTable.belegtPax+=totalPax;
         if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
         groupTable.gast_id=gs[0].id;
+        addStayToCalendar(tableCalendar,groupTable.tisch_id,ci,co);
         gs.forEach(g=>{
           g.zugewiesener_tisch=groupTable.tisch_id;
           g.begruendung='Gruppe '+name+' — gemeinsam Tisch '+groupTable.tisch_id;
@@ -2043,7 +2103,7 @@ function runCalc(){
     if(!targetTisch){
       const pref=getZoneForGuest(g);
       const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
-      targetTisch=findBestTable(ts,pref,g.pax,nights);
+      targetTisch=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar);
     }
     if(targetTisch){
       targetTisch.belegtPax+=g.pax;
@@ -2051,6 +2111,7 @@ function runCalc(){
       targetTisch.gast_id=g.id;
       g.zugewiesener_tisch=targetTisch.tisch_id;
       g.begruendung=buildBegruendung(g,targetTisch.zone);
+      addStayToCalendar(tableCalendar,targetTisch.tisch_id,g.check_in,g.check_out);
       assigned++;
     } else {
       unassigned++;
@@ -2062,7 +2123,6 @@ function runCalc(){
   el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
   el('cs4-res').textContent='Score-Rang berechnet für '+sorted.length+' Neugäste';
-  el('cs5-res').textContent=prognoseFuture.filter(g=>g.vip).length+' Prognose-Tische reserviert';
   el('cs6-res').textContent=assigned+' Gäste zugewiesen'+(unassigned?' | '+unassigned+' ohne Tisch':'');
 
   // Merge all guests
@@ -2252,8 +2312,10 @@ function renderFP(tables,guests){
     const occupied=gs.length>0;
     const blocked=!!t.blocked_for;
 
-    let fill=zc.card,stroke=zc.border,sw=1.5;
-    if(blocked&&!occupied){fill=col+'14';stroke=col;sw=1.5;}
+    const zukunft=!!t.zukunft_belegt&&!occupied;
+    let fill=zc.card,stroke=zc.border,sw=1.5,strokeDash='';
+    if(zukunft){fill=col+'10';stroke='#c8a84b';sw=1.5;strokeDash='stroke-dasharray="6,3"';}
+    else if(blocked&&!occupied){fill=col+'14';stroke=col;sw=1.5;}
     else if(occupied){
       if(overloaded||hasConflikt){fill='rgba(229,85,85,.15)';stroke=zc.red||'#E55555';sw=3;}
       else if(usedPax>=t.kapazitaet){fill=col+'25';stroke=col;sw=3;}
@@ -2273,7 +2335,7 @@ function renderFP(tables,guests){
     const pacColor=overloaded?(zc.red||'#E55555'):(usedPax>=t.kapazitaet?stroke:'#888');
 
     return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer">
-      <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${strokeDash}/>
       <text x="${t.x}" y="${t.y-r+16}" text-anchor="middle" font-size="10" fill="${occupied?stroke:zc.dim}" font-weight="800">${t.tisch_id}</text>
       <text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="${r>=36?13:11}" fill="${pacColor}" font-weight="700">${pacLabel}</text>
       ${gNameLabel&&r>=30?`<text x="${t.x}" y="${t.y+r-8}" text-anchor="middle" font-size="${r>=36?9:8}" fill="${zc.dim}">${gNameLabel}</text>`:''}
@@ -2281,7 +2343,7 @@ function renderFP(tables,guests){
       ${hasKids?`<text x="${t.x-r+9}" y="${t.y-r+11}" text-anchor="middle" font-size="11">👶</text>`:''}
       ${hasAllergie&&!hasKids?`<text x="${t.x-r+9}" y="${t.y-r+11}" text-anchor="middle" font-size="10" fill="${zc.dim}">⚠</text>`:''}
       ${(overloaded||hasConflikt)?`<circle cx="${t.x+r-7}" cy="${t.y+r-7}" r="8" fill="${zc.red||'#E55555'}"/><text x="${t.x+r-7}" y="${t.y+r-3}" text-anchor="middle" font-size="10" fill="white" font-weight="900">!</text>`:''}
-      ${blocked&&!occupied?`<text x="${t.x}" y="${t.y+15}" text-anchor="middle" font-size="8" fill="${col}" opacity=".8">RES.</text>`:''}
+      ${zukunft?`<text x="${t.x}" y="${t.y+14}" text-anchor="middle" font-size="11" opacity=".9">⏳</text><text x="${t.x}" y="${t.y+26}" text-anchor="middle" font-size="7" fill="#c8a84b" opacity=".85">ab ${(t.zukunft_info?.check_in||'').slice(5)}</text>`:''}
     </g>`;
   }).join('');
 
@@ -2289,12 +2351,13 @@ function renderFP(tables,guests){
   const legItems=[
     {col:zc.green||'#2ECC71',label:'Belegt'},
     {col:zc.red||'#E55555',label:'Konflikt'},
+    {col:'#c8a84b',label:'Zukunft ⏳',dash:true},
     {col:zc.border,label:'Frei'}
   ];
   const legW=60,legY=maxY-14;
   const legStartX=(maxX-(legItems.length*legW))/2;
   const leg=legItems.map((e,i)=>`<g transform="translate(${legStartX+i*legW},${legY})">
-    <circle r="5" cx="6" cy="-1" fill="${e.col}30" stroke="${e.col}" stroke-width="1.5"/>
+    <circle r="5" cx="6" cy="-1" fill="${e.col}30" stroke="${e.col}" stroke-width="1.5" ${e.dash?'stroke-dasharray="4,2"':''}/>
     <text x="15" y="3" font-size="8" fill="${zc.dim}">${e.label}</text>
   </g>`).join('');
 
@@ -3087,8 +3150,28 @@ function showTableDetail(tischId){
       ${gs.length>0?`<button class="fd-free-btn" onclick="freeTable('${tischId}')">Freigeben</button>`:''}
       <button class="fd-close" onclick="el('fp-detail').style.display='none';el('fp-detail').dataset.open=''">✕</button>
     </div>
-    ${gs.length===0?'<div style="color:var(--dim);font-size:11px;padding:8px 0">Tisch ist frei</div>':gRows}`;
+    ${gs.length===0&&t.zukunft_info?`
+      <div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.3);border-radius:8px;padding:10px;margin:4px 0">
+        <div style="font-size:10px;font-weight:700;color:#c8a84b;margin-bottom:4px">⏳ ZUKUNFTS-RESERVIERUNG</div>
+        <div style="font-size:11px;margin-bottom:2px">Ab <b>${t.zukunft_info.check_in}</b> für <b>${t.zukunft_info.name}</b>${t.zukunft_info.vip?' ⭐':''}</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:8px">Zi.${t.zukunft_info.zimmer} · ${t.zukunft_info.pax} PAX · bis ${t.zukunft_info.check_out}</div>
+        <button class="fd-free-btn" style="border-color:#c8a84b;color:#c8a84b" onclick="overrideFutureTable('${tischId}')">Trotzdem verwenden — neu berechnen</button>
+      </div>`
+    :gs.length===0?'<div style="color:var(--dim);font-size:11px;padding:8px 0">Tisch ist frei</div>':gRows}`;
   detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function overrideFutureTable(tischId){
+  tableOverrides.add(tischId);
+  el('fp-detail').style.display='none';
+  el('fp-detail').dataset.open='';
+  setStatus('Tisch '+tischId+' freigegeben — wird neu berechnet…','spin');
+  setTimeout(()=>runCalc(),100);
+}
+
+function resetAndCalc(){
+  tableOverrides.clear();
+  runCalc();
 }
 
 function loadDemoAndStart(){
