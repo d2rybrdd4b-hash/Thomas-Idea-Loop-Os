@@ -830,6 +830,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div id="fp-detail" style="display:none"></div>
       </div>
 
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+        <label style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">🎂 Geburtstage &amp; Hinweise</label>
+        <textarea id="geburtstage-input" placeholder="z.B. Zimmer 307: Geburtstag — Torte um 20:00 Uhr&#10;Zimmer 205: VIP-Begrüßung durch GM&#10;Day Spa: Buchungen bis 22 Uhr"
+          style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;resize:vertical;min-height:64px;font-family:inherit;line-height:1.5;box-sizing:border-box"
+          oninput="localStorage.setItem('hsi_geburtstage',this.value)"></textarea>
+      </div>
+
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <h3 style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">
           GÄSTELISTE
@@ -1972,12 +1979,49 @@ function runCalc(){
 
   el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise';
 
-  // Phase 2: Sonderregeln + new guests
+  // Phase 2: Neue Gäste — erst Gruppen gemeinsam, dann Einzelgäste
   stepAnim(4);
   stepAnim(6);
-  const fam=neu.filter(g=>g.kinder>0);
-  const bar=neu.filter(g=>!g.kinder&&g.vip);
-  const nor=neu.filter(g=>!g.kinder&&!g.vip);
+
+  // Build group map: same last name + different rooms = group
+  const neuByLast={};
+  neu.forEach(g=>{
+    const last=g.nachname.trim().toLowerCase();
+    if(!neuByLast[last]) neuByLast[last]=[];
+    neuByLast[last].push(g);
+  });
+  const groupAssigned=new Set();
+  let groupsPlaced=0;
+
+  Object.values(neuByLast)
+    .filter(gs=>[...new Set(gs.map(g=>String(g.zimmer)))].length>1)
+    .sort((a,b)=>b.reduce((s,g)=>s+g.pax,0)-a.reduce((s,g)=>s+g.pax,0)) // largest groups first
+    .forEach(gs=>{
+      const totalPax=gs.reduce((s,g)=>s+g.pax,0);
+      const name=gs[0].nachname;
+      const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
+      const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
+      const groupTable=findBestTable(ts,pref,totalPax,nights);
+      if(groupTable){
+        groupTable.belegtPax+=totalPax;
+        if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
+        groupTable.gast_id=gs[0].id;
+        gs.forEach(g=>{
+          g.zugewiesener_tisch=groupTable.tisch_id;
+          g.begruendung='Gruppe '+name+' — gemeinsam Tisch '+groupTable.tisch_id;
+          groupAssigned.add(g.id);
+          assigned++;
+        });
+        groupsPlaced++;
+      } else {
+        warns.push({level:'yellow',msg:`⚠️ Gruppe ${name} (${gs.length} Zimmer, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
+      }
+    });
+
+  // Individual placement for remaining (non-group) neu guests
+  const fam=neu.filter(g=>!groupAssigned.has(g.id)&&g.kinder>0);
+  const bar=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder&&g.vip);
+  const nor=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder&&!g.vip);
   const sorted=[...fam,...bar.sort((a,b)=>b.prioritaet_score-a.prioritaet_score),
                 ...nor.sort((a,b)=>b.prioritaet_score-a.prioritaet_score)];
 
@@ -2015,6 +2059,7 @@ function runCalc(){
     }
   });
 
+  el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
   el('cs4-res').textContent='Score-Rang berechnet für '+sorted.length+' Neugäste';
   el('cs5-res').textContent=prognoseFuture.filter(g=>g.vip).length+' Prognose-Tische reserviert';
@@ -2022,9 +2067,27 @@ function runCalc(){
 
   // Merge all guests
   const guestMap={};
-  [...bleib,...sorted].forEach(g=>{guestMap[g.id]=g;});
+  [...bleib,...neu].forEach(g=>{guestMap[g.id]=g;});
   assignedGuests=[...Object.values(guestMap),...active.filter(g=>!guestMap[g.id])];
   warnings=warns;
+
+  // Phase 3: Hochstufungs-Optimierung — attraktive Tische nicht leer lassen
+  const emptyPremium=ts.filter(t=>t.aktiv&&(t.kategorie||9)<=3&&(t.belegtPax||0)===0&&!t.blocked_for);
+  if(emptyPremium.length>0){
+    const onPoorTables=assignedGuests.filter(g=>{
+      if(!g.zugewiesener_tisch) return false;
+      const t=ts.find(t=>t.tisch_id===g.zugewiesener_tisch);
+      return t&&(t.kategorie||9)>=6;
+    });
+    const usedUpgrades=new Set();
+    onPoorTables.forEach(g=>{
+      const upgrade=emptyPremium.find(t=>!usedUpgrades.has(t.tisch_id)&&t.kapazitaet-t.belegtPax>=g.pax);
+      if(upgrade){
+        usedUpgrades.add(upgrade.tisch_id);
+        warns.push({level:'yellow',msg:`⬆️ Hochstufung möglich: ${g.nachname} Zi.${g.zimmer} von Tisch ${g.zugewiesener_tisch} → ${upgrade.tisch_id} (Kat.${upgrade.kategorie})`});
+      }
+    });
+  }
 
   // Render results
   renderResults(assignedGuests,ts,warns);
@@ -2540,6 +2603,12 @@ function exportExcel(){
       g.prioritaet_score,g.bemerkung||''
     ]);
   });
+  // Geburtstage & Hinweise anhängen
+  const gbText=(el('geburtstage-input')?.value||'').trim();
+  if(gbText){
+    sh1Data.push([],[`GEBURTSTAGE & HINWEISE — ${dateStr}`],[]);
+    gbText.split('\n').forEach(line=>{if(line.trim()) sh1Data.push([line.trim()]);});
+  }
   const ws1=XLSX.utils.aoa_to_sheet(sh1Data);
   ws1['!cols']=[{wch:8},{wch:6},{wch:8},{wch:16},{wch:12},{wch:5},{wch:7},{wch:8},{wch:5},{wch:14},{wch:9},{wch:20}];
   ws1['A1'].s={font:{bold:true,sz:14}};
@@ -3062,6 +3131,9 @@ setupDragDrop();
 updateDashboard();
 updateStickyBar(0);
 updateStepUI(0);
+
+// Restore Geburtstage & Hinweise text
+(()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
 
 // Demo-First: App startet direkt mit Ergebnis
 setTimeout(()=>{ loadDemoAndCalc(); }, 400);
