@@ -966,7 +966,8 @@ const FIELD_ALIASES={
   Sprache:['Sprache','Language','Lang','Nationalitaet','Nationality'],
   Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests'],
   Tisch:['Tisch','Table','TischNr','TableNo','TischID','table_id'],
-  Zone:['Zone','Bereich','Area','Section','section']
+  Zone:['Zone','Bereich','Area','Section','section'],
+  EssenZeit:['EssenZeit','EssensZeit','DinnerTime','MealTime','Tischzeit','Uhrzeit','Zeit']
 };
 const REQUIRED_FIELDS=['Nachname','Zimmernummer','AnzahlPersonen'];
 const IMPORTANT_FIELDS=['GastID','CheckIn','CheckOut','VorherigerTisch','GastTyp','VIP','KinderUnter12','Zimmerkategorie'];
@@ -1005,24 +1006,72 @@ const DEFAULT_TABLES=[
 ];
 
 // ══════════════════════════════════════════════════════════════
-//  DEMO DATA — 15 Testfälle
+//  DEMO DATA — 60 Testgäste
 // ══════════════════════════════════════════════════════════════
-const DEMO_CSV_GUESTS=`GastID,Vorname,Nachname,Zimmernummer,AnzahlPersonen,CheckIn,CheckOut,VorherigerTisch,GastTyp,VIP,KinderUnter12,Zimmerkategorie,Allergie,Bemerkung
-G001,Klaus,Hartmann,101,2,${getTodayStr()},${addDays(getTodayStr(),3)},,AN,,0,Standard,,Anreisetag heute
-G002,Maria,Müller,202,1,${addDays(getTodayStr(),-3)},${addDays(getTodayStr(),4)},Q01,BL,0,0,Standard,,Bleibegast Quiet-Zone
-G003,Familie,Weber,303,4,${addDays(getTodayStr(),-5)},${addDays(getTodayStr(),2)},F01,BL,0,2,Suite,Gluten,Familie mit 2 Kindern
-G004,Heinrich,Schmidt,104,2,${getTodayStr()},${addDays(getTodayStr(),1)},,AN,,0,Standard,,An- und Abreise heute
-G005,Dr.,Fischer,205,2,${addDays(getTodayStr(),-2)},${addDays(getTodayStr(),5)},Q02,BL,1,0,Suite,,VIP Stammgast
-G006,Lisa,Bauer,106,1,${getTodayStr()},${addDays(getTodayStr(),7)},,AN,,0,Junior,,Langzeit-Aufenthalt
-G007,Peter,Schneider,307,2,${addDays(getTodayStr(),-1)},${addDays(getTodayStr(),3)},F02,BL,0,0,Standard,,Zimmer 307 → Zone A Regel
-G008,Claudia,Koch,408,3,${addDays(getTodayStr(),-4)},${addDays(getTodayStr(),6)},A04,BL,0,1,Standard,Nuss,1 Kind unter 12
-G009,Thomas,Wagner,109,2,${getTodayStr()},${addDays(getTodayStr(),2)},,AN,,0,Standard,,
-G010,Anna,Becker,210,6,${addDays(getTodayStr(),-1)},${addDays(getTodayStr(),4)},,BL,1,0,Suite,Laktose,VIP Gruppe 6 Personen
-G011,Klaus,Weber,401,2,${getTodayStr()},${addDays(getTodayStr(),3)},,AN,,0,Standard,,Gleicher Nachname wie G003
-G012,Sabine,Hoffmann,212,2,${addDays(getTodayStr(),-6)},${getTodayStr()},,AB,0,0,Standard,,Abreise heute
-G013,Marco,Schulz,113,4,${getTodayStr()},${addDays(getTodayStr(),5)},,AN,,0,2,Family,Vegan,Gruppe mit 2 Kindern
-G014,Eva,Krause,314,2,${addDays(getTodayStr(),-8)},${addDays(getTodayStr(),2)},,BL,1,0,Premium,,Langzeit-VIP
-G015,Direktor,Mayer,115,2,${addDays(getTodayStr(),1)},${addDays(getTodayStr(),4)},,,,0,Suite,,Anreise morgen (Prognose)`;
+const DEMO_CSV_GUESTS=(()=>{
+const T=getTodayStr();const d=n=>addDays(T,n);
+return`GastID,Vorname,Nachname,Zimmernummer,AnzahlPersonen,CheckIn,CheckOut,VorherigerTisch,GastTyp,VIP,KinderUnter12,Zimmerkategorie,Allergie,Bemerkung,EssenZeit
+G001,Klaus,Hartmann,101,2,${T},${d(3)},,AN,0,0,Standard,,Anreisetag Paar,19:00
+G002,Maria,Müller,202,1,${d(-3)},${d(4)},Q01,BL,0,0,Standard,,Bleibegast Quiet,18:00
+G003,Thomas,Weber,303,4,${d(-5)},${d(2)},F01,BL,0,2,Suite,Gluten,Familie 2 Kinder,18:30
+G004,Heinrich,Schmidt,104,2,${T},${d(1)},,AN,0,0,Standard,,Kurzaufenthalt,20:00
+G005,Dr. Petra,Fischer,205,2,${d(-2)},${d(5)},Q02,BL,1,0,Suite,,VIP Stammgast,18:00
+G006,Lisa,Bauer,106,1,${T},${d(7)},,AN,0,0,Junior,,Langzeitaufenthalt,19:30
+G007,Peter,Schneider,307,2,${T},${d(3)},,AN,0,0,Standard,,Zimmer 307 Zone A Regel,19:00
+G008,Claudia,Koch,408,3,${d(-4)},${d(6)},A04,BL,0,1,Standard,Nuss,1 Kind 9 Jahre,18:30
+G009,Thomas,Wagner,109,2,${T},${d(2)},,AN,0,0,Standard,,,19:00
+G010,Anna,Becker,210,6,${d(-1)},${d(4)},B05,BL,1,0,Suite,Laktose,VIP Gruppe,18:00
+G011,Klaus,Weber,401,2,${T},${d(3)},,AN,0,0,Standard,,Gleicher NName G003,20:00
+G012,Sabine,Hoffmann,212,2,${d(-6)},${T},A02,AB,0,0,Standard,,Abreise heute,
+G013,Marco,Schulz,113,4,${T},${d(5)},,AN,0,2,Family,Vegan,2 Kinder vegan,18:30
+G014,Eva,Krause,314,2,${d(-8)},${d(2)},Q03,BL,1,0,Premium,,Langzeit-VIP,18:00
+G015,Direktor,Mayer,115,2,${d(1)},${d(4)},,PROG,1,0,Suite,,VIP Anreise morgen,
+G016,Werner,Braun,216,3,${d(-3)},${d(1)},C01,BL,0,1,Standard,Erdnuss,Kind 8 J Allergie,19:00
+G017,Ingrid,Kaiser,117,1,${T},${d(2)},,AN,0,0,Standard,,Solo Reisende,18:30
+G018,Karim,Al-Rashid,318,4,${d(-2)},${d(3)},B03,BL,0,2,Family,,Bleibegast Familie,19:30
+G019,Yuki,Tanaka,219,2,${d(-7)},${d(7)},A01,BL,1,0,Suite,,VIP Langzeit,18:00
+G020,Hans,Zimmermann,320,2,${T},${d(1)},,AN,0,0,Standard,,Geschäftsreise,20:00
+G021,Sophie,Richter,121,2,${T},${d(4)},,AN,0,0,Junior,,Paar Kurzurlaub,19:00
+G022,Robert,Jung,222,1,${d(-9)},${d(1)},C04,BL,0,0,Standard,,Langzeit 10 Tage,18:30
+G023,Monika,Franke,323,4,${d(-4)},${d(4)},,BL,0,2,Family,Sesam,Familie Sesam Allergie,19:00
+G024,Karl,Weiß,124,2,${T},${d(2)},,AN,0,0,Standard,,Standardpaar,19:30
+G025,Helga,Groß,225,1,${d(-11)},${d(3)},,BL,1,0,Premium,,VIP Langzeit 12 Tage,18:00
+G026,Dieter,Schwarz,326,2,${d(-2)},${d(2)},B01,BL,0,0,Standard,,Stammgast,19:00
+G027,Ursula,Neumann,127,3,${T},${d(6)},,AN,0,1,Standard,Milch,Mutter mit Kind,18:30
+G028,Felix,Krüger,428,2,${d(-5)},${d(3)},C02,BL,0,0,Standard,,Bleibegast Mitte,20:00
+G029,Paula,Schreiber,229,1,${T},${d(5)},,AN,0,0,Junior,,Alleinreisend,19:00
+G030,Ernst,König,330,2,${d(-3)},${d(1)},Q04,BL,0,0,Standard,,Ruhige Zone,18:30
+G031,Lars,Hoffmann,131,2,${T},${d(3)},,AN,0,0,Standard,,Gleichnamig G012,19:00
+G032,Nina,Wolf,232,2,${d(-6)},${d(4)},B02,BL,0,0,Standard,Gluten,Gluten Allergie,19:30
+G033,Bernd,Klein,333,6,${d(-2)},${d(2)},S01,BL,0,0,Standard,,Familienfeier 6 Personen,18:00
+G034,Katharina,Groß,134,2,${T},${d(1)},,AN,0,0,Standard,,Nachname wie G025,20:00
+G035,Stefan,Meier,235,4,${d(-4)},${d(6)},,BL,0,2,Family,Soja,2 Kinder Soja Allergie,18:30
+G036,Renate,Arnold,336,2,${d(-1)},${d(5)},A03,BL,0,0,Suite,,Suite Stammgast,19:00
+G037,Günter,Brandt,137,3,${T},${d(3)},,AN,0,1,Standard,,Mit Kind 5 Jahre,18:30
+G038,Brigitte,Lange,238,1,${d(-8)},${d(2)},Q01,BL,0,0,Standard,,Konflikt Q01 mit G002,18:00
+G039,Jörg,Vogel,339,2,${T},${d(4)},,AN,0,0,Standard,,Geschäftsreise,19:30
+G040,Elke,Bergmann,440,4,${d(-1)},${d(3)},,BL,0,2,Suite,Laktose,Suite Familie,18:00
+G041,Prof. Dr.,Krause,141,2,${T},${d(7)},,AN,1,0,Suite,,VIP Anreise heute,18:30
+G042,Michael,Sommer,242,2,${d(-3)},${d(1)},C03,BL,0,0,Standard,,Bleibegast,19:00
+G043,Sigrid,Winter,343,4,${T},${d(5)},,AN,0,2,Family,,Familie Anreise,19:30
+G044,Heinz,Stein,144,2,${d(-5)},${d(5)},B04,BL,0,0,Standard,Weizen,Weizen Allergie,18:00
+G045,Anke,Rose,245,1,${T},${d(3)},,AN,0,0,Junior,,Solo Reisende,19:00
+G046,Franz,Hermann,346,2,${d(-7)},${d(3)},,BL,0,0,Premium,,Premium kein VT,18:30
+G047,Petra,Lehmann,147,3,${T},${d(4)},,AN,0,1,Standard,Baumnuss,Kind mit Allergie,20:00
+G048,Ralf,Weber,248,2,${d(-2)},${d(6)},,BL,0,0,Standard,,Weber dritter (G003/G011),19:00
+G049,Gabi,Schwarz,349,4,${T},${d(2)},,AN,0,2,Family,Ei,Familie Ei-Allergie,18:30
+G050,Viktor,Bauer,150,2,${d(-10)},${d(4)},,BL,1,0,Premium,,VIP Langzeit Premium,18:00
+G051,Christa,Hahn,251,2,${T},${d(3)},,AN,0,0,Standard,,Standardpaar,19:00
+G052,Wolfgang,Fuchs,352,1,${d(-4)},${d(2)},,BL,0,0,Standard,,Bleibegast kein VT,19:30
+G053,Hildegard,Roth,153,2,${T},${d(5)},,AN,0,0,Suite,,Suite Anreise,18:00
+G054,Gerhard,Schäfer,454,4,${d(-1)},${d(4)},,BL,0,2,Family,Gluten,Familie Gluten,18:30
+G055,Karin,Meier,255,1,${T},${d(2)},,AN,0,0,Junior,,Solo Reisende,19:00
+G056,Hubert,Lorenz,356,2,${d(-3)},${d(3)},,BL,0,0,Standard,,Bleibegast kein VT,20:00
+G057,Lieselotte,Böhm,157,4,${T},${d(6)},,AN,0,2,Family,,Familie Anreise,18:30
+G058,Otto,Metzger,258,2,${d(-6)},${T},,AB,0,0,Standard,,Abreise heute kein VT,
+G059,Trudi,Pohl,359,2,${d(2)},${d(5)},,PROG,1,0,Suite,,VIP Prognose Übermorgen,
+G060,Ernst,Seiler,460,2,${d(1)},${d(3)},,PROG,0,0,Standard,,Prognose morgen,`;
+})();
 
 const DEMO_CSV_TABLES=`Tisch,Zone,Kapazitaet,Aktiv
 A01,A,2,1
