@@ -1668,6 +1668,19 @@ function getZoneForGuest(g){
   return'C';
 }
 
+function buildBegruendung(g,zone){
+  const ZNAME={A:'Premium-Zone',B:'Fensterzone',C:'Hauptbereich',F:'Familienbereich',Q:'Ruhige Ecke'};
+  const zoneName=ZNAME[zone]||('Zone '+zone);
+  const m=[];
+  if(g.kinder>0) m.push('Familie'+(g.kinder===1?' (1 Kind)':' ('+g.kinder+' Kinder)'));
+  if(g.vip) m.push('VIP-Gast');
+  if(g.allergie) m.push('Allergie: '+g.allergie);
+  const kat=(g.zimmer_kat||'').toLowerCase();
+  if(kat.includes('suite')&&!g.vip) m.push('Suite-Zimmer');
+  else if(kat.includes('premium')&&!g.vip) m.push('Premium-Zimmer');
+  return(m.length?m.join(' · ')+' → ':'Standard → ')+zoneName;
+}
+
 function runCalc(){
   setStatus('Berechne Tischplan…','spin');
   const rows=getMappedRows();
@@ -1707,7 +1720,7 @@ function runCalc(){
 
   // Apply rules
   stepAnim(3);
-  const ts=tables.map(t=>({...t,belegt:false,gast_id:null,blocked_for:null}));
+  const ts=tables.map(t=>({...t,belegt:false,gast_id:null,blocked_for:null,konflikt:false}));
 
   // Forecast: reserve tables for next 3 days VIPs
   stepAnim(5);
@@ -1729,12 +1742,16 @@ function runCalc(){
     const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&!t.belegt&&!t.blocked_for&&t.aktiv);
     if(t&&t.kapazitaet>=g.pax){
       t.belegt=true;t.gast_id=g.id;
-      g.zugewiesener_tisch=t.tisch_id;bl_ok++;
+      g.zugewiesener_tisch=t.tisch_id;
+      g.begruendung='Bleibegast → Stammtisch '+t.tisch_id+' beibehalten';
+      bl_ok++;
     } else {
       bl_fail++;
-      if(t&&t.belegt){
+      const confliktT=ts.find(t=>t.tisch_id===g.vorheriger_tisch);
+      if(confliktT) confliktT.konflikt=true;
+      if(confliktT&&confliktT.belegt){
         warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} bereits belegt`});
-      } else if(!t){
+      } else if(!confliktT){
         warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} nicht gefunden`});
       }
     }
@@ -1774,9 +1791,12 @@ function runCalc(){
     }
     if(targetTisch){
       targetTisch.belegt=true;targetTisch.gast_id=g.id;
-      g.zugewiesener_tisch=targetTisch.tisch_id;assigned++;
+      g.zugewiesener_tisch=targetTisch.tisch_id;
+      g.begruendung=buildBegruendung(g,targetTisch.zone);
+      assigned++;
     } else {
       unassigned++;
+      g.begruendung='Kein Tisch verfügbar';
       warns.push({level:'red',msg:`🔴 ${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX): Kein passender Tisch verfügbar`});
     }
   });
@@ -1830,7 +1850,7 @@ function renderResults(guests,tables,warns){
 
 function renderPlanTable(guests,filter=''){
   const tbl=el('plan-table');
-  const cols=['Tisch','Zone','Zimmer','Gast','PAX','Status','VIP','Priorität'];
+  const cols=['Tisch','Zone','Zimmer','Gast','PAX','Status','VIP','Grund der Zuweisung'];
   let rows=guests.filter(g=>g.zugewiesener_tisch);
   rows.sort((a,b)=>(a.zugewiesener_tisch||'').localeCompare(b.zugewiesener_tisch||''));
   if(filter){
@@ -1855,7 +1875,7 @@ function renderPlanTable(guests,filter=''){
       <td>${g.pax}${g.kinder?` <span style="font-size:9px;color:var(--zb)">+${g.kinder}K</span>`:''}</td>
       <td>${statusBadge(g.status)}</td>
       <td>${g.vip?'⭐':''}</td>
-      <td>${g.prioritaet_score}</td>
+      <td style="font-size:10px;color:var(--dim);max-width:200px;line-height:1.3">${g.begruendung||'—'}</td>
     </tr>`;
   }).join('')}
   ${rows.length===0?'<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:16px">Keine Treffer</td></tr>':''}
@@ -1872,7 +1892,8 @@ function zoneColors(){
   const s=getComputedStyle(document.documentElement);
   const g=p=>s.getPropertyValue(p).trim();
   return{A:g('--za'),B:g('--zb'),C:g('--zc'),F:g('--zf'),Q:g('--zq'),
-         bg:g('--bg'),card:g('--card'),border:g('--border'),dim:g('--dim')};
+         bg:g('--bg'),card:g('--card'),border:g('--border'),dim:g('--dim'),
+         red:g('--red'),green:g('--green')};
 }
 function toggleTheme(){
   const html=document.documentElement;
@@ -1886,46 +1907,107 @@ function toggleTheme(){
 // ══════════════════════════════════════════════════════════════
 //  FLOOR PLAN RENDER
 // ══════════════════════════════════════════════════════════════
+const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
 let lastTables=[];
+
 function renderFP(tables,guests){
   lastTables=tables;
   const container=el('fp-render');
   if(!container) return;
 
-  const gMap={};
-  guests.forEach(g=>{if(g.zugewiesener_tisch) gMap[g.zugewiesener_tisch]=g;});
+  // Guests grouped by table
+  const tG={};
+  guests.forEach(g=>{
+    if(!g.zugewiesener_tisch) return;
+    if(!tG[g.zugewiesener_tisch]) tG[g.zugewiesener_tisch]=[];
+    tG[g.zugewiesener_tisch].push(g);
+  });
 
   const zc=zoneColors();
-  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
+  const zCol={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
 
-  let maxX=600,maxY=400;
-  tables.forEach(t=>{if(t.x>maxX-60) maxX=t.x+60;if(t.y>maxY-60) maxY=t.y+60;});
+  // Canvas size
+  let maxX=620,maxY=420;
+  tables.forEach(t=>{
+    const r=t.kapazitaet>4?32:t.kapazitaet>2?28:24;
+    if(t.x+r+16>maxX) maxX=t.x+r+16;
+    if(t.y+r+16>maxY) maxY=t.y+r+16;
+  });
 
-  const svg=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
-    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}"/>
-    ${tables.filter(t=>t.aktiv).map(t=>{
-      const g=gMap[t.tisch_id];
-      const col=zoneColor[t.zone]||zc.dim;
-      const fill=g?col+'22':zc.card;
-      const stroke=g?col:zc.border;
-      const r=t.kapazitaet>4?28:t.kapazitaet>2?24:20;
-      return`<g>
-        <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${g?2:1}"/>
-        <text x="${t.x}" y="${t.y-6}" text-anchor="middle" font-size="9" fill="${g?col:zc.dim}" font-weight="600">${t.tisch_id}</text>
-        ${g?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${col}">${g.zimmer}</text>`:''}
-        ${g&&g.pax?`<text x="${t.x}" y="${t.y+16}" text-anchor="middle" font-size="7" fill="${zc.dim}">${g.pax}P</text>`:''}
-        ${t.blocked_for?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${zc.Q||zc.dim}">VORG.</text>`:''}
-      </g>`;
-    }).join('')}
-    ${['A','B','C','F','Q'].map(z=>{
-      const first=tables.find(t=>t.zone===z&&t.aktiv);
-      if(!first) return'';
-      const col=zoneColor[z]||zc.dim;
-      return`<text x="${first.x}" y="${first.y-36}" text-anchor="middle" font-size="10" fill="${col}" font-weight="700" letter-spacing="2">ZONE ${z}</text>`;
-    }).join('')}
+  // Zone bounding boxes
+  const zB={};
+  tables.filter(t=>t.aktiv).forEach(t=>{
+    const r=t.kapazitaet>4?32:t.kapazitaet>2?28:24;
+    if(!zB[t.zone]) zB[t.zone]={x1:9999,x2:-9999,y1:9999,y2:-9999};
+    const b=zB[t.zone];
+    b.x1=Math.min(b.x1,t.x-r-14); b.x2=Math.max(b.x2,t.x+r+14);
+    b.y1=Math.min(b.y1,t.y-r-20); b.y2=Math.max(b.y2,t.y+r+14);
+  });
+
+  // Zone background rects
+  const zoneBg=Object.entries(zB).map(([z,b])=>{
+    const col=zCol[z]||zc.dim;
+    const name=ZONE_NAMES[z]||('Zone '+z);
+    return`<g>
+      <rect x="${b.x1}" y="${b.y1}" width="${b.x2-b.x1}" height="${b.y2-b.y1}"
+            rx="10" fill="${col}0D" stroke="${col}" stroke-width="1" stroke-dasharray="5,3" opacity=".8"/>
+      <text x="${(b.x1+b.x2)/2}" y="${b.y1+12}" text-anchor="middle"
+            font-size="8" fill="${col}" font-weight="800" letter-spacing="1.5" opacity=".9">${name.toUpperCase()}</text>
+    </g>`;
+  }).join('');
+
+  // Table circles
+  const tableSvg=tables.filter(t=>t.aktiv).map(t=>{
+    const gs=tG[t.tisch_id]||[];
+    const usedPax=gs.reduce((s,g)=>s+g.pax,0);
+    const col=zCol[t.zone]||zc.dim;
+    const r=t.kapazitaet>4?32:t.kapazitaet>2?28:24;
+    const overloaded=usedPax>t.kapazitaet;
+    const hasConflikt=!!t.konflikt;
+    const occupied=gs.length>0;
+
+    let fill=zc.card,stroke=zc.border,sw=1;
+    if(occupied){
+      if(overloaded||hasConflikt){fill='rgba(229,85,85,.13)';stroke=zc.red||'#E55555';sw=2.5;}
+      else{fill=col+'18';stroke=col;sw=2;}
+    }
+
+    const firstG=gs[0];
+    const gLabel=firstG?(firstG.zimmer+(gs.length>1?' +':'')):'';
+    const occ=occupied?`${usedPax}/${t.kapazitaet}`:'';
+    const hasVip=gs.some(g=>g.vip);
+    const hasKids=gs.some(g=>g.kinder>0);
+    const hasAllergie=gs.some(g=>g.allergie);
+
+    return`<g>
+      <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="${t.x}" y="${t.y-9}" text-anchor="middle" font-size="9" fill="${occupied?stroke:zc.dim}" font-weight="700">${t.tisch_id}</text>
+      ${occ?`<text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="9" fill="${overloaded?(zc.red||'#E55555'):stroke}" font-weight="600">${occ}</text>`:''}
+      ${gLabel?`<text x="${t.x}" y="${t.y+15}" text-anchor="middle" font-size="7" fill="${zc.dim}">${gLabel}</text>`:''}
+      ${hasVip?`<text x="${t.x+r-7}" y="${t.y-r+8}" text-anchor="middle" font-size="9">⭐</text>`:''}
+      ${hasKids?`<text x="${t.x-r+8}" y="${t.y-r+9}" text-anchor="middle" font-size="9">👶</text>`:''}
+      ${hasAllergie&&!hasKids?`<text x="${t.x-r+8}" y="${t.y-r+9}" text-anchor="middle" font-size="9" fill="${zc.dim||'#5A7A96'}">⚠</text>`:''}
+      ${(overloaded||hasConflikt)?`<text x="${t.x+r-5}" y="${t.y+r-4}" text-anchor="middle" font-size="11" fill="${zc.red||'#E55555'}" font-weight="900">!</text>`:''}
+      ${t.blocked_for?`<text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="7" fill="${col}" opacity=".8">RES.</text>`:''}
+    </g>`;
+  }).join('');
+
+  // Legend
+  const leg=[
+    {col:zc.green||'#2ECC71',label:'Belegt — OK'},
+    {col:zc.red||'#E55555',label:'Konflikt / Überbelegt'},
+    {col:zc.border,label:'Frei'}
+  ].map((e,i)=>`<g transform="translate(${maxX-130},${maxY-70+(i*18)})">
+    <circle r="6" cx="8" cy="0" fill="${e.col}22" stroke="${e.col}" stroke-width="1.5"/>
+    <text x="20" y="4" font-size="8" fill="${zc.dim}">${e.label}</text>
+  </g>`).join('');
+
+  container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}" rx="10"/>
+    ${zoneBg}
+    ${tableSvg}
+    ${leg}
   </svg>`;
-
-  container.innerHTML=svg;
 }
 
 // ══════════════════════════════════════════════════════════════
