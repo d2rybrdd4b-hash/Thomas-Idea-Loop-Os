@@ -343,6 +343,16 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .daction .dtit{font-size:11px;font-weight:700;margin-bottom:3px}
 .daction .dsub{font-size:9px;color:var(--dim);line-height:1.4}
 
+/* ── STICKY BAR (mobile) ── */
+#sticky-bar{position:fixed;bottom:0;left:0;right:0;
+            background:rgba(9,15,23,.96);border-top:1px solid rgba(200,168,75,.3);
+            padding:10px 16px;display:none;align-items:center;gap:10px;z-index:50;
+            backdrop-filter:blur(8px)}
+[data-theme="day"] #sticky-bar{background:rgba(30,43,74,.95)}
+#sticky-bar .sb-info{font-size:10px;color:rgba(255,255,255,.6);flex:1}
+#sticky-bar .sb-info strong{color:rgba(255,255,255,.9);display:block;font-size:11px}
+@media(max-width:900px){#sticky-bar{display:flex}}
+
 /* ── PRINT ── */
 @media print{
   #hdr{display:none}
@@ -353,10 +363,18 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
-  .page{padding:16px 12px}
+  .page{padding:16px 12px 72px}
   #hdr-steps .hstep .slabel{display:none}
   .file-grid{grid-template-columns:1fr 1fr}
   .map-grid{grid-template-columns:1fr}
+  .dash-controls{grid-template-columns:1fr}
+  .dash-stats{grid-template-columns:1fr 1fr}
+  .dash-actions{grid-template-columns:1fr 1fr}
+}
+@media(min-width:601px) and (max-width:900px){
+  .page{padding:20px 16px 72px}
+  .dash-controls{grid-template-columns:1fr 1fr}
+  .dash-actions{grid-template-columns:repeat(4,1fr)}
 }
 </style>
 </head>
@@ -804,6 +822,16 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </div>
 
 </div><!-- /main -->
+
+<!-- ══════════════════════ STICKY BAR ══════════════════════ -->
+<div id="sticky-bar">
+  <div class="sb-info">
+    <strong id="sb-step-name">Dashboard</strong>
+    <span id="sb-step-sub">Hotel Seat Intelligence</span>
+  </div>
+  <button class="btn btn-ghost btn-sm" id="sb-back" onclick="goBack()">← Zurück</button>
+  <button class="btn btn-gold btn-sm" id="sb-next" onclick="goNext()">Weiter →</button>
+</div>
 
 <!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
 <div id="print-overlay">
@@ -2241,6 +2269,21 @@ function updateStepUI(n){
   });
 }
 
+// ── STICKY BAR ──
+const STEP_NAMES=['Dashboard','Dateien laden','Daten prüfen','Tischplan','Warnungen','Export'];
+function updateStickyBar(n){
+  el('sb-step-name').textContent=STEP_NAMES[n]||'';
+  el('sb-step-sub').textContent=n===0?'Hotel Seat Intelligence':`Schritt ${n} von 5`;
+  el('sb-back').disabled=n===0;
+  el('sb-next').disabled=(n===5)||(n>=2&&!fileStatus.vortag&&!calcDone&&n>1);
+  el('sb-next').textContent=n===5?'Fertig →':'Weiter →';
+}
+function goBack(){if(currentStep>0) goStep(currentStep-1);}
+function goNext(){
+  const next=currentStep+1;
+  if(next<=5) goStep(next);
+}
+
 // ── DASHBOARD ──
 function updateDashboard(){
   const d=new Date();
@@ -2298,6 +2341,7 @@ document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-
 setStatus('Bereit — Dateien laden oder Demo starten','');
 setupDragDrop();
 updateDashboard();
+updateStickyBar(0);
 updateStepUI(0);
 
 // Add rules for Zimmer 307 demo
