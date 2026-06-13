@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="night">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
@@ -10,34 +10,45 @@
 :root{
   --bg:#0D1925;--panel:#111E2C;--card:#172433;--border:#1E3045;
   --gold:#C8A84B;--gold-glow:rgba(200,168,75,.12);
-  --green:#2ECC71;--red:#E55;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
+  --green:#2ECC71;--red:#E55555;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
   --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;
-  --r:10px;
+  --hdr:#090F17;--r:10px;
+}
+[data-theme="day"]{
+  --bg:#F5F0E8;--panel:#FFFFFF;--card:#FAFAF7;--border:#E2DDD4;
+  --gold:#9B6B1A;--gold-glow:rgba(155,107,26,.1);
+  --green:#1F7A45;--red:#B5342A;--orange:#C05C10;--text:#1A1A2E;--dim:#7C7A8C;
+  --za:#9B6B1A;--zb:#1F7A45;--zc:#3A5070;--zf:#1A5F8A;--zq:#5A3A8A;
+  --hdr:#1E2B4A;
 }
 html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
-          background:var(--bg);color:var(--text);overflow:hidden}
+          background:var(--bg);color:var(--text);overflow:hidden;transition:background .25s,color .25s}
 
 /* ── HEADER ── */
-#hdr{height:52px;background:#090F17;border-bottom:1px solid var(--border);
+#hdr{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.08);
      display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
-.logo{font-size:13px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap}
+#theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+           color:rgba(255,255,255,.75);border-radius:20px;padding:4px 12px;
+           font-size:10px;cursor:pointer;white-space:nowrap;transition:all .2s}
+#theme-btn:hover{background:rgba(255,255,255,.18)}
+.logo{font-size:13px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.8)}
 .logo em{color:var(--gold);font-style:normal;font-weight:600}
 #hdr-steps{display:flex;align-items:center;gap:0;flex:1;justify-content:center}
 .hstep{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;
-       letter-spacing:.5px;text-transform:uppercase;color:var(--dim);
+       letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.35);
        padding:6px 12px;cursor:pointer;transition:color .2s;white-space:nowrap}
-.hstep .snum{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--dim);
+.hstep .snum{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);
              display:flex;align-items:center;justify-content:center;font-size:9px;
              flex-shrink:0;transition:all .2s}
 .hstep.act{color:var(--gold)}
 .hstep.act .snum{border-color:var(--gold);background:var(--gold);color:#090F17}
 .hstep.done{color:var(--green)}
 .hstep.done .snum{border-color:var(--green);background:var(--green);color:#090F17}
-.harrow{color:var(--border);font-size:10px}
-#hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .3s}
+.harrow{color:rgba(255,255,255,.2);font-size:10px}
+#hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);flex-shrink:0;transition:background .3s}
 .dot.go{background:var(--green)}.dot.spin{background:var(--gold);animation:blink 1s infinite}
-#stxt{font-size:9px;color:var(--dim);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stxt{font-size:9px;color:rgba(255,255,255,.45);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes blink{50%{opacity:.3}}
 
 /* ── MAIN AREA ── */
@@ -69,11 +80,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 /* ── STEP 1 ── */
 #s1 .file-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;margin:0 auto}
 .fcard{background:var(--card);border:2px dashed var(--border);border-radius:14px;
-       padding:24px 20px;cursor:pointer;transition:all .25s;position:relative;text-align:center}
+       padding:24px 20px;cursor:pointer;transition:all .25s;text-align:center}
 .fcard:hover{border-color:var(--gold);background:var(--gold-glow)}
+.fcard.drag-over{border-color:var(--gold);background:var(--gold-glow);transform:scale(1.02)}
 .fcard.ok{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
 .fcard.opt{border-style:dashed;opacity:.8}
-.fcard input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.fcard-hint{font-size:9px;color:var(--dim);margin-top:6px;opacity:.7}
 .fcard .fico{font-size:32px;margin-bottom:12px}
 .fcard .ftit{font-size:13px;font-weight:600;margin-bottom:4px}
 .fcard .fsub{font-size:10px;color:var(--dim);line-height:1.5}
@@ -179,11 +191,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .witem.yellow{border-color:var(--orange)}
 .witem.green{border-color:var(--green)}
 .witem.resolved{opacity:.5;border-color:var(--dim)}
-.witem .wico{font-size:16px;flex-shrink:0;margin-top:1px}
-.witem .wtxt{flex:1}
-.witem .wtxt h4{font-size:11px;font-weight:600;margin-bottom:3px}
-.witem .wtxt p{font-size:10px;color:var(--dim);line-height:1.4}
-.witem .wact{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.witem .wico{font-size:20px;margin-bottom:6px}
+.witem .wtitle{font-size:12px;font-weight:700;margin-bottom:4px}
+.witem .wmsg{font-size:10px;color:var(--dim);margin-bottom:5px;line-height:1.4}
+.witem .wrisk{font-size:10px;margin-bottom:4px}
+.witem .wrisk b{color:var(--red)}
+.witem .wrec{font-size:10px;color:var(--dim);font-style:italic;margin-bottom:8px}
+.witem .wact{display:flex;gap:6px;flex-wrap:wrap}
 .warn-section h3{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
                  color:var(--dim);margin-bottom:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 #s4 .bot{display:flex;justify-content:space-between;align-items:center;
@@ -207,6 +221,50 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
          border-radius:12px;padding:16px;text-align:center;font-size:11px;
          color:var(--green);margin-top:16px;display:none}
 #s5 .bot{display:flex;justify-content:flex-start;max-width:760px;margin:24px auto 0}
+.print-btns{display:flex;gap:8px;flex-wrap:wrap;max-width:760px;margin:0 auto 20px}
+
+/* ── PRINT OVERLAY ── */
+#print-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;
+               flex-direction:column;display:none}
+#print-toolbar{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.1);
+               display:flex;align-items:center;padding:0 20px;gap:8px;flex-shrink:0}
+.ptool-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+           color:rgba(255,255,255,.75);padding:6px 14px;border-radius:6px;
+           font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ptool-btn.active,.ptool-btn:hover{background:var(--gold);color:#090F17;border-color:var(--gold)}
+#print-content{flex:1;overflow-y:auto;padding:40px;background:var(--bg)}
+.pview-hdr{text-align:center;margin-bottom:28px;padding-bottom:20px;
+           border-bottom:2px solid var(--gold)}
+.pview-hdr h1{font-size:20px;font-weight:300;letter-spacing:1px}
+.pview-hdr h1 em{color:var(--gold);font-style:normal}
+.pview-hdr p{font-size:11px;color:var(--dim);margin-top:6px}
+.ptbl{width:100%;border-collapse:collapse;font-size:11px}
+.ptbl th{background:var(--panel);padding:7px 10px;text-align:left;font-size:9px;
+         font-weight:700;letter-spacing:1px;text-transform:uppercase;
+         border-bottom:2px solid var(--gold);color:var(--dim)}
+.ptbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.ptbl tr:last-child td{border-bottom:none}
+.pgroup-hdr{background:var(--card);padding:9px 12px;font-weight:700;font-size:11px;
+            border-left:3px solid var(--gold);margin-top:14px;
+            border-radius:4px 4px 0 0;color:var(--gold)}
+.sonder-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+             padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:16px}
+.sonder-card .sc-zimmer{font-size:22px;font-weight:700;color:var(--gold);min-width:50px}
+.sonder-card .sc-body{flex:1}
+.sonder-card .sc-name{font-size:13px;font-weight:600;margin-bottom:6px}
+.sonder-card .sc-tisch{font-size:10px;color:var(--dim);margin-bottom:6px}
+.sc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.sc-tag{padding:3px 10px;border-radius:10px;font-size:9px;font-weight:700;
+        letter-spacing:.5px;text-transform:uppercase}
+.sc-tag.allergy{background:rgba(232,132,58,.2);color:var(--orange);border:1px solid rgba(232,132,58,.3)}
+.sc-tag.vip{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
+.sc-tag.kids{background:rgba(58,180,224,.2);color:#3AB4E0;border:1px solid rgba(58,180,224,.3)}
+@media print{
+  #hdr,#sticky-bar,#print-toolbar,#main{display:none!important}
+  #print-overlay{position:static!important;display:block!important}
+  #print-content{overflow:visible!important;padding:20px!important}
+  body{overflow:visible!important;height:auto!important}
+}
 
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
@@ -249,6 +307,52 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .text-dim{color:var(--dim);font-size:10px}
 .mt-8{margin-top:8px}
 
+/* ── STEP 0 DASHBOARD ── */
+#s0{padding:28px 24px}
+.dash-wrap{max-width:760px;margin:0 auto}
+.dash-hotel{text-align:center;margin-bottom:24px}
+.dash-hotel h2{font-size:24px;font-weight:300;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
+.dash-hotel p{font-size:11px;color:var(--dim)}
+.dash-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+.dash-ctrl label{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;
+                 text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.dash-ctrl input,.dash-ctrl select{
+  width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--r);padding:9px 12px;font-size:12px;transition:border-color .2s}
+.dash-ctrl input:focus,.dash-ctrl select:focus{outline:none;border-color:var(--gold)}
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.dstat{background:var(--card);border:1px solid var(--border);border-radius:12px;
+       padding:16px;position:relative;overflow:hidden}
+.dstat::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dstat.ds-green::before{background:var(--green)}
+.dstat.ds-red::before{background:var(--red)}
+.dstat.ds-blue::before{background:#3AB4E0}
+.dstat.ds-purple::before{background:var(--zq)}
+.dstat .dv{font-size:26px;font-weight:700;color:var(--gold);line-height:1}
+.dstat.ds-green .dv{color:var(--green)}
+.dstat.ds-red .dv{color:var(--red)}
+.dstat.ds-blue .dv{color:#3AB4E0}
+.dstat.ds-purple .dv{color:var(--zq)}
+.dstat .dk{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.dstat .dsub{font-size:10px;color:var(--dim);margin-top:4px}
+.dash-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.daction{background:var(--card);border:1px solid var(--border);border-radius:12px;
+         padding:16px 12px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
+.daction:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
+.daction .dico{font-size:26px;margin-bottom:8px}
+.daction .dtit{font-size:11px;font-weight:700;margin-bottom:3px}
+.daction .dsub{font-size:9px;color:var(--dim);line-height:1.4}
+
+/* ── STICKY BAR (mobile) ── */
+#sticky-bar{position:fixed;bottom:0;left:0;right:0;
+            background:rgba(9,15,23,.96);border-top:1px solid rgba(200,168,75,.3);
+            padding:10px 16px;display:none;align-items:center;gap:10px;z-index:50;
+            backdrop-filter:blur(8px)}
+[data-theme="day"] #sticky-bar{background:rgba(30,43,74,.95)}
+#sticky-bar .sb-info{font-size:10px;color:rgba(255,255,255,.6);flex:1}
+#sticky-bar .sb-info strong{color:rgba(255,255,255,.9);display:block;font-size:11px}
+@media(max-width:900px){#sticky-bar{display:flex}}
+
 /* ── PRINT ── */
 @media print{
   #hdr{display:none}
@@ -259,10 +363,18 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
-  .page{padding:16px 12px}
+  .page{padding:16px 12px 72px}
   #hdr-steps .hstep .slabel{display:none}
   .file-grid{grid-template-columns:1fr 1fr}
   .map-grid{grid-template-columns:1fr}
+  .dash-controls{grid-template-columns:1fr}
+  .dash-stats{grid-template-columns:1fr 1fr}
+  .dash-actions{grid-template-columns:1fr 1fr}
+}
+@media(min-width:601px) and (max-width:900px){
+  .page{padding:20px 16px 72px}
+  .dash-controls{grid-template-columns:1fr 1fr}
+  .dash-actions{grid-template-columns:repeat(4,1fr)}
 }
 </style>
 </head>
@@ -272,7 +384,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div id="hdr">
   <div class="logo">Hotel <em>Seat</em> Intelligence</div>
   <div id="hdr-steps">
-    <div class="hstep act" data-step="1" onclick="goStep(1)">
+    <div class="hstep act" data-step="0" onclick="goStep(0)" title="Dashboard">
+      <div class="snum">⌂</div>
+    </div>
+    <div class="harrow">›</div>
+    <div class="hstep" data-step="1" onclick="goStep(1)">
       <div class="snum">1</div><span class="slabel">Dateien&nbsp;laden</span>
     </div>
     <div class="harrow">›</div>
@@ -293,6 +409,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
   </div>
   <div id="hdr-right">
+    <button id="theme-btn" onclick="toggleTheme()">☀️ Tag</button>
     <div class="dot" id="sdot"></div>
     <div id="stxt">Bereit</div>
   </div>
@@ -300,6 +417,67 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <!-- ══════════════════════ MAIN ══════════════════════ -->
 <div id="main">
+
+<!-- ─── SCHRITT 0: Dashboard ─── -->
+<div class="page act" id="s0">
+  <div class="dash-wrap">
+    <div class="dash-hotel">
+      <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
+      <p>Tischplan-Assistent — <span id="dash-date-display"></span></p>
+    </div>
+    <div class="dash-controls">
+      <div class="dash-ctrl">
+        <label>Hotel-Name</label>
+        <input type="text" id="dash-hotel-name" placeholder="z.B. Grand Hotel am See"
+          oninput="localStorage.setItem('hsi_hotel',this.value);el('dash-hotel-title').textContent=this.value||'Hotel Seat Intelligence'">
+      </div>
+      <div class="dash-ctrl">
+        <label>Datum</label>
+        <input type="date" id="dash-date" onchange="updateDashboard()">
+      </div>
+      <div class="dash-ctrl">
+        <label>Mahlzeit</label>
+        <select id="dash-meal" onchange="updateDashboard()">
+          <option value="fruehstueck">🌅 Frühstück</option>
+          <option value="mittag">☀️ Mittagessen</option>
+          <option value="abend" selected>🌙 Abendessen</option>
+        </select>
+      </div>
+    </div>
+    <div class="dash-stats">
+      <div class="dstat"><div class="dv" id="ds-datum">—</div><div class="dk">Datum</div></div>
+      <div class="dstat"><div class="dv" id="ds-mahlzeit">—</div><div class="dk">Mahlzeit</div></div>
+      <div class="dstat ds-green"><div class="dv" id="ds-gaeste">0</div><div class="dk">Gäste aktiv</div></div>
+      <div class="dstat ds-blue"><div class="dv" id="ds-ankuenfte">0</div><div class="dk">Ankünfte</div></div>
+      <div class="dstat"><div class="dv" id="ds-tische">0</div><div class="dk">Tische frei</div></div>
+      <div class="dstat ds-red"><div class="dv" id="ds-warns">0</div><div class="dk">Warnungen</div></div>
+    </div>
+    <div class="dash-actions">
+      <div class="daction" onclick="goStep(1)">
+        <div class="dico">📋</div>
+        <div class="dtit">Neuer Plan</div>
+        <div class="dsub">Dateien laden &amp; starten</div>
+      </div>
+      <div class="daction" onclick="loadDemoAndStart()">
+        <div class="dico">🎭</div>
+        <div class="dtit">Demo laden</div>
+        <div class="dsub">60 Testgäste sofort</div>
+      </div>
+      <div class="daction" id="da-plan" onclick="calcDone?goStep(3):goStep(1)"
+           style="opacity:.5">
+        <div class="dico">📊</div>
+        <div class="dtit">Tischplan</div>
+        <div class="dsub">Ergebnis anzeigen</div>
+      </div>
+      <div class="daction" id="da-export" onclick="calcDone?goStep(5):goStep(1)"
+           style="opacity:.5">
+        <div class="dico">⬇️</div>
+        <div class="dtit">Exportieren</div>
+        <div class="dsub">Excel &amp; Druck</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ─── SCHRITT 1: Dateien laden ─── -->
 <div class="page act" id="s1">
@@ -316,6 +494,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Welcher Gast saß gestern wo?<br>Für Bleibegäste-Zuordnung nötig.</div>
       <div class="fbadge" id="fb-vortag">Pflicht</div>
       <div class="fname" id="fn-vortag"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard" id="fc-ankuenfte" onclick="el('fi-ankuenfte').click()">
@@ -325,6 +504,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS-System.</div>
       <div class="fbadge" id="fb-ankuenfte">Pflicht</div>
       <div class="fname" id="fn-ankuenfte"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard" id="fc-inhaus" onclick="el('fi-inhaus').click()">
@@ -334,6 +514,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Alle aktuell belegten Zimmer.<br>Bleibegäste & Stammgäste.</div>
       <div class="fbadge" id="fb-inhaus">Pflicht</div>
       <div class="fname" id="fn-inhaus"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-abreisen" onclick="el('fi-abreisen').click()">
@@ -343,6 +524,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Gäste die heute abreisen.<br>Optional — verbessert Prognose.</div>
       <div class="fbadge" id="fb-abreisen">Optional</div>
       <div class="fname" id="fn-abreisen"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-forecast" onclick="el('fi-forecast').click()">
@@ -352,6 +534,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Ankünfte der nächsten 3 Tage<br>für Tisch-Reservierungen.</div>
       <div class="fbadge" id="fb-forecast">Optional</div>
       <div class="fname" id="fn-forecast"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-tische" onclick="el('fi-tische').click()">
@@ -361,6 +544,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Welche Tische mit wieviel Plätzen.<br>Standard-Layout wird verwendet.</div>
       <div class="fbadge" id="fb-tische">Optional</div>
       <div class="fname" id="fn-tische"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
   </div>
 
@@ -370,7 +554,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 
   <div class="bot">
-    <button class="btn btn-ghost" onclick="loadDemo()">🎭 Demo-Daten laden (15 Testfälle)</button>
+    <button class="btn btn-ghost" onclick="loadDemo()">🎭 Demo-Daten laden</button>
     <button class="btn btn-gold" id="btn-s1-next" onclick="goStep(2)" disabled>
       Weiter — Daten prüfen →
     </button>
@@ -578,6 +762,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       Bitte zuerst zu Schritt 4 gehen und alle kritischen Punkte lösen.
     </div>
 
+    <div class="print-btns">
+      <button class="btn btn-ghost" onclick="openPrint('service')">📋 Service-Liste</button>
+      <button class="btn btn-ghost" onclick="openPrint('reception')">🏨 Rezeptionsliste</button>
+      <button class="btn btn-ghost" onclick="openPrint('special')">⚠️ Sonderhinweise</button>
+    </div>
+
     <div class="export-cards">
       <div class="ecard">
         <div class="eico">📊</div>
@@ -632,6 +822,29 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </div>
 
 </div><!-- /main -->
+
+<!-- ══════════════════════ STICKY BAR ══════════════════════ -->
+<div id="sticky-bar">
+  <div class="sb-info">
+    <strong id="sb-step-name">Dashboard</strong>
+    <span id="sb-step-sub">Hotel Seat Intelligence</span>
+  </div>
+  <button class="btn btn-ghost btn-sm" id="sb-back" onclick="goBack()">← Zurück</button>
+  <button class="btn btn-gold btn-sm" id="sb-next" onclick="goNext()">Weiter →</button>
+</div>
+
+<!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
+<div id="print-overlay">
+  <div id="print-toolbar">
+    <button class="ptool-btn active" data-view="service" onclick="switchPrint('service')">📋 Service-Liste</button>
+    <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">🏨 Rezeptionsliste</button>
+    <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">⚠️ Sonderhinweise</button>
+    <div style="flex:1"></div>
+    <button class="ptool-btn" onclick="window.print()">🖨️ Drucken</button>
+    <button class="ptool-btn" onclick="closePrint()" style="margin-left:8px">✕ Schließen</button>
+  </div>
+  <div id="print-content"></div>
+</div>
 
 <!-- ══════════════════════ MODALS ══════════════════════ -->
 
@@ -753,7 +966,7 @@ let pmsProfiles={};
 let zimmerRegeln=[];
 let scoreGewichte={};
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
-let currentStep=1;
+let currentStep=0;
 let calcDone=false;
 let activeMapping={};  // fieldName -> columnName mapping
 
@@ -781,7 +994,8 @@ const FIELD_ALIASES={
   Sprache:['Sprache','Language','Lang','Nationalitaet','Nationality'],
   Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests'],
   Tisch:['Tisch','Table','TischNr','TableNo','TischID','table_id'],
-  Zone:['Zone','Bereich','Area','Section','section']
+  Zone:['Zone','Bereich','Area','Section','section'],
+  EssenZeit:['EssenZeit','EssensZeit','DinnerTime','MealTime','Tischzeit','Uhrzeit','Zeit']
 };
 const REQUIRED_FIELDS=['Nachname','Zimmernummer','AnzahlPersonen'];
 const IMPORTANT_FIELDS=['GastID','CheckIn','CheckOut','VorherigerTisch','GastTyp','VIP','KinderUnter12','Zimmerkategorie'];
@@ -820,24 +1034,72 @@ const DEFAULT_TABLES=[
 ];
 
 // ══════════════════════════════════════════════════════════════
-//  DEMO DATA — 15 Testfälle
+//  DEMO DATA — 60 Testgäste
 // ══════════════════════════════════════════════════════════════
-const DEMO_CSV_GUESTS=`GastID,Vorname,Nachname,Zimmernummer,AnzahlPersonen,CheckIn,CheckOut,VorherigerTisch,GastTyp,VIP,KinderUnter12,Zimmerkategorie,Allergie,Bemerkung
-G001,Klaus,Hartmann,101,2,${getTodayStr()},${addDays(getTodayStr(),3)},,AN,,0,Standard,,Anreisetag heute
-G002,Maria,Müller,202,1,${addDays(getTodayStr(),-3)},${addDays(getTodayStr(),4)},Q01,BL,0,0,Standard,,Bleibegast Quiet-Zone
-G003,Familie,Weber,303,4,${addDays(getTodayStr(),-5)},${addDays(getTodayStr(),2)},F01,BL,0,2,Suite,Gluten,Familie mit 2 Kindern
-G004,Heinrich,Schmidt,104,2,${getTodayStr()},${addDays(getTodayStr(),1)},,AN,,0,Standard,,An- und Abreise heute
-G005,Dr.,Fischer,205,2,${addDays(getTodayStr(),-2)},${addDays(getTodayStr(),5)},Q02,BL,1,0,Suite,,VIP Stammgast
-G006,Lisa,Bauer,106,1,${getTodayStr()},${addDays(getTodayStr(),7)},,AN,,0,Junior,,Langzeit-Aufenthalt
-G007,Peter,Schneider,307,2,${addDays(getTodayStr(),-1)},${addDays(getTodayStr(),3)},F02,BL,0,0,Standard,,Zimmer 307 → Zone A Regel
-G008,Claudia,Koch,408,3,${addDays(getTodayStr(),-4)},${addDays(getTodayStr(),6)},A04,BL,0,1,Standard,Nuss,1 Kind unter 12
-G009,Thomas,Wagner,109,2,${getTodayStr()},${addDays(getTodayStr(),2)},,AN,,0,Standard,,
-G010,Anna,Becker,210,6,${addDays(getTodayStr(),-1)},${addDays(getTodayStr(),4)},,BL,1,0,Suite,Laktose,VIP Gruppe 6 Personen
-G011,Klaus,Weber,401,2,${getTodayStr()},${addDays(getTodayStr(),3)},,AN,,0,Standard,,Gleicher Nachname wie G003
-G012,Sabine,Hoffmann,212,2,${addDays(getTodayStr(),-6)},${getTodayStr()},,AB,0,0,Standard,,Abreise heute
-G013,Marco,Schulz,113,4,${getTodayStr()},${addDays(getTodayStr(),5)},,AN,,0,2,Family,Vegan,Gruppe mit 2 Kindern
-G014,Eva,Krause,314,2,${addDays(getTodayStr(),-8)},${addDays(getTodayStr(),2)},,BL,1,0,Premium,,Langzeit-VIP
-G015,Direktor,Mayer,115,2,${addDays(getTodayStr(),1)},${addDays(getTodayStr(),4)},,,,0,Suite,,Anreise morgen (Prognose)`;
+const DEMO_CSV_GUESTS=(()=>{
+const T=getTodayStr();const d=n=>addDays(T,n);
+return`GastID,Vorname,Nachname,Zimmernummer,AnzahlPersonen,CheckIn,CheckOut,VorherigerTisch,GastTyp,VIP,KinderUnter12,Zimmerkategorie,Allergie,Bemerkung,EssenZeit
+G001,Klaus,Hartmann,101,2,${T},${d(3)},,AN,0,0,Standard,,Anreisetag Paar,19:00
+G002,Maria,Müller,202,1,${d(-3)},${d(4)},Q01,BL,0,0,Standard,,Bleibegast Quiet,18:00
+G003,Thomas,Weber,303,4,${d(-5)},${d(2)},F01,BL,0,2,Suite,Gluten,Familie 2 Kinder,18:30
+G004,Heinrich,Schmidt,104,2,${T},${d(1)},,AN,0,0,Standard,,Kurzaufenthalt,20:00
+G005,Dr. Petra,Fischer,205,2,${d(-2)},${d(5)},Q02,BL,1,0,Suite,,VIP Stammgast,18:00
+G006,Lisa,Bauer,106,1,${T},${d(7)},,AN,0,0,Junior,,Langzeitaufenthalt,19:30
+G007,Peter,Schneider,307,2,${T},${d(3)},,AN,0,0,Standard,,Zimmer 307 Zone A Regel,19:00
+G008,Claudia,Koch,408,3,${d(-4)},${d(6)},A04,BL,0,1,Standard,Nuss,1 Kind 9 Jahre,18:30
+G009,Thomas,Wagner,109,2,${T},${d(2)},,AN,0,0,Standard,,,19:00
+G010,Anna,Becker,210,6,${d(-1)},${d(4)},B05,BL,1,0,Suite,Laktose,VIP Gruppe,18:00
+G011,Klaus,Weber,401,2,${T},${d(3)},,AN,0,0,Standard,,Gleicher NName G003,20:00
+G012,Sabine,Hoffmann,212,2,${d(-6)},${T},A02,AB,0,0,Standard,,Abreise heute,
+G013,Marco,Schulz,113,4,${T},${d(5)},,AN,0,2,Family,Vegan,2 Kinder vegan,18:30
+G014,Eva,Krause,314,2,${d(-8)},${d(2)},Q03,BL,1,0,Premium,,Langzeit-VIP,18:00
+G015,Direktor,Mayer,115,2,${d(1)},${d(4)},,PROG,1,0,Suite,,VIP Anreise morgen,
+G016,Werner,Braun,216,3,${d(-3)},${d(1)},C01,BL,0,1,Standard,Erdnuss,Kind 8 J Allergie,19:00
+G017,Ingrid,Kaiser,117,1,${T},${d(2)},,AN,0,0,Standard,,Solo Reisende,18:30
+G018,Karim,Al-Rashid,318,4,${d(-2)},${d(3)},B03,BL,0,2,Family,,Bleibegast Familie,19:30
+G019,Yuki,Tanaka,219,2,${d(-7)},${d(7)},A01,BL,1,0,Suite,,VIP Langzeit,18:00
+G020,Hans,Zimmermann,320,2,${T},${d(1)},,AN,0,0,Standard,,Geschäftsreise,20:00
+G021,Sophie,Richter,121,2,${T},${d(4)},,AN,0,0,Junior,,Paar Kurzurlaub,19:00
+G022,Robert,Jung,222,1,${d(-9)},${d(1)},C04,BL,0,0,Standard,,Langzeit 10 Tage,18:30
+G023,Monika,Franke,323,4,${d(-4)},${d(4)},,BL,0,2,Family,Sesam,Familie Sesam Allergie,19:00
+G024,Karl,Weiß,124,2,${T},${d(2)},,AN,0,0,Standard,,Standardpaar,19:30
+G025,Helga,Groß,225,1,${d(-11)},${d(3)},,BL,1,0,Premium,,VIP Langzeit 12 Tage,18:00
+G026,Dieter,Schwarz,326,2,${d(-2)},${d(2)},B01,BL,0,0,Standard,,Stammgast,19:00
+G027,Ursula,Neumann,127,3,${T},${d(6)},,AN,0,1,Standard,Milch,Mutter mit Kind,18:30
+G028,Felix,Krüger,428,2,${d(-5)},${d(3)},C02,BL,0,0,Standard,,Bleibegast Mitte,20:00
+G029,Paula,Schreiber,229,1,${T},${d(5)},,AN,0,0,Junior,,Alleinreisend,19:00
+G030,Ernst,König,330,2,${d(-3)},${d(1)},Q04,BL,0,0,Standard,,Ruhige Zone,18:30
+G031,Lars,Hoffmann,131,2,${T},${d(3)},,AN,0,0,Standard,,Gleichnamig G012,19:00
+G032,Nina,Wolf,232,2,${d(-6)},${d(4)},B02,BL,0,0,Standard,Gluten,Gluten Allergie,19:30
+G033,Bernd,Klein,333,6,${d(-2)},${d(2)},S01,BL,0,0,Standard,,Familienfeier 6 Personen,18:00
+G034,Katharina,Groß,134,2,${T},${d(1)},,AN,0,0,Standard,,Nachname wie G025,20:00
+G035,Stefan,Meier,235,4,${d(-4)},${d(6)},,BL,0,2,Family,Soja,2 Kinder Soja Allergie,18:30
+G036,Renate,Arnold,336,2,${d(-1)},${d(5)},A03,BL,0,0,Suite,,Suite Stammgast,19:00
+G037,Günter,Brandt,137,3,${T},${d(3)},,AN,0,1,Standard,,Mit Kind 5 Jahre,18:30
+G038,Brigitte,Lange,238,1,${d(-8)},${d(2)},Q01,BL,0,0,Standard,,Konflikt Q01 mit G002,18:00
+G039,Jörg,Vogel,339,2,${T},${d(4)},,AN,0,0,Standard,,Geschäftsreise,19:30
+G040,Elke,Bergmann,440,4,${d(-1)},${d(3)},,BL,0,2,Suite,Laktose,Suite Familie,18:00
+G041,Prof. Dr.,Krause,141,2,${T},${d(7)},,AN,1,0,Suite,,VIP Anreise heute,18:30
+G042,Michael,Sommer,242,2,${d(-3)},${d(1)},C03,BL,0,0,Standard,,Bleibegast,19:00
+G043,Sigrid,Winter,343,4,${T},${d(5)},,AN,0,2,Family,,Familie Anreise,19:30
+G044,Heinz,Stein,144,2,${d(-5)},${d(5)},B04,BL,0,0,Standard,Weizen,Weizen Allergie,18:00
+G045,Anke,Rose,245,1,${T},${d(3)},,AN,0,0,Junior,,Solo Reisende,19:00
+G046,Franz,Hermann,346,2,${d(-7)},${d(3)},,BL,0,0,Premium,,Premium kein VT,18:30
+G047,Petra,Lehmann,147,3,${T},${d(4)},,AN,0,1,Standard,Baumnuss,Kind mit Allergie,20:00
+G048,Ralf,Weber,248,2,${d(-2)},${d(6)},,BL,0,0,Standard,,Weber dritter (G003/G011),19:00
+G049,Gabi,Schwarz,349,4,${T},${d(2)},,AN,0,2,Family,Ei,Familie Ei-Allergie,18:30
+G050,Viktor,Bauer,150,2,${d(-10)},${d(4)},,BL,1,0,Premium,,VIP Langzeit Premium,18:00
+G051,Christa,Hahn,251,2,${T},${d(3)},,AN,0,0,Standard,,Standardpaar,19:00
+G052,Wolfgang,Fuchs,352,1,${d(-4)},${d(2)},,BL,0,0,Standard,,Bleibegast kein VT,19:30
+G053,Hildegard,Roth,153,2,${T},${d(5)},,AN,0,0,Suite,,Suite Anreise,18:00
+G054,Gerhard,Schäfer,454,4,${d(-1)},${d(4)},,BL,0,2,Family,Gluten,Familie Gluten,18:30
+G055,Karin,Meier,255,1,${T},${d(2)},,AN,0,0,Junior,,Solo Reisende,19:00
+G056,Hubert,Lorenz,356,2,${d(-3)},${d(3)},,BL,0,0,Standard,,Bleibegast kein VT,20:00
+G057,Lieselotte,Böhm,157,4,${T},${d(6)},,AN,0,2,Family,,Familie Anreise,18:30
+G058,Otto,Metzger,258,2,${d(-6)},${T},,AB,0,0,Standard,,Abreise heute kein VT,
+G059,Trudi,Pohl,359,2,${d(2)},${d(5)},,PROG,1,0,Suite,,VIP Prognose Übermorgen,
+G060,Ernst,Seiler,460,2,${d(1)},${d(3)},,PROG,0,0,Standard,,Prognose morgen,`;
+})();
 
 const DEMO_CSV_TABLES=`Tisch,Zone,Kapazitaet,Aktiv
 A01,A,2,1
@@ -926,6 +1188,36 @@ function checkS1Ready(){
   const ok=required.every(k=>fileStatus[k]);
   el('btn-s1-next').disabled=!ok;
   if(ok) setStatus('Pflichtdateien geladen — bereit für Schritt 2','go');
+}
+
+function handleFileObj(key,file){
+  setStatus('Lade '+file.name+'…','spin');
+  el('fn-'+key).textContent=file.name;
+  readFileText(file,(text,err)=>{
+    if(err){setStatus('Fehler: '+err.message);return;}
+    const parsed=parseCSV(text);
+    parsedFiles[key]=parsed;
+    fileStatus[key]=true;
+    const card=el('fc-'+key);
+    card.classList.add('ok');
+    el('fb-'+key).textContent='✓ '+parsed.rows.length+' Zeilen';
+    setStatus(file.name+' geladen ('+parsed.rows.length+' Zeilen)','go');
+    checkS1Ready();
+  });
+}
+
+function setupDragDrop(){
+  document.querySelectorAll('.fcard').forEach(card=>{
+    const key=card.id.replace('fc-','');
+    card.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();card.classList.add('drag-over');});
+    card.addEventListener('dragleave',e=>{if(!card.contains(e.relatedTarget))card.classList.remove('drag-over');});
+    card.addEventListener('drop',e=>{
+      e.preventDefault();e.stopPropagation();
+      card.classList.remove('drag-over');
+      const f=e.dataTransfer.files[0];
+      if(f) handleFileObj(key,f);
+    });
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1228,6 +1520,7 @@ function parseGuests(rows){
       allergie:getField(r,'Allergie')||'',
       bemerkung:getField(r,'Bemerkung')||'',
       sprache:getField(r,'Sprache')||'',
+      essen_zeit:getField(r,'EssenZeit')||getField(r,'EssensZeit')||'',
       zugewiesener_tisch:'',
       prioritaet_score:0,
       status:'',
@@ -1540,40 +1833,61 @@ let planFilterVal='';
 function filterPlan(val){planFilterVal=val;renderPlanTable(assignedGuests,val);}
 
 // ══════════════════════════════════════════════════════════════
+//  THEME TOGGLE
+// ══════════════════════════════════════════════════════════════
+function zoneColors(){
+  const s=getComputedStyle(document.documentElement);
+  const g=p=>s.getPropertyValue(p).trim();
+  return{A:g('--za'),B:g('--zb'),C:g('--zc'),F:g('--zf'),Q:g('--zq'),
+         bg:g('--bg'),card:g('--card'),border:g('--border'),dim:g('--dim')};
+}
+function toggleTheme(){
+  const html=document.documentElement;
+  const isNight=html.getAttribute('data-theme')==='night';
+  html.setAttribute('data-theme',isNight?'day':'night');
+  el('theme-btn').textContent=isNight?'🌙 Nacht':'☀️ Tag';
+  localStorage.setItem('hsi_theme',isNight?'day':'night');
+  if(calcDone) renderFP(lastTables,assignedGuests);
+}
+
+// ══════════════════════════════════════════════════════════════
 //  FLOOR PLAN RENDER
 // ══════════════════════════════════════════════════════════════
+let lastTables=[];
 function renderFP(tables,guests){
+  lastTables=tables;
   const container=el('fp-render');
   if(!container) return;
 
   const gMap={};
   guests.forEach(g=>{if(g.zugewiesener_tisch) gMap[g.zugewiesener_tisch]=g;});
 
-  const zoneColor={'A':'#C8A84B','B':'#3BB87A','C':'#5A7A96','F':'#3AB4E0','Q':'#9B72C0'};
+  const zc=zoneColors();
+  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
 
   let maxX=600,maxY=400;
   tables.forEach(t=>{if(t.x>maxX-60) maxX=t.x+60;if(t.y>maxY-60) maxY=t.y+60;});
 
   const svg=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
-    <rect width="${maxX}" height="${maxY}" fill="#0D1925"/>
+    <rect width="${maxX}" height="${maxY}" fill="${zc.bg}"/>
     ${tables.filter(t=>t.aktiv).map(t=>{
       const g=gMap[t.tisch_id];
-      const col=zoneColor[t.zone]||'#5A7A96';
-      const fill=g?col+'22':'#172433';
-      const stroke=g?col:'#1E3045';
+      const col=zoneColor[t.zone]||zc.dim;
+      const fill=g?col+'22':zc.card;
+      const stroke=g?col:zc.border;
       const r=t.kapazitaet>4?28:t.kapazitaet>2?24:20;
       return`<g>
         <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${g?2:1}"/>
-        <text x="${t.x}" y="${t.y-6}" text-anchor="middle" font-size="9" fill="${g?col:'#5A7A96'}" font-weight="600">${t.tisch_id}</text>
+        <text x="${t.x}" y="${t.y-6}" text-anchor="middle" font-size="9" fill="${g?col:zc.dim}" font-weight="600">${t.tisch_id}</text>
         ${g?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${col}">${g.zimmer}</text>`:''}
-        ${g&&g.pax?`<text x="${t.x}" y="${t.y+16}" text-anchor="middle" font-size="7" fill="#5A7A96">${g.pax}P</text>`:''}
-        ${t.blocked_for?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="#9B72C0">VORG.</text>`:''}
+        ${g&&g.pax?`<text x="${t.x}" y="${t.y+16}" text-anchor="middle" font-size="7" fill="${zc.dim}">${g.pax}P</text>`:''}
+        ${t.blocked_for?`<text x="${t.x}" y="${t.y+6}" text-anchor="middle" font-size="7" fill="${zc.Q||zc.dim}">VORG.</text>`:''}
       </g>`;
     }).join('')}
     ${['A','B','C','F','Q'].map(z=>{
       const first=tables.find(t=>t.zone===z&&t.aktiv);
       if(!first) return'';
-      const col=zoneColor[z]||'#5A7A96';
+      const col=zoneColor[z]||zc.dim;
       return`<text x="${first.x}" y="${first.y-36}" text-anchor="middle" font-size="10" fill="${col}" font-weight="700" letter-spacing="2">ZONE ${z}</text>`;
     }).join('')}
   </svg>`;
@@ -1626,18 +1940,61 @@ function renderWarnings(){
   markStepDone(4,allRedResolved);
 }
 
+function enrichWarning(w){
+  let title='',risk='',rec='';
+  const m=w.msg;
+  if(m.includes('bereits belegt')){
+    title='Stammtisch doppelt belegt';
+    risk='Zwei Gäste wurden für denselben Tisch vorgemerkt.';
+    rec='Nächsten freien Tisch in gleicher Zone zuweisen.';
+  } else if(m.includes('Kein passender Tisch')){
+    title='Kein freier Tisch verfügbar';
+    risk='Gast bleibt ohne Tischzuweisung — Kapazitätsproblem.';
+    rec='Tischkonfiguration prüfen oder Tische zusammenlegen.';
+  } else if(m.includes('Doppelname')){
+    title='Identischer Gastname mehrfach';
+    risk='Möglicher PMS-Datenfehler oder Doppelbuchung.';
+    rec='PMS-Datei auf Duplikate prüfen.';
+  } else if(m.includes('Gleicher Nachname')){
+    title='Mögliche Reisegruppe erkannt';
+    risk='Gäste könnten zusammengehören.';
+    rec='Prüfen ob Gruppe an benachbarte Tische soll.';
+  } else if(m.includes('nicht gefunden')){
+    title='Stammtisch nicht in Konfiguration';
+    risk='Vortages-Tisch existiert nicht oder wurde umbenannt.';
+    rec='Tischkonfiguration prüfen.';
+  } else if(m.includes('Sonderregel')){
+    title='Sonderregel-Konflikt';
+    risk='Zimmer-spezifische Zuweisung scheiterte.';
+    rec='Tischverfügbarkeit und Sonderregel prüfen.';
+  } else if(m.includes('Max PAX')){
+    title='Kapazitätswarnung';
+    risk='Gästegruppe ist größer als erlaubt.';
+    rec='Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.';
+  } else if(m.includes('freigehalten')){
+    title='VIP-Tisch reserviert';
+    risk='';
+    rec='Tisch für zukünftigen VIP-Gast blockiert.';
+  } else {
+    title=m.slice(0,60);
+  }
+  return{...w,title,risk,rec};
+}
+
 function warnItem(w,cls,resolved=false){
+  const ew=enrichWarning(w);
   const ico={'red':'🔴','yellow':'⚠️','green':'✅','':'ℹ️'}[cls]||'ℹ️';
   const id=btoa(encodeURIComponent(w.msg)).slice(0,12);
   return`<div class="witem ${resolved?'resolved':cls}" id="wi-${id}">
     <div class="wico">${resolved?'✅':ico}</div>
-    <div class="wtxt">
-      <p>${w.msg}</p>
-      <div class="wact">
-        ${!resolved&&cls==='red'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">✓ Als geprüft markieren</button>`:''}
-        ${!resolved&&cls==='yellow'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">Als OK markieren</button>`:''}
-        ${resolved?`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${encodeURIComponent(w.msg)}')">Rückgängig</button>`:''}
-      </div>
+    <div class="wtitle">${ew.title}</div>
+    <div class="wmsg">${w.msg}</div>
+    ${ew.risk?`<div class="wrisk"><b>Risiko:</b> ${ew.risk}</div>`:''}
+    ${ew.rec?`<div class="wrec">→ ${ew.rec}</div>`:''}
+    <div class="wact">
+      ${!resolved&&cls==='red'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">✓ Als geprüft markieren</button>`:''}
+      ${!resolved&&cls==='yellow'?`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">Als OK markieren</button><button class="btn btn-red btn-sm" onclick="markResolved('${id}','${encodeURIComponent(w.msg)}')">Ignorieren</button>`:''}
+      ${resolved?`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${encodeURIComponent(w.msg)}')">Rückgängig</button>`:''}
     </div>
   </div>`;
 }
@@ -1760,9 +2117,109 @@ function exportExcel(){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  PRINT SYSTEM
+// ══════════════════════════════════════════════════════════════
+let activePrintView='service';
+function openPrint(type){
+  if(!calcDone){alert('Bitte erst den Tischplan berechnen (Schritt 3).');return;}
+  activePrintView=type;
+  renderPrintView(type);
+  el('print-overlay').style.display='flex';
+  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===type);
+  });
+}
+function closePrint(){el('print-overlay').style.display='none';}
+function switchPrint(type){
+  activePrintView=type;
+  renderPrintView(type);
+  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===type);
+  });
+}
+function getHotelName(){
+  return el('dash-hotel-name')?.value||el('export-hotel')?.value||'Hotel';
+}
+function getSlotLabel(){
+  const v=el('slot-sel')?.value||el('dash-meal')?.value||'fruehstueck';
+  return{fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'}[v]||v;
+}
+function renderPrintView(type){
+  const hotel=getHotelName();
+  const hdr=`<div class="pview-hdr"><h1>${hotel} — <em>${
+    {service:'Service-Liste',reception:'Rezeptionsliste',special:'Sonderhinweise'}[type]
+  }</em></h1><p>${refDate} | ${getSlotLabel()} | Erstellt: ${new Date().toLocaleTimeString('de-DE')}</p></div>`;
+
+  let body='';
+  if(type==='service') body=renderServiceList();
+  else if(type==='reception') body=renderReceptionList();
+  else body=renderSpecialList();
+
+  el('print-content').innerHTML=hdr+body;
+}
+function renderServiceList(){
+  const byTable={};
+  assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    if(!byTable[g.zugewiesener_tisch]) byTable[g.zugewiesener_tisch]=[];
+    byTable[g.zugewiesener_tisch].push(g);
+  });
+  const zc=zoneColors();
+  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
+  return Object.keys(byTable).sort().map(tid=>{
+    const zone=tid[0];
+    const col=zoneColor[zone]||zc.dim;
+    const rows=byTable[tid].map(g=>`<tr>
+      <td>${g.zimmer}</td>
+      <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+      <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
+      <td>${g.allergie||'—'}</td>
+      <td>${g.essen_zeit||'—'}</td>
+      <td>${g.bemerkung||'—'}</td>
+    </tr>`).join('');
+    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}</div>
+    <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  }).join('');
+}
+function renderReceptionList(){
+  const rows=[...assignedGuests].sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0));
+  const trs=rows.map(g=>`<tr>
+    <td><b>${g.zimmer}</b></td>
+    <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+    <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
+    <td>${g.zugewiesener_tisch||'—'}</td>
+    <td>${g.status||'—'}</td>
+    <td>${g.allergie||'—'}</td>
+    <td>${g.essen_zeit||'—'}</td>
+  </tr>`).join('');
+  return`<table class="ptbl"><thead><tr>
+    <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Status</th><th>Allergie</th><th>Zeit</th>
+  </tr></thead><tbody>${trs}</tbody></table>`;
+}
+function renderSpecialList(){
+  const special=assignedGuests.filter(g=>g.allergie||g.vip||g.kinder>0);
+  if(!special.length) return'<p style="color:var(--dim);text-align:center;padding:40px">Keine Sonderhinweise vorhanden.</p>';
+  return special.sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0)).map(g=>`
+    <div class="sonder-card">
+      <div class="sc-zimmer">${g.zimmer}</div>
+      <div class="sc-body">
+        <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
+        <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
+        <div class="sc-tags">
+          ${g.allergie?`<span class="sc-tag allergy">⚠️ ${g.allergie}</span>`:''}
+          ${g.vip?'<span class="sc-tag vip">⭐ VIP</span>':''}
+          ${g.kinder>0?`<span class="sc-tag kids">👶 ${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════════════════════════
 function goStep(n){
+  // Step 0 always allowed
+  if(n===0){updateDashboard();currentStep=0;updateStepUI(0);return;}
   // Guards
   if(n===2&&!fileStatus.vortag&&!fileStatus.ankuenfte&&!fileStatus.inhaus){
     alert('Bitte erst Pflicht-Dateien laden (Schritt 1).');return;
@@ -1771,11 +2228,14 @@ function goStep(n){
   if(n===4&&!calcDone) return;
   if(n===5&&!calcDone) return;
 
-  // Auto-run step 2 prep
-  if(n===2&&currentStep===1){
+  // Sync dashboard date/meal to step 2 settings
+  if(n===2){
     autoMap();
     updateS2Warnings();
+    const dm=el('dash-date');if(dm&&dm.value) refDate=dm.value;
     el('ref-date').value=refDate;
+    const meal=el('dash-meal');
+    if(meal) el('slot-sel').value=meal.value;
   }
   // Auto-run calc on step 3 if first visit
   if(n===3&&!calcDone){
@@ -1792,6 +2252,8 @@ function goStep(n){
     el('s5-locked').style.display=reds.length>0?'block':'none';
     el('btn-export').disabled=reds.length>0;
     el('export-name').value=`Tischplan_${refDate}`;
+    const hn=el('dash-hotel-name');
+    if(hn&&hn.value) el('export-hotel').value=hn.value;
   }
 
   currentStep=n;
@@ -1799,14 +2261,59 @@ function goStep(n){
 }
 
 function updateStepUI(n){
-  document.querySelectorAll('.page').forEach((p,i)=>{
-    p.classList.toggle('act',i+1===n);
+  for(let i=0;i<=5;i++){const p=el('s'+i);if(p)p.classList.toggle('act',i===n);}
+  document.querySelectorAll('.hstep').forEach(s=>{
+    const sn=parseInt(s.dataset.step)||0;
+    s.classList.toggle('act',sn===n);
+    s.classList.toggle('done',sn<n);
   });
-  document.querySelectorAll('.hstep').forEach((s,i)=>{
-    s.classList.toggle('act',i+1===n);
-    if(!s.classList.contains('act'))
-      s.classList.toggle('done',i+1<n);
-  });
+}
+
+// ── STICKY BAR ──
+const STEP_NAMES=['Dashboard','Dateien laden','Daten prüfen','Tischplan','Warnungen','Export'];
+function updateStickyBar(n){
+  el('sb-step-name').textContent=STEP_NAMES[n]||'';
+  el('sb-step-sub').textContent=n===0?'Hotel Seat Intelligence':`Schritt ${n} von 5`;
+  el('sb-back').disabled=n===0;
+  el('sb-next').disabled=(n===5)||(n>=2&&!fileStatus.vortag&&!calcDone&&n>1);
+  el('sb-next').textContent=n===5?'Fertig →':'Weiter →';
+}
+function goBack(){if(currentStep>0) goStep(currentStep-1);}
+function goNext(){
+  const next=currentStep+1;
+  if(next<=5) goStep(next);
+}
+
+// ── DASHBOARD ──
+function updateDashboard(){
+  const d=new Date();
+  const dm=el('dash-date');
+  if(dm&&!dm.value) dm.value=getTodayStr();
+  const dateStr=dm?dm.value:getTodayStr();
+  el('ds-datum').textContent=dateStr;
+  const meal=el('dash-meal');
+  const mealNames={fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'};
+  el('ds-mahlzeit').textContent=meal?mealNames[meal.value]||'—':'—';
+  el('dash-date-display').textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  if(calcDone){
+    el('ds-gaeste').textContent=assignedGuests.length;
+    el('ds-ankuenfte').textContent=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    const fr=lastTables.filter(t=>!t.belegt&&t.aktiv).length;
+    el('ds-tische').textContent=fr;
+    el('ds-warns').textContent=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    const da=el('da-plan');if(da) da.style.opacity='1';
+    const db=el('da-export');if(db) db.style.opacity='1';
+  }
+  const hn=localStorage.getItem('hsi_hotel');
+  if(hn){
+    const inp=el('dash-hotel-name');if(inp&&!inp.value) inp.value=hn;
+    el('dash-hotel-title').textContent=hn;
+  }
+}
+
+function loadDemoAndStart(){
+  loadDemo();
+  setTimeout(()=>{goStep(2);},300);
 }
 
 function markStepDone(step,done){
@@ -1820,12 +2327,22 @@ function markStepDone(step,done){
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
+// Restore theme
+(()=>{
+  const t=localStorage.getItem('hsi_theme')||'night';
+  document.documentElement.setAttribute('data-theme',t);
+  el('theme-btn').textContent=t==='day'?'🌙 Nacht':'☀️ Tag';
+})();
 loadPMSProfiles();
 loadRules();
 loadWeights();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
 setStatus('Bereit — Dateien laden oder Demo starten','');
+setupDragDrop();
+updateDashboard();
+updateStickyBar(0);
+updateStepUI(0);
 
 // Add rules for Zimmer 307 demo
 if(zimmerRegeln.length===0){
