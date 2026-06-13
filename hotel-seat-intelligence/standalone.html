@@ -390,20 +390,31 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .btn,.bot{display:none}
 }
 
+/* ── FLOOR PLAN ── */
+#fp-render{width:100%;height:340px;position:relative;background:var(--bg);
+           border-radius:10px;overflow:hidden}
+
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
-  .page{padding:16px 12px 72px}
+  .page{padding:16px 12px calc(80px + env(safe-area-inset-bottom,0px))}
   #hdr-steps .hstep .slabel{display:none}
   .file-grid{grid-template-columns:1fr 1fr}
   .map-grid{grid-template-columns:1fr}
   .dash-controls{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
+  #fp-render{height:min(52vw,260px)}
+  .tbl-preview{font-size:10px}
+  .tbl-preview th,.tbl-preview td{padding:6px 8px}
 }
 @media(min-width:601px) and (max-width:900px){
-  .page{padding:20px 16px 72px}
+  .page{padding:20px 16px calc(80px + env(safe-area-inset-bottom,0px))}
   .dash-controls{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:repeat(4,1fr)}
+  #fp-render{height:280px}
+}
+@media(max-width:900px){
+  #sticky-bar{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 }
 </style>
 </head>
@@ -743,7 +754,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">
           GRUNDRISS
         </div>
-        <div id="fp-render" style="width:100%;height:340px;position:relative;background:var(--bg);border-radius:10px;overflow:hidden"></div>
+        <div id="fp-render"></div>
       </div>
     </div>
 
@@ -1600,15 +1611,19 @@ function scoreGuest(g,ref){
 
 function parseTables(rows){
   if(!rows||rows.length===0) return DEFAULT_TABLES.map(t=>({...t,belegt:false,gast_id:null}));
+  const posMap={};
+  DEFAULT_TABLES.forEach(t=>{posMap[t.tisch_id]={x:t.x,y:t.y};});
   return rows.map(r=>{
     const ak=r.Aktiv||r.aktiv||r.Active||'1';
+    const id=r.Tisch||r.TischID||r.table_id||r.ID||'';
+    const pos=posMap[id]||{x:0,y:0};
     return{
-      tisch_id:r.Tisch||r.TischID||r.table_id||r.ID||'',
+      tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
       kapazitaet:parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
       aktiv:ak!=='0'&&ak!=='false'&&ak!=='nein',
-      x:parseInt(r.X||r.x||0),
-      y:parseInt(r.Y||r.y||0),
+      x:parseInt(r.X||r.x||pos.x||0),
+      y:parseInt(r.Y||r.y||pos.y||0),
       belegt:false,
       gast_id:null
     };
@@ -2002,7 +2017,7 @@ function renderFP(tables,guests){
     <text x="20" y="4" font-size="8" fill="${zc.dim}">${e.label}</text>
   </g>`).join('');
 
-  container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+  container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
     <rect width="${maxX}" height="${maxY}" fill="${zc.bg}" rx="10"/>
     ${zoneBg}
     ${tableSvg}
