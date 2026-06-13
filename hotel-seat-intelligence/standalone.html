@@ -300,9 +300,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .sc-tags{display:flex;gap:6px;flex-wrap:wrap}
 .sc-tag{padding:3px 10px;border-radius:10px;font-size:9px;font-weight:700;
         letter-spacing:.5px;text-transform:uppercase}
-.sc-tag.allergy{background:rgba(232,132,58,.2);color:var(--orange);border:1px solid rgba(232,132,58,.3)}
+.sc-tag.allergy{background:rgba(192,64,48,.15);color:#C04030;border:1px solid rgba(192,64,48,.3)}
 .sc-tag.vip{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
 .sc-tag.kids{background:rgba(58,180,224,.2);color:#3AB4E0;border:1px solid rgba(58,180,224,.3)}
+.pb-badge{display:inline-block;padding:2px 5px;border-radius:3px;font-size:7pt;font-weight:700;
+          color:#fff;margin:1px 2px 1px 0;vertical-align:middle;line-height:1.3;letter-spacing:.3px}
+.pb-allg{background:#C04030}
 @media print{
   #hdr,#sticky-bar,#print-toolbar{display:none!important}
   #print-overlay{position:static!important;display:block!important;z-index:auto!important}
@@ -1204,15 +1207,36 @@ const FIELD_ALIASES={
   VIP:['VIP','Vip','IsVip','vip_flag','VIPLevel','vip_level'],
   KinderUnter12:['KinderUnter12','Kinder','Children','Kids','KidCount','child_count'],
   Zimmerkategorie:['Zimmerkategorie','RoomType','ZimmerTyp','room_type','category'],
-  Allergie:['Allergie','Allergien','Allergy','Allergies','dietary','DietaryReq'],
+  Allergie:['Allergie','Allergien','Allergy','Allergies','dietary','DietaryReq','Diät','Diaet','SpecialDiet','AllergyInfo'],
   Sprache:['Sprache','Language','Lang','Nationalitaet','Nationality'],
-  Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests'],
+  Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests','SpecialRequest','Special Requests','Bedarf','Sonderwunsch','Sonderhinweis'],
   Tisch:['Tisch','Table','TischNr','TableNo','TischID','table_id'],
   Zone:['Zone','Bereich','Area','Section','section'],
   EssenZeit:['EssenZeit','EssensZeit','DinnerTime','MealTime','Tischzeit','Uhrzeit','Zeit']
 };
 const REQUIRED_FIELDS=['Nachname','Zimmernummer','AnzahlPersonen'];
 const IMPORTANT_FIELDS=['GastID','CheckIn','CheckOut','VorherigerTisch','GastTyp','VIP','KinderUnter12','Zimmerkategorie'];
+
+// ── Structured badge definitions ──────────────────────────────
+const ALLERGIE_DEFS=[
+  {key:'GLU',label:'GLU',test:/(gluten|weizen)/i},
+  {key:'NUS',label:'NUS',test:/(nuss|baumnuss|walnuss|haselnuss|cashew)/i},
+  {key:'ERD',label:'ERD',test:/erdnuss|peanut/i},
+  {key:'LAK',label:'LAK',test:/(laktose|milch|dairy)/i},
+  {key:'MFR',label:'MFR',test:/(meeresfrüchte|seafood|shellfish)/i},
+  {key:'SES',label:'SES',test:/sesam/i},
+  {key:'SOJ',label:'SOJ',test:/soja|soy/i},
+  {key:'EI' ,label:'EI' ,test:/\bei\b|\beier\b/i},
+  {key:'VGN',label:'VGN',test:/vegan/i},
+];
+const SPECIAL_DEFS=[
+  {key:'RS' ,label:'RS' ,col:'#3A7BD5',test:/(rollstuhl|wheelchair)/i},
+  {key:'HS' ,label:'HS' ,col:'#5BB5D5',test:/(hochstuhl|kindersitz|highchair)/i},
+  {key:'GEB',label:'GEB',col:'#C8960A',test:/(geburtstag|birthday)/i},
+  {key:'HM' ,label:'HM' ,col:'#C45882',test:/(honeymoon|flitterwochen|jubiläum)/i},
+  {key:'HP' ,label:'HP' ,col:'#4A8E5F',test:/(halbpension|half.?board)/i},
+  {key:'VP' ,label:'VP' ,col:'#2A6B42',test:/(vollpension|full.?board)/i},
+];
 
 // ══════════════════════════════════════════════════════════════
 //  DEFAULT TABLES
@@ -1269,7 +1293,7 @@ G001,Klaus,Hartmann,101,2,${T},${d(3)},,AN,0,0,Standard,,Anreisetag Paar,19:00
 G002,Maria,Müller,202,1,${d(-3)},${d(4)},Q01,BL,0,0,Standard,,Bleibegast Quiet,18:00
 G003,Thomas,Weber,303,4,${d(-5)},${d(2)},F01,BL,0,2,Suite,Gluten,Familie 2 Kinder,18:30
 G004,Heinrich,Schmidt,104,2,${T},${d(1)},,AN,0,0,Standard,,Kurzaufenthalt,20:00
-G005,Dr. Petra,Fischer,205,2,${d(-2)},${d(5)},Q02,BL,1,0,Suite,,VIP Stammgast,18:00
+G005,Dr. Petra,Fischer,205,2,${d(-2)},${d(5)},Q02,BL,1,0,Suite,,Halbpension VIP Stammgast,18:00
 G006,Lisa,Bauer,106,1,${T},${d(7)},,AN,0,0,Junior,,Langzeitaufenthalt,19:30
 G007,Peter,Schneider,307,2,${T},${d(3)},,AN,0,0,Standard,,Zimmer 307 Zone A Regel,19:00
 G008,Claudia,Koch,408,3,${d(-4)},${d(6)},A04,BL,0,1,Standard,Nuss,1 Kind 9 Jahre,18:30
@@ -1281,17 +1305,17 @@ G013,Marco,Schulz,113,4,${T},${d(5)},,AN,0,2,Family,Vegan,2 Kinder vegan,18:30
 G014,Eva,Krause,314,2,${d(-8)},${d(2)},Q03,BL,1,0,Premium,,Langzeit-VIP,18:00
 G015,Direktor,Mayer,115,2,${d(1)},${d(4)},,PROG,1,0,Suite,,VIP Anreise morgen,
 G016,Werner,Braun,216,3,${d(-3)},${d(1)},C01,BL,0,1,Standard,Erdnuss,Kind 8 J Allergie,19:00
-G017,Ingrid,Kaiser,117,1,${T},${d(2)},,AN,0,0,Standard,,Solo Reisende,18:30
+G017,Ingrid,Kaiser,117,1,${T},${d(2)},,AN,0,0,Standard,,Rollstuhl Solo Reisende,18:30
 G018,Karim,Al-Rashid,318,4,${d(-2)},${d(3)},B03,BL,0,2,Family,,Bleibegast Familie,19:30
 G019,Yuki,Tanaka,219,2,${d(-7)},${d(7)},A01,BL,1,0,Suite,,VIP Langzeit,18:00
 G020,Hans,Zimmermann,320,2,${T},${d(1)},,AN,0,0,Standard,,Geschäftsreise,20:00
-G021,Sophie,Richter,121,2,${T},${d(4)},,AN,0,0,Junior,,Paar Kurzurlaub,19:00
+G021,Sophie,Richter,121,2,${T},${d(4)},,AN,0,0,Junior,,Geburtstag Paar,19:00
 G022,Robert,Jung,222,1,${d(-9)},${d(1)},C04,BL,0,0,Standard,,Langzeit 10 Tage,18:30
 G023,Monika,Franke,323,4,${d(-4)},${d(4)},,BL,0,2,Family,Sesam,Familie Sesam Allergie,19:00
 G024,Karl,Weiß,124,2,${T},${d(2)},,AN,0,0,Standard,,Standardpaar,19:30
 G025,Helga,Groß,225,1,${d(-11)},${d(3)},,BL,1,0,Premium,,VIP Langzeit 12 Tage,18:00
 G026,Dieter,Schwarz,326,2,${d(-2)},${d(2)},B01,BL,0,0,Standard,,Stammgast,19:00
-G027,Ursula,Neumann,127,3,${T},${d(6)},,AN,0,1,Standard,Milch,Mutter mit Kind,18:30
+G027,Ursula,Neumann,127,3,${T},${d(6)},,AN,0,1,Standard,Milch,Hochstuhl Mutter mit Kind,18:30
 G028,Felix,Krüger,428,2,${d(-5)},${d(3)},C02,BL,0,0,Standard,,Bleibegast Mitte,20:00
 G029,Paula,Schreiber,229,1,${T},${d(5)},,AN,0,0,Junior,,Alleinreisend,19:00
 G030,Ernst,König,330,2,${d(-3)},${d(1)},Q04,BL,0,0,Standard,,Ruhige Zone,18:30
@@ -2395,7 +2419,31 @@ function renderFP(tables,guests){
     const extra=gs.length>1?`+${gs.length-1}`:'';
     const hasVip=gs.some(g=>g.vip);
     const hasKids=gs.some(g=>g.kinder>0);
-    const hasAllergie=gs.some(g=>g.allergie);
+
+    // Structured micro-badges below seat dots
+    const sr_val=t.kapazitaet>8?3.5:4.5;
+    const bStripY=ry+h+11+sr_val+6;
+    const bH=8,bPad=3,bGap=2;
+    let bx=rx+2,badgePillsSvg='';
+    if(occupied){
+      const seenA=new Set(),seenS=new Set(),pills=[];
+      gs.forEach(g=>{
+        ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).forEach(d=>{
+          if(!seenA.has(d.key)){seenA.add(d.key);pills.push({label:d.label,col:'#C04030'});}
+        });
+        SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).forEach(d=>{
+          if(!seenS.has(d.key)){seenS.add(d.key);pills.push({label:d.label,col:d.col});}
+        });
+      });
+      for(const b of pills){
+        const tw=b.label.length*4+bPad*2;
+        if(bx+tw>rx+w-2) break;
+        badgePillsSvg+=
+          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="2.5" fill="${b.col}" opacity="0.9"/>` +
+          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+2.5).toFixed(1)}" text-anchor="middle" font-size="6" fill="white" font-weight="800">${b.label}</text>`;
+        bx+=tw+bGap;
+      }
+    }
 
     const conflictDot=(overloaded||hasConflikt)?
       `<circle cx="${rx+w-7}" cy="${ry+7}" r="7" fill="${FP.conflict}"/>
@@ -2405,9 +2453,6 @@ function renderFP(tables,guests){
     const badge=badgeTxt&&!(overloaded||hasConflikt)?
       `<rect x="${rx+w-25}" y="${ry+2}" width="23" height="13" rx="4" fill="${badgeCol}" fill-opacity="0.14"/>
        <text x="${rx+w-13.5}" y="${ry+11}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
-    const allergieDot=hasAllergie?
-      `<circle cx="${rx+7}" cy="${ry+h-7}" r="5" fill="none" stroke="#D4762A" stroke-width="1.5"/>
-       <text x="${rx+7}" y="${ry+h-3}" text-anchor="middle" font-size="7" fill="#D4762A" font-weight="900">A</text>`:'';
     const futureTxt=zukunft?
       `<text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
 
@@ -2427,7 +2472,7 @@ function renderFP(tables,guests){
       ${!occupied&&!zukunft?`<text x="${t.x}" y="${t.y+5}" text-anchor="middle"
           font-size="9" fill="${FP.textDim}">—</text>`:''}
       ${futureTxt}
-      ${conflictDot}${badge}${allergieDot}
+      ${conflictDot}${badge}${badgePillsSvg}
     </g>`;
   }).join('');
 
@@ -2893,6 +2938,20 @@ function renderPrintView(type){
 
   el('print-content').innerHTML=hdr+body;
 }
+function renderBadgesHtml(g){
+  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).map(d=>
+    `<span class="pb-badge pb-allg">${d.label}</span>`);
+  const sb=SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).map(d=>
+    `<span class="pb-badge" style="background:${d.col}">${d.label}</span>`);
+  return ab.concat(sb).join('')||'—';
+}
+function renderSpecialBadgesForCard(g){
+  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).map(d=>
+    `<span class="sc-tag allergy">${d.label}</span>`);
+  const sb=SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).map(d=>
+    `<span class="sc-tag" style="background:${d.col}20;color:${d.col};border-color:${d.col}55">${d.label}</span>`);
+  return ab.concat(sb).join('');
+}
 function renderServiceList(){
   const byTable={};
   assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
@@ -2908,7 +2967,7 @@ function renderServiceList(){
       <td>${g.zimmer}</td>
       <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
       <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
-      <td>${g.allergie||'—'}</td>
+      <td>${renderBadgesHtml(g)}</td>
       <td>${g.essen_zeit||'—'}</td>
       <td>${g.bemerkung||'—'}</td>
     </tr>`).join('');
@@ -2925,7 +2984,7 @@ function renderReceptionList(){
     <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
     <td>${g.zugewiesener_tisch||'—'}</td>
     <td>${g.status||'—'}</td>
-    <td>${g.allergie||'—'}</td>
+    <td>${renderBadgesHtml(g)}</td>
     <td>${g.essen_zeit||'—'}</td>
   </tr>`).join('');
   return`<table class="ptbl"><thead><tr>
@@ -2933,7 +2992,7 @@ function renderReceptionList(){
   </tr></thead><tbody>${trs}</tbody></table>`;
 }
 function renderSpecialList(){
-  const special=assignedGuests.filter(g=>g.allergie||g.vip||g.kinder>0);
+  const special=assignedGuests.filter(g=>g.allergie||g.bemerkung||g.vip||g.kinder>0);
   if(!special.length) return'<p style="color:var(--dim);text-align:center;padding:40px">Keine Sonderhinweise vorhanden.</p>';
   return special.sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0)).map(g=>`
     <div class="sonder-card">
@@ -2942,9 +3001,9 @@ function renderSpecialList(){
         <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
         <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
         <div class="sc-tags">
-          ${g.allergie?`<span class="sc-tag allergy">⚠️ ${g.allergie}</span>`:''}
-          ${g.vip?'<span class="sc-tag vip">⭐ VIP</span>':''}
-          ${g.kinder>0?`<span class="sc-tag kids">👶 ${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
+          ${renderSpecialBadgesForCard(g)}
+          ${g.vip?'<span class="sc-tag vip">VIP</span>':''}
+          ${g.kinder>0?`<span class="sc-tag kids">${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
         </div>
       </div>
     </div>`).join('');
