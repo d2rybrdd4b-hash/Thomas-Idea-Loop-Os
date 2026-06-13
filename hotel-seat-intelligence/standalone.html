@@ -2049,7 +2049,7 @@ function runCalc(){
     neuByLast[last].push(g);
   });
   const groupAssigned=new Set();
-  let groupsPlaced=0;
+  let assigned=0,groupsPlaced=0;
 
   Object.values(neuByLast)
     .filter(gs=>[...new Set(gs.map(g=>String(g.zimmer)))].length>1)
@@ -2085,7 +2085,7 @@ function runCalc(){
   const sorted=[...fam,...bar.sort((a,b)=>b.prioritaet_score-a.prioritaet_score),
                 ...nor.sort((a,b)=>b.prioritaet_score-a.prioritaet_score)];
 
-  let ruleApplied=0,assigned=0,unassigned=0;
+  let ruleApplied=0,unassigned=0; assigned=0;
   sorted.forEach(g=>{
     const override=applyZimmerRegeln(g);
     let targetTisch=null;
