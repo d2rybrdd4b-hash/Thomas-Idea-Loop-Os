@@ -260,6 +260,42 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .text-dim{color:var(--dim);font-size:10px}
 .mt-8{margin-top:8px}
 
+/* ── STEP 0 DASHBOARD ── */
+#s0{padding:28px 24px}
+.dash-wrap{max-width:760px;margin:0 auto}
+.dash-hotel{text-align:center;margin-bottom:24px}
+.dash-hotel h2{font-size:24px;font-weight:300;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
+.dash-hotel p{font-size:11px;color:var(--dim)}
+.dash-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+.dash-ctrl label{display:block;font-size:9px;font-weight:700;letter-spacing:1.5px;
+                 text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.dash-ctrl input,.dash-ctrl select{
+  width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--r);padding:9px 12px;font-size:12px;transition:border-color .2s}
+.dash-ctrl input:focus,.dash-ctrl select:focus{outline:none;border-color:var(--gold)}
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+.dstat{background:var(--card);border:1px solid var(--border);border-radius:12px;
+       padding:16px;position:relative;overflow:hidden}
+.dstat::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dstat.ds-green::before{background:var(--green)}
+.dstat.ds-red::before{background:var(--red)}
+.dstat.ds-blue::before{background:#3AB4E0}
+.dstat.ds-purple::before{background:var(--zq)}
+.dstat .dv{font-size:26px;font-weight:700;color:var(--gold);line-height:1}
+.dstat.ds-green .dv{color:var(--green)}
+.dstat.ds-red .dv{color:var(--red)}
+.dstat.ds-blue .dv{color:#3AB4E0}
+.dstat.ds-purple .dv{color:var(--zq)}
+.dstat .dk{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.dstat .dsub{font-size:10px;color:var(--dim);margin-top:4px}
+.dash-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.daction{background:var(--card);border:1px solid var(--border);border-radius:12px;
+         padding:16px 12px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
+.daction:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
+.daction .dico{font-size:26px;margin-bottom:8px}
+.daction .dtit{font-size:11px;font-weight:700;margin-bottom:3px}
+.daction .dsub{font-size:9px;color:var(--dim);line-height:1.4}
+
 /* ── PRINT ── */
 @media print{
   #hdr{display:none}
@@ -283,7 +319,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div id="hdr">
   <div class="logo">Hotel <em>Seat</em> Intelligence</div>
   <div id="hdr-steps">
-    <div class="hstep act" data-step="1" onclick="goStep(1)">
+    <div class="hstep act" data-step="0" onclick="goStep(0)" title="Dashboard">
+      <div class="snum">⌂</div>
+    </div>
+    <div class="harrow">›</div>
+    <div class="hstep" data-step="1" onclick="goStep(1)">
       <div class="snum">1</div><span class="slabel">Dateien&nbsp;laden</span>
     </div>
     <div class="harrow">›</div>
@@ -312,6 +352,67 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <!-- ══════════════════════ MAIN ══════════════════════ -->
 <div id="main">
+
+<!-- ─── SCHRITT 0: Dashboard ─── -->
+<div class="page act" id="s0">
+  <div class="dash-wrap">
+    <div class="dash-hotel">
+      <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
+      <p>Tischplan-Assistent — <span id="dash-date-display"></span></p>
+    </div>
+    <div class="dash-controls">
+      <div class="dash-ctrl">
+        <label>Hotel-Name</label>
+        <input type="text" id="dash-hotel-name" placeholder="z.B. Grand Hotel am See"
+          oninput="localStorage.setItem('hsi_hotel',this.value);el('dash-hotel-title').textContent=this.value||'Hotel Seat Intelligence'">
+      </div>
+      <div class="dash-ctrl">
+        <label>Datum</label>
+        <input type="date" id="dash-date" onchange="updateDashboard()">
+      </div>
+      <div class="dash-ctrl">
+        <label>Mahlzeit</label>
+        <select id="dash-meal" onchange="updateDashboard()">
+          <option value="fruehstueck">🌅 Frühstück</option>
+          <option value="mittag">☀️ Mittagessen</option>
+          <option value="abend" selected>🌙 Abendessen</option>
+        </select>
+      </div>
+    </div>
+    <div class="dash-stats">
+      <div class="dstat"><div class="dv" id="ds-datum">—</div><div class="dk">Datum</div></div>
+      <div class="dstat"><div class="dv" id="ds-mahlzeit">—</div><div class="dk">Mahlzeit</div></div>
+      <div class="dstat ds-green"><div class="dv" id="ds-gaeste">0</div><div class="dk">Gäste aktiv</div></div>
+      <div class="dstat ds-blue"><div class="dv" id="ds-ankuenfte">0</div><div class="dk">Ankünfte</div></div>
+      <div class="dstat"><div class="dv" id="ds-tische">0</div><div class="dk">Tische frei</div></div>
+      <div class="dstat ds-red"><div class="dv" id="ds-warns">0</div><div class="dk">Warnungen</div></div>
+    </div>
+    <div class="dash-actions">
+      <div class="daction" onclick="goStep(1)">
+        <div class="dico">📋</div>
+        <div class="dtit">Neuer Plan</div>
+        <div class="dsub">Dateien laden &amp; starten</div>
+      </div>
+      <div class="daction" onclick="loadDemoAndStart()">
+        <div class="dico">🎭</div>
+        <div class="dtit">Demo laden</div>
+        <div class="dsub">60 Testgäste sofort</div>
+      </div>
+      <div class="daction" id="da-plan" onclick="calcDone?goStep(3):goStep(1)"
+           style="opacity:.5">
+        <div class="dico">📊</div>
+        <div class="dtit">Tischplan</div>
+        <div class="dsub">Ergebnis anzeigen</div>
+      </div>
+      <div class="daction" id="da-export" onclick="calcDone?goStep(5):goStep(1)"
+           style="opacity:.5">
+        <div class="dico">⬇️</div>
+        <div class="dtit">Exportieren</div>
+        <div class="dsub">Excel &amp; Druck</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ─── SCHRITT 1: Dateien laden ─── -->
 <div class="page act" id="s1">
@@ -765,7 +866,7 @@ let pmsProfiles={};
 let zimmerRegeln=[];
 let scoreGewichte={};
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
-let currentStep=1;
+let currentStep=0;
 let calcDone=false;
 let activeMapping={};  // fieldName -> columnName mapping
 
@@ -1796,6 +1897,8 @@ function exportExcel(){
 //  NAVIGATION
 // ══════════════════════════════════════════════════════════════
 function goStep(n){
+  // Step 0 always allowed
+  if(n===0){updateDashboard();currentStep=0;updateStepUI(0);return;}
   // Guards
   if(n===2&&!fileStatus.vortag&&!fileStatus.ankuenfte&&!fileStatus.inhaus){
     alert('Bitte erst Pflicht-Dateien laden (Schritt 1).');return;
@@ -1804,11 +1907,14 @@ function goStep(n){
   if(n===4&&!calcDone) return;
   if(n===5&&!calcDone) return;
 
-  // Auto-run step 2 prep
-  if(n===2&&currentStep===1){
+  // Sync dashboard date/meal to step 2 settings
+  if(n===2){
     autoMap();
     updateS2Warnings();
+    const dm=el('dash-date');if(dm&&dm.value) refDate=dm.value;
     el('ref-date').value=refDate;
+    const meal=el('dash-meal');
+    if(meal) el('slot-sel').value=meal.value;
   }
   // Auto-run calc on step 3 if first visit
   if(n===3&&!calcDone){
@@ -1825,6 +1931,8 @@ function goStep(n){
     el('s5-locked').style.display=reds.length>0?'block':'none';
     el('btn-export').disabled=reds.length>0;
     el('export-name').value=`Tischplan_${refDate}`;
+    const hn=el('dash-hotel-name');
+    if(hn&&hn.value) el('export-hotel').value=hn.value;
   }
 
   currentStep=n;
@@ -1832,14 +1940,44 @@ function goStep(n){
 }
 
 function updateStepUI(n){
-  document.querySelectorAll('.page').forEach((p,i)=>{
-    p.classList.toggle('act',i+1===n);
+  for(let i=0;i<=5;i++){const p=el('s'+i);if(p)p.classList.toggle('act',i===n);}
+  document.querySelectorAll('.hstep').forEach(s=>{
+    const sn=parseInt(s.dataset.step)||0;
+    s.classList.toggle('act',sn===n);
+    s.classList.toggle('done',sn<n);
   });
-  document.querySelectorAll('.hstep').forEach((s,i)=>{
-    s.classList.toggle('act',i+1===n);
-    if(!s.classList.contains('act'))
-      s.classList.toggle('done',i+1<n);
-  });
+}
+
+// ── DASHBOARD ──
+function updateDashboard(){
+  const d=new Date();
+  const dm=el('dash-date');
+  if(dm&&!dm.value) dm.value=getTodayStr();
+  const dateStr=dm?dm.value:getTodayStr();
+  el('ds-datum').textContent=dateStr;
+  const meal=el('dash-meal');
+  const mealNames={fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'};
+  el('ds-mahlzeit').textContent=meal?mealNames[meal.value]||'—':'—';
+  el('dash-date-display').textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  if(calcDone){
+    el('ds-gaeste').textContent=assignedGuests.length;
+    el('ds-ankuenfte').textContent=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    const fr=lastTables.filter(t=>!t.belegt&&t.aktiv).length;
+    el('ds-tische').textContent=fr;
+    el('ds-warns').textContent=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    const da=el('da-plan');if(da) da.style.opacity='1';
+    const db=el('da-export');if(db) db.style.opacity='1';
+  }
+  const hn=localStorage.getItem('hsi_hotel');
+  if(hn){
+    const inp=el('dash-hotel-name');if(inp&&!inp.value) inp.value=hn;
+    el('dash-hotel-title').textContent=hn;
+  }
+}
+
+function loadDemoAndStart(){
+  loadDemo();
+  setTimeout(()=>{goStep(2);},300);
 }
 
 function markStepDone(step,done){
@@ -1865,6 +2003,8 @@ loadWeights();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
 setStatus('Bereit — Dateien laden oder Demo starten','');
+updateDashboard();
+updateStepUI(0);
 
 // Add rules for Zimmer 307 demo
 if(zimmerRegeln.length===0){
