@@ -27,10 +27,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 /* ── HEADER ── */
 #hdr{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.08);
      display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
-#theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
-           color:rgba(255,255,255,.75);border-radius:20px;padding:4px 12px;
-           font-size:10px;cursor:pointer;white-space:nowrap;transition:all .2s}
-#theme-btn:hover{background:rgba(255,255,255,.18)}
+/* ── THEME PILL SWITCH ── */
+.theme-pill{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;padding:2px 6px;border-radius:20px;transition:background .2s}
+.theme-pill:hover{background:rgba(255,255,255,.06)}
+.theme-pill-icon{font-size:11px;color:rgba(255,255,255,.4);line-height:1;transition:color .2s;font-style:normal}
+[data-theme="day"] .theme-pill-icon{color:rgba(30,43,74,.4)}
+.theme-pill-track{width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;transition:background .25s,border-color .25s;flex-shrink:0}
+.theme-pill-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.65);transition:transform .25s,background .25s}
+[data-theme="day"] .theme-pill-track{background:rgba(155,107,26,.15);border-color:rgba(155,107,26,.35)}
+[data-theme="day"] .theme-pill-thumb{transform:translateX(16px);background:var(--gold)}
 .logo{font-size:13px;font-weight:300;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.8)}
 .logo em{color:var(--gold);font-style:normal;font-weight:600}
 #hdr-steps{display:flex;align-items:center;gap:0;flex:1;justify-content:center}
@@ -299,10 +304,14 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .sc-tag.vip{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
 .sc-tag.kids{background:rgba(58,180,224,.2);color:#3AB4E0;border:1px solid rgba(58,180,224,.3)}
 @media print{
-  #hdr,#sticky-bar,#print-toolbar,#main{display:none!important}
-  #print-overlay{position:static!important;display:block!important}
-  #print-content{overflow:visible!important;padding:20px!important}
-  body{overflow:visible!important;height:auto!important}
+  #hdr,#sticky-bar,#print-toolbar{display:none!important}
+  #print-overlay{position:static!important;display:block!important;z-index:auto!important}
+  #print-content{overflow:visible!important;padding:24px!important;font-size:10pt!important}
+  #main{display:none!important}
+  body{overflow:visible!important;height:auto!important;background:#fff!important;color:#000!important}
+  .sc-row{page-break-inside:avoid}
+  .print-section{page-break-before:auto}
+  @page{margin:15mm;size:A4}
 }
 
 /* ── MODAL ── */
@@ -399,13 +408,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 #sb-cta{flex:1;font-size:13px;padding:12px 16px;border-radius:10px;font-weight:700}
 @media(max-width:900px){#sticky-bar{display:flex}}
 
-/* ── PRINT ── */
-@media print{
-  #hdr{display:none}
-  #main{height:auto;overflow:visible}
-  .page{display:block!important}
-  .btn,.bot{display:none}
-}
+/* ── FILE CARD ICONS ── */
+.fico-svg{width:44px;height:44px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
+          border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);transition:all .25s}
+.fico-svg svg{width:26px;height:26px;fill:none;stroke:var(--dim);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s}
+.fcard:hover .fico-svg,.fcard.ok .fico-svg{background:rgba(200,168,75,.08);border-color:rgba(200,168,75,.2)}
+.fcard.ok .fico-svg svg{stroke:var(--green)}
+.eico-svg{width:48px;height:48px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;
+          border-radius:14px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.15)}
+.eico-svg svg{width:28px;height:28px;fill:none;stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── FLOOR PLAN ── */
 #fp-render{width:100%;height:480px;position:relative;background:var(--bg);
@@ -495,7 +506,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
   </div>
   <div id="hdr-right">
-    <button id="theme-btn" onclick="toggleTheme()">☀️ Tag</button>
+    <div class="theme-pill" onclick="toggleTheme()" title="Hell / Dunkel wechseln">
+      <i class="theme-pill-icon">☾</i>
+      <div class="theme-pill-track"><div class="theme-pill-thumb"></div></div>
+      <i class="theme-pill-icon">☀</i>
+    </div>
     <div class="dot" id="sdot"></div>
     <div id="stxt">Bereit</div>
   </div>
@@ -541,7 +556,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
 
     <div class="dash-demo-card" onclick="loadDemoAndCalc()">
-      🎭 Demo mit Beispielhotel starten — 60 Testgäste, sofort loslegen, kein Upload nötig
+      Demo mit Beispielhotel starten — 60 Testgäste, sofort loslegen, kein Upload nötig
     </div>
 
     <div class="dash-stats">
@@ -566,12 +581,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div class="dsub" id="ds-warns-sub">—</div>
       </div>
       <div class="dstat" id="da-plan" style="cursor:pointer" onclick="calcDone?goStep(3):loadDemoAndCalc()">
-        <div class="dv">📊</div>
+        <div class="dv" style="font-size:14px;letter-spacing:1px">Plan</div>
         <div class="dk">Tischplan</div>
         <div class="dsub" id="ds-plan-sub">Demo starten</div>
       </div>
       <div class="dstat" id="da-export" style="cursor:pointer" onclick="calcDone?goStep(5):loadDemoAndCalc()">
-        <div class="dv">🖨</div>
+        <div class="dv" style="font-size:14px;letter-spacing:1px">PDF</div>
         <div class="dk">Druckmappe</div>
         <div class="dsub" id="ds-export-sub">Nach Berechnung</div>
       </div>
@@ -588,7 +603,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 
   <div class="s1-demo-hero" onclick="loadDemoAndCalc()">
-    <div class="s1-demo-ico">🎭</div>
+    <div class="s1-demo-ico" style="font-size:20px;font-weight:300;letter-spacing:2px;color:var(--gold)">Demo</div>
     <div class="s1-demo-txt">
       <h3>Demo starten — sofort loslegen</h3>
       <p>Zum Testen mit Beispielhotel starten. Keine eigenen Daten nötig.</p>
@@ -599,7 +614,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div class="file-grid">
     <div class="fcard" id="fc-vortag" onclick="el('fi-vortag').click()">
       <input type="file" id="fi-vortag" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('vortag',this)">
-      <div class="fico">📋</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
       <div class="ftit">Tischplan von gestern</div>
       <div class="fsub">Welcher Gast saß gestern wo?<br>Nötig für Stammgäste.</div>
       <div class="fbadge" id="fb-vortag">Pflicht</div>
@@ -609,7 +624,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <div class="fcard" id="fc-ankuenfte" onclick="el('fi-ankuenfte').click()">
       <input type="file" id="fi-ankuenfte" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('ankuenfte',this)">
-      <div class="fico">🛬</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
       <div class="ftit">Anreisen</div>
       <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS.</div>
       <div class="fbadge" id="fb-ankuenfte">Pflicht</div>
@@ -619,7 +634,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <div class="fcard" id="fc-inhaus" onclick="el('fi-inhaus').click()">
       <input type="file" id="fi-inhaus" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('inhaus',this)">
-      <div class="fico">🏨</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg></div>
       <div class="ftit">Inhaus-Gäste</div>
       <div class="fsub">Alle aktuell belegten Zimmer.<br>Stammgäste & Bleibegäste.</div>
       <div class="fbadge" id="fb-inhaus">Pflicht</div>
@@ -635,7 +650,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div id="opt-files">
     <div class="fcard opt" id="fc-abreisen" onclick="el('fi-abreisen').click()">
       <input type="file" id="fi-abreisen" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('abreisen',this)">
-      <div class="fico">🛫</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M5 12h14M19 12l-7-7M19 12l-7 7"/></svg></div>
       <div class="ftit">Abreisen</div>
       <div class="fsub">Gäste die heute abreisen.<br>Verbessert die Prognose.</div>
       <div class="fbadge" id="fb-abreisen">Optional</div>
@@ -645,7 +660,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <div class="fcard opt" id="fc-forecast" onclick="el('fi-forecast').click()">
       <input type="file" id="fi-forecast" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('forecast',this)">
-      <div class="fico">📅</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div class="ftit">Nächste 3 Tage</div>
       <div class="fsub">Ankünfte der nächsten 3 Tage<br>für Tisch-Reservierungen.</div>
       <div class="fbadge" id="fb-forecast">Optional</div>
@@ -655,7 +670,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <div class="fcard opt" id="fc-tische" onclick="el('fi-tische').click()">
       <input type="file" id="fi-tische" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('tische',this)">
-      <div class="fico">🪑</div>
+      <div class="fico-svg"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
       <div class="ftit">Tischkonfiguration</div>
       <div class="fsub">Welche Tische mit wieviel Plätzen.<br>Standard-Layout wird sonst verwendet.</div>
       <div class="fbadge" id="fb-tische">Optional</div>
@@ -690,11 +705,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Column mapping -->
     <div class="s2-sec" id="map-sec">
-      <h3>🔍 PMS-Daten erkannt?</h3>
+      <h3>PMS-Daten erkannt?</h3>
       <div id="map-rows"></div>
       <div class="flex mt-8" style="gap:8px">
-        <button class="btn btn-blue btn-sm" onclick="autoMap()">🔄 Auto-Erkennung</button>
-        <button class="btn btn-ghost btn-sm" onclick="savePMSProfile()">💾 Als PMS-Profil speichern</button>
+        <button class="btn btn-blue btn-sm" onclick="autoMap()">Auto-Erkennung</button>
+        <button class="btn btn-ghost btn-sm" onclick="savePMSProfile()">PMS-Profil speichern</button>
         <select id="pms-profile-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:10px" onchange="loadPMSProfile(this.value)">
           <option value="">— Profil laden —</option>
         </select>
@@ -703,13 +718,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Warnings from data check -->
     <div class="s2-sec">
-      <h3>⚠️ Fehlende Angaben</h3>
+      <h3>Fehlende Angaben</h3>
       <div id="s2-warns"></div>
     </div>
 
     <!-- Preview table -->
     <div class="s2-sec">
-      <h3>👁 Vorschau — erste 8 Datensätze</h3>
+      <h3>Vorschau — erste 8 Datensätze</h3>
       <div style="overflow-x:auto">
         <table class="preview-tbl" id="s2-preview"></table>
       </div>
@@ -717,7 +732,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Reference date + settings -->
     <div class="s2-sec">
-      <h3>⚙️ Einstellungen</h3>
+      <h3>Einstellungen</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div>
           <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">DATUM</label>
@@ -734,9 +749,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div>
           <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">AKTIONEN</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-blue btn-sm" onclick="showRulesModal()">📏 Zimmer-Regeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showTischRegelModal()">🪑 Tisch-Regeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">⚖️ Priorität</button>
+            <button class="btn btn-blue btn-sm" onclick="showRulesModal()">Zimmer-Regeln</button>
+            <button class="btn btn-blue btn-sm" onclick="showTischRegelModal()">Tisch-Regeln</button>
+            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">Priorität</button>
           </div>
         </div>
       </div>
@@ -760,7 +775,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div class="s3-inner">
     <div id="demo-banner" style="display:none">
       <div class="demo-banner-inner">
-        <span>🎭</span>
         <span class="demo-banner-txt">Demo-Modus · 60 Testgäste · Keine echten Hoteldaten</span>
         <button class="demo-banner-btn" onclick="isDemoMode=false;el('demo-banner').style.display='none';goStep(1)">Eigene Daten laden →</button>
       </div>
@@ -831,7 +845,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
 
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
-        <label style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">🎂 Geburtstage &amp; Hinweise</label>
+        <label style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Geburtstage &amp; Hinweise</label>
         <textarea id="geburtstage-input" placeholder="z.B. Zimmer 307: Geburtstag — Torte um 20:00 Uhr&#10;Zimmer 205: VIP-Begrüßung durch GM&#10;Day Spa: Buchungen bis 22 Uhr"
           style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;resize:vertical;min-height:64px;font-family:inherit;line-height:1.5;box-sizing:border-box"
           oninput="localStorage.setItem('hsi_geburtstage',this.value)"></textarea>
@@ -853,9 +867,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="bot">
       <button class="btn btn-ghost" onclick="goStep(2)">← Zurück</button>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-blue btn-sm" onclick="resetAndCalc()">🔄 Neu</button>
+        <button class="btn btn-blue btn-sm" onclick="resetAndCalc()">Neu berechnen</button>
         <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Hinweise</button>
-        <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>🖨 Druckmappe</button>
+        <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>Druckmappe</button>
       </div>
     </div>
   </div>
@@ -876,7 +890,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="bot">
       <button class="btn btn-ghost" onclick="goStep(3)">← Zurück</button>
       <button class="btn btn-gold" id="btn-s4-next" onclick="goStep(5)" disabled>
-        🖨 Druckmappe öffnen →
+        Druckmappe öffnen →
       </button>
     </div>
   </div>
@@ -891,40 +905,43 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
   <div class="s5-inner">
     <div id="s5-locked">
-      <strong>⚠️ Vor dem Drucken bitte prüfen</strong><br>
+      <strong>Vor dem Drucken bitte prüfen</strong><br>
       Es gibt noch offene Hinweise. Bitte kurz prüfen — dann ist die Druckmappe freigegeben.<br>
       <div class="s5-lock-action">
-        <button class="btn btn-red btn-sm" onclick="goStep(4)">→ Hinweise ansehen</button>
+        <button class="btn btn-red btn-sm" onclick="goStep(4)">Hinweise ansehen</button>
       </div>
     </div>
 
     <div class="print-btns">
-      <button class="btn btn-ghost" onclick="openPrint('service')">📋 Serviceplan</button>
-      <button class="btn btn-ghost" onclick="openPrint('reception')">🏨 Rezeptionsliste</button>
-      <button class="btn btn-ghost" onclick="openPrint('special')">⚠️ Sonderhinweise</button>
+      <button class="btn btn-ghost" onclick="openPrint('service')">Serviceplan</button>
+      <button class="btn btn-ghost" onclick="openPrint('reception')">Rezeptionsliste</button>
+      <button class="btn btn-ghost" onclick="openPrint('special')">Sonderhinweise</button>
     </div>
 
     <div class="export-cards">
       <div class="ecard">
-        <div class="eico">📊</div>
+        <div class="eico-svg"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
         <h4>Tischplan</h4>
         <p>Alle Gäste sortiert nach Tisch mit Zone, Status und Sonderhinweisen.</p>
       </div>
       <div class="ecard">
-        <div class="eico">🏨</div>
+        <div class="eico-svg"><svg viewBox="0 0 24 24"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/></svg></div>
         <h4>Nach Zimmer</h4>
         <p>Gleiche Ansicht sortiert nach Zimmernummer — für die Rezeption.</p>
       </div>
       <div class="ecard">
-        <div class="eico">📋</div>
+        <div class="eico-svg"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <h4>Schichtübergabe</h4>
         <p>Statistiken, Warnungen und Übergabenotizen für das nächste Team.</p>
       </div>
     </div>
 
-    <div class="export-main">
+    <div class="export-main" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-gold big-btn" id="btn-export" onclick="exportExcel()">
-        ⬇ Als Excel herunterladen
+        Als Excel herunterladen
+      </button>
+      <button class="btn btn-ghost big-btn" id="btn-pdf" onclick="printAsPDF()">
+        Als PDF drucken
       </button>
     </div>
 
@@ -968,11 +985,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
 <div id="print-overlay">
   <div id="print-toolbar">
-    <button class="ptool-btn active" data-view="service" onclick="switchPrint('service')">📋 Service-Liste</button>
-    <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">🏨 Rezeptionsliste</button>
-    <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">⚠️ Sonderhinweise</button>
+    <button class="ptool-btn active" data-view="service" onclick="switchPrint('service')">Service-Liste</button>
+    <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">Rezeptionsliste</button>
+    <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">Sonderhinweise</button>
     <div style="flex:1"></div>
-    <button class="ptool-btn" onclick="window.print()">🖨️ Drucken</button>
+    <button class="ptool-btn" onclick="window.print()">Drucken / PDF</button>
     <button class="ptool-btn" onclick="closePrint()" style="margin-left:8px">✕ Schließen</button>
   </div>
   <div id="print-content"></div>
@@ -2240,9 +2257,12 @@ function toggleTheme(){
   const html=document.documentElement;
   const isNight=html.getAttribute('data-theme')==='night';
   html.setAttribute('data-theme',isNight?'day':'night');
-  el('theme-btn').textContent=isNight?'🌙 Nacht':'☀️ Tag';
   localStorage.setItem('hsi_theme',isNight?'day':'night');
   if(calcDone) renderFP(lastTables,assignedGuests);
+}
+function printAsPDF(){
+  openPrint('service');
+  setTimeout(()=>window.print(),350);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3201,7 +3221,6 @@ function markStepDone(step,done){
 (()=>{
   const t=localStorage.getItem('hsi_theme')||'night';
   document.documentElement.setAttribute('data-theme',t);
-  el('theme-btn').textContent=t==='day'?'🌙 Nacht':'☀️ Tag';
 })();
 loadPMSProfiles();
 loadRules();
