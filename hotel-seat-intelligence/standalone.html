@@ -1049,32 +1049,32 @@ const IMPORTANT_FIELDS=['GastID','CheckIn','CheckOut','VorherigerTisch','GastTyp
 // ══════════════════════════════════════════════════════════════
 const DEFAULT_TABLES=[
   // Zone A (Premium)
-  {tisch_id:'A01',zone:'A',kapazitaet:2,aktiv:true,x:60,y:60},
-  {tisch_id:'A02',zone:'A',kapazitaet:2,aktiv:true,x:60,y:120},
-  {tisch_id:'A03',zone:'A',kapazitaet:4,aktiv:true,x:60,y:180},
-  {tisch_id:'A04',zone:'A',kapazitaet:4,aktiv:true,x:60,y:240},
+  {tisch_id:'A01',zone:'A',kapazitaet:4,aktiv:true,x:60,y:60},
+  {tisch_id:'A02',zone:'A',kapazitaet:4,aktiv:true,x:60,y:120},
+  {tisch_id:'A03',zone:'A',kapazitaet:6,aktiv:true,x:60,y:180},
+  {tisch_id:'A04',zone:'A',kapazitaet:6,aktiv:true,x:60,y:240},
   // Zone B (Fenster)
-  {tisch_id:'B01',zone:'B',kapazitaet:2,aktiv:true,x:160,y:60},
-  {tisch_id:'B02',zone:'B',kapazitaet:2,aktiv:true,x:160,y:120},
-  {tisch_id:'B03',zone:'B',kapazitaet:4,aktiv:true,x:160,y:180},
-  {tisch_id:'B04',zone:'B',kapazitaet:4,aktiv:true,x:160,y:240},
-  {tisch_id:'B05',zone:'B',kapazitaet:6,aktiv:true,x:160,y:310},
+  {tisch_id:'B01',zone:'B',kapazitaet:4,aktiv:true,x:160,y:60},
+  {tisch_id:'B02',zone:'B',kapazitaet:4,aktiv:true,x:160,y:120},
+  {tisch_id:'B03',zone:'B',kapazitaet:6,aktiv:true,x:160,y:180},
+  {tisch_id:'B04',zone:'B',kapazitaet:6,aktiv:true,x:160,y:240},
+  {tisch_id:'B05',zone:'B',kapazitaet:8,aktiv:true,x:160,y:310},
   // Zone C (Mitte)
-  {tisch_id:'C01',zone:'C',kapazitaet:4,aktiv:true,x:270,y:80},
-  {tisch_id:'C02',zone:'C',kapazitaet:4,aktiv:true,x:270,y:160},
-  {tisch_id:'C03',zone:'C',kapazitaet:4,aktiv:true,x:270,y:240},
-  {tisch_id:'C04',zone:'C',kapazitaet:6,aktiv:true,x:270,y:320},
+  {tisch_id:'C01',zone:'C',kapazitaet:6,aktiv:true,x:270,y:80},
+  {tisch_id:'C02',zone:'C',kapazitaet:6,aktiv:true,x:270,y:160},
+  {tisch_id:'C03',zone:'C',kapazitaet:6,aktiv:true,x:270,y:240},
+  {tisch_id:'C04',zone:'C',kapazitaet:8,aktiv:true,x:270,y:320},
   // Zone F (Familien)
-  {tisch_id:'F01',zone:'F',kapazitaet:6,aktiv:true,x:380,y:80},
-  {tisch_id:'F02',zone:'F',kapazitaet:6,aktiv:true,x:380,y:180},
-  {tisch_id:'F03',zone:'F',kapazitaet:8,aktiv:true,x:380,y:280},
-  // Zone Q (Quiet)
-  {tisch_id:'Q01',zone:'Q',kapazitaet:2,aktiv:true,x:490,y:80},
-  {tisch_id:'Q02',zone:'Q',kapazitaet:2,aktiv:true,x:490,y:140},
-  {tisch_id:'Q03',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:200},
-  {tisch_id:'Q04',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:270},
-  // Special
-  {tisch_id:'S01',zone:'C',kapazitaet:10,aktiv:true,x:380,y:350},
+  {tisch_id:'F01',zone:'F',kapazitaet:8,aktiv:true,x:380,y:80},
+  {tisch_id:'F02',zone:'F',kapazitaet:8,aktiv:true,x:380,y:180},
+  {tisch_id:'F03',zone:'F',kapazitaet:10,aktiv:true,x:380,y:280},
+  // Zone Q (Quiet/Ruhig)
+  {tisch_id:'Q01',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:80},
+  {tisch_id:'Q02',zone:'Q',kapazitaet:4,aktiv:true,x:490,y:140},
+  {tisch_id:'Q03',zone:'Q',kapazitaet:6,aktiv:true,x:490,y:200},
+  {tisch_id:'Q04',zone:'Q',kapazitaet:6,aktiv:true,x:490,y:270},
+  // Großtisch / Gruppenraum
+  {tisch_id:'S01',zone:'C',kapazitaet:12,aktiv:true,x:380,y:350},
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -1146,27 +1146,27 @@ G060,Ernst,Seiler,460,2,${d(1)},${d(3)},,PROG,0,0,Standard,,Prognose morgen,`;
 })();
 
 const DEMO_CSV_TABLES=`Tisch,Zone,Kapazitaet,Aktiv
-A01,A,2,1
-A02,A,2,1
-A03,A,4,1
-A04,A,4,1
-B01,B,2,1
-B02,B,2,1
-B03,B,4,1
-B04,B,4,1
-B05,B,6,1
-C01,C,4,1
-C02,C,4,1
-C03,C,4,1
-C04,C,6,1
-F01,F,6,1
-F02,F,6,1
-F03,F,8,1
-Q01,Q,2,1
-Q02,Q,2,1
-Q03,Q,4,1
-Q04,Q,4,1
-S01,C,10,1`;
+A01,A,4,1
+A02,A,4,1
+A03,A,6,1
+A04,A,6,1
+B01,B,4,1
+B02,B,4,1
+B03,B,6,1
+B04,B,6,1
+B05,B,8,1
+C01,C,6,1
+C02,C,6,1
+C03,C,6,1
+C04,C,8,1
+F01,F,8,1
+F02,F,8,1
+F03,F,10,1
+Q01,Q,4,1
+Q02,Q,4,1
+Q03,Q,6,1
+Q04,Q,6,1
+S01,C,12,1`;
 
 // ══════════════════════════════════════════════════════════════
 //  CSV PARSER
@@ -1735,7 +1735,7 @@ function runCalc(){
 
   // Apply rules
   stepAnim(3);
-  const ts=tables.map(t=>({...t,belegt:false,gast_id:null,blocked_for:null,konflikt:false}));
+  const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false}));
 
   // Forecast: reserve tables for next 3 days VIPs
   stepAnim(5);
@@ -1756,7 +1756,9 @@ function runCalc(){
   bleib.forEach(g=>{
     const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv);
     if(t&&t.kapazitaet>=g.pax){
-      t.belegt=true;t.belegtPax=t.kapazitaet;t.gast_id=g.id; // Stammtisch ist exklusiv
+      t.belegtPax+=g.pax;
+      if(t.belegtPax>=t.kapazitaet) t.belegt=true;
+      t.gast_id=g.id;
       g.zugewiesener_tisch=t.tisch_id;
       g.begruendung='Bleibegast → Stammtisch '+t.tisch_id+' beibehalten';
       bl_ok++;
@@ -1801,15 +1803,8 @@ function runCalc(){
     }
     if(!targetTisch){
       const pref=getZoneForGuest(g);
-      // Familien bevorzugt an leere Tische (kein Teilen mit Fremden)
-      const familyOnly=g.kinder>0;
-      if(familyOnly){
-        targetTisch=ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet>=g.pax)
-          ||ts.find(t=>t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=g.pax);
-      } else {
-        targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet-t.belegtPax>=g.pax)
-          ||ts.find(t=>!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
-      }
+      targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===pref&&t.kapazitaet-t.belegtPax>=g.pax)
+        ||ts.find(t=>!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
     }
     if(targetTisch){
       targetTisch.belegtPax+=g.pax;
