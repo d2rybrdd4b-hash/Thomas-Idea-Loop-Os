@@ -80,11 +80,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 /* ── STEP 1 ── */
 #s1 .file-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;margin:0 auto}
 .fcard{background:var(--card);border:2px dashed var(--border);border-radius:14px;
-       padding:24px 20px;cursor:pointer;transition:all .25s;position:relative;text-align:center}
+       padding:24px 20px;cursor:pointer;transition:all .25s;text-align:center}
 .fcard:hover{border-color:var(--gold);background:var(--gold-glow)}
+.fcard.drag-over{border-color:var(--gold);background:var(--gold-glow);transform:scale(1.02)}
 .fcard.ok{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.06)}
 .fcard.opt{border-style:dashed;opacity:.8}
-.fcard input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.fcard-hint{font-size:9px;color:var(--dim);margin-top:6px;opacity:.7}
 .fcard .fico{font-size:32px;margin-bottom:12px}
 .fcard .ftit{font-size:13px;font-weight:600;margin-bottom:4px}
 .fcard .fsub{font-size:10px;color:var(--dim);line-height:1.5}
@@ -429,6 +430,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Welcher Gast saß gestern wo?<br>Für Bleibegäste-Zuordnung nötig.</div>
       <div class="fbadge" id="fb-vortag">Pflicht</div>
       <div class="fname" id="fn-vortag"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard" id="fc-ankuenfte" onclick="el('fi-ankuenfte').click()">
@@ -438,6 +440,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS-System.</div>
       <div class="fbadge" id="fb-ankuenfte">Pflicht</div>
       <div class="fname" id="fn-ankuenfte"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard" id="fc-inhaus" onclick="el('fi-inhaus').click()">
@@ -447,6 +450,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Alle aktuell belegten Zimmer.<br>Bleibegäste & Stammgäste.</div>
       <div class="fbadge" id="fb-inhaus">Pflicht</div>
       <div class="fname" id="fn-inhaus"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-abreisen" onclick="el('fi-abreisen').click()">
@@ -456,6 +460,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Gäste die heute abreisen.<br>Optional — verbessert Prognose.</div>
       <div class="fbadge" id="fb-abreisen">Optional</div>
       <div class="fname" id="fn-abreisen"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-forecast" onclick="el('fi-forecast').click()">
@@ -465,6 +470,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Ankünfte der nächsten 3 Tage<br>für Tisch-Reservierungen.</div>
       <div class="fbadge" id="fb-forecast">Optional</div>
       <div class="fname" id="fn-forecast"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
 
     <div class="fcard opt" id="fc-tische" onclick="el('fi-tische').click()">
@@ -474,6 +480,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div class="fsub">Welche Tische mit wieviel Plätzen.<br>Standard-Layout wird verwendet.</div>
       <div class="fbadge" id="fb-tische">Optional</div>
       <div class="fname" id="fn-tische"></div>
+      <div class="fcard-hint">oder Datei hierher ziehen</div>
     </div>
   </div>
 
@@ -483,7 +490,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 
   <div class="bot">
-    <button class="btn btn-ghost" onclick="loadDemo()">🎭 Demo-Daten laden (15 Testfälle)</button>
+    <button class="btn btn-ghost" onclick="loadDemo()">🎭 Demo-Daten laden</button>
     <button class="btn btn-gold" id="btn-s1-next" onclick="goStep(2)" disabled>
       Weiter — Daten prüfen →
     </button>
@@ -1039,6 +1046,36 @@ function checkS1Ready(){
   const ok=required.every(k=>fileStatus[k]);
   el('btn-s1-next').disabled=!ok;
   if(ok) setStatus('Pflichtdateien geladen — bereit für Schritt 2','go');
+}
+
+function handleFileObj(key,file){
+  setStatus('Lade '+file.name+'…','spin');
+  el('fn-'+key).textContent=file.name;
+  readFileText(file,(text,err)=>{
+    if(err){setStatus('Fehler: '+err.message);return;}
+    const parsed=parseCSV(text);
+    parsedFiles[key]=parsed;
+    fileStatus[key]=true;
+    const card=el('fc-'+key);
+    card.classList.add('ok');
+    el('fb-'+key).textContent='✓ '+parsed.rows.length+' Zeilen';
+    setStatus(file.name+' geladen ('+parsed.rows.length+' Zeilen)','go');
+    checkS1Ready();
+  });
+}
+
+function setupDragDrop(){
+  document.querySelectorAll('.fcard').forEach(card=>{
+    const key=card.id.replace('fc-','');
+    card.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();card.classList.add('drag-over');});
+    card.addEventListener('dragleave',e=>{if(!card.contains(e.relatedTarget))card.classList.remove('drag-over');});
+    card.addEventListener('drop',e=>{
+      e.preventDefault();e.stopPropagation();
+      card.classList.remove('drag-over');
+      const f=e.dataTransfer.files[0];
+      if(f) handleFileObj(key,f);
+    });
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2003,6 +2040,7 @@ loadWeights();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
 setStatus('Bereit — Dateien laden oder Demo starten','');
+setupDragDrop();
 updateDashboard();
 updateStepUI(0);
 
