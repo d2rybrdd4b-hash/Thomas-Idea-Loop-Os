@@ -3479,8 +3479,7 @@ updateStepUI(0);
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
 
-// Demo-First: App startet direkt mit Ergebnis
-setTimeout(()=>{ loadDemoAndCalc(); }, 400);
+// Demo wird nur auf Nutzeraktion gestartet (Button auf Dashboard)
 
 // Demo-Zimmerregeln vorbelegen
 if(zimmerRegeln.length===0){
