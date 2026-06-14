@@ -376,11 +376,29 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .meal-card.sel{border-color:var(--gold);background:var(--gold-glow)}
 .meal-card .meal-ico{font-size:34px;margin-bottom:10px}
 .meal-card .meal-tit{font-size:13px;font-weight:700;margin-bottom:4px}
-.meal-card .meal-sub{font-size:10px;color:var(--dim);line-height:1.4}
-.dash-demo-card{background:rgba(200,168,75,.06);border:1px dashed rgba(200,168,75,.4);
-                border-radius:10px;padding:11px 16px;text-align:center;cursor:pointer;
-                font-size:11px;color:var(--dim);margin-bottom:16px;transition:all .2s}
-.dash-demo-card:hover{background:var(--gold-glow);color:var(--gold);border-color:var(--gold)}
+.meal-card .meal-sub{font-size:11px;color:var(--dim);line-height:1.5}
+.dash-main-q{font-size:15px;font-weight:700;color:var(--text);text-align:center;
+             margin:8px 0 16px;letter-spacing:.2px}
+.dash-demo-card{background:var(--gold-glow);border:1.5px solid rgba(200,168,75,.55);
+                border-radius:12px;padding:14px 20px;cursor:pointer;
+                font-size:12px;color:var(--gold);font-weight:600;
+                margin-bottom:18px;transition:all .22s;
+                display:flex;align-items:center;justify-content:center;gap:12px}
+.dash-demo-card .ddc-arrow{font-size:18px;opacity:.6}
+.dash-demo-card .ddc-body{text-align:left}
+.dash-demo-card .ddc-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.dash-demo-card .ddc-sub{font-size:10px;opacity:.7;font-weight:400}
+.dash-demo-card:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,168,75,.18)}
+.next-action-bar{background:var(--gold);color:#1A1810;border-radius:12px;
+                 padding:13px 20px;display:flex;align-items:center;
+                 justify-content:space-between;margin-top:6px;gap:12px}
+.next-action-bar.na-red{background:var(--red)}
+.next-action-bar .na-txt{font-size:11px;font-weight:600;opacity:.8;flex:1}
+.next-action-bar .na-btn{background:#1A1810;color:var(--gold);border:none;border-radius:8px;
+                          padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;
+                          white-space:nowrap;transition:opacity .18s;flex-shrink:0}
+.next-action-bar.na-red .na-btn{color:var(--red)}
+.next-action-bar .na-btn:hover{opacity:.82}
 .dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .dstat{background:var(--card);border:1px solid var(--border);border-radius:12px;
        padding:14px 16px;position:relative;overflow:hidden}
@@ -594,59 +612,69 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <p class="dash-tagline">Tischpläne für Frühstück, Mittagessen und Abendessen —<br>mit Drucklisten für Rezeption, Service und Küche.</p>
     </div>
 
+    <div class="dash-main-q">Was möchtest du heute vorbereiten?</div>
+
     <div class="meal-actions">
       <div class="meal-card" id="mc-fruehstueck" onclick="startMeal('fruehstueck')">
         <div class="meal-ico">🌅</div>
-        <div class="meal-tit">Frühstück</div>
-        <div class="meal-sub">Morgenservice planen</div>
+        <div class="meal-tit">Frühstücksplan erstellen</div>
+        <div class="meal-sub">Gäste platzieren, Serviceplan drucken, Rezeption informieren.</div>
       </div>
       <div class="meal-card" id="mc-mittag" onclick="startMeal('mittag')">
         <div class="meal-ico">☀️</div>
-        <div class="meal-tit">Mittagessen</div>
-        <div class="meal-sub">Mittagsservice planen</div>
+        <div class="meal-tit">Mittagessen planen</div>
+        <div class="meal-sub">Tische und Zeiten für die Mittagsbelegung vorbereiten.</div>
       </div>
       <div class="meal-card sel" id="mc-abend" onclick="startMeal('abend')">
         <div class="meal-ico">🌙</div>
-        <div class="meal-tit">Abendessen</div>
-        <div class="meal-sub">Abendservice planen</div>
+        <div class="meal-tit">Abendessen planen</div>
+        <div class="meal-sub">Zeitfenster, Tischrotation und Sonderwünsche prüfen.</div>
       </div>
     </div>
 
     <div class="dash-demo-card" onclick="loadDemoAndCalc()">
-      Demo mit Beispielhotel starten — 60 Testgäste, sofort loslegen, kein Upload nötig
+      <span class="ddc-arrow">▶</span>
+      <div class="ddc-body">
+        <div class="ddc-title">Demo mit Beispielhotel starten</div>
+        <div class="ddc-sub">Sofort testen mit 60 Gästen, Gruppen, Familien, VIPs und Warnungen — kein Upload nötig.</div>
+      </div>
     </div>
 
     <div class="dash-stats">
       <div class="dstat ds-green">
         <div class="dv" id="ds-gaeste">—</div>
-        <div class="dk">Gäste aktiv</div>
-        <div class="dsub" id="ds-gaeste-sub">Demo starten</div>
+        <div class="dk">Gäste heute</div>
+        <div class="dsub" id="ds-gaeste-sub">Demo starten oder PMS-Export laden</div>
       </div>
       <div class="dstat ds-blue">
         <div class="dv" id="ds-ankuenfte">—</div>
         <div class="dk">Ankünfte heute</div>
-        <div class="dsub" id="ds-ankuenfte-sub">—</div>
+        <div class="dsub" id="ds-ankuenfte-sub">Erscheint nach Datenladen</div>
       </div>
       <div class="dstat">
         <div class="dv" id="ds-tische">—</div>
-        <div class="dk">Tische frei</div>
-        <div class="dsub" id="ds-tische-sub">—</div>
+        <div class="dk">Tische</div>
+        <div class="dsub" id="ds-tische-sub">Restaurantplan nach Laden</div>
       </div>
       <div class="dstat ds-red">
         <div class="dv" id="ds-warns">—</div>
         <div class="dk">Hinweise</div>
-        <div class="dsub" id="ds-warns-sub">—</div>
+        <div class="dsub" id="ds-warns-sub">Automatisch nach Prüfung</div>
       </div>
       <div class="dstat" id="da-plan" style="cursor:pointer" onclick="calcDone?goStep(3):loadDemoAndCalc()">
-        <div class="dv" style="font-size:14px;letter-spacing:1px">Plan</div>
+        <div class="dv" style="font-size:13px;letter-spacing:.5px" id="ds-plan-val">Kein Plan</div>
         <div class="dk">Tischplan</div>
-        <div class="dsub" id="ds-plan-sub">Demo starten</div>
+        <div class="dsub" id="ds-plan-sub">Demo starten →</div>
       </div>
       <div class="dstat" id="da-export" style="cursor:pointer" onclick="calcDone?goStep(5):loadDemoAndCalc()">
-        <div class="dv" style="font-size:14px;letter-spacing:1px">PDF</div>
+        <div class="dv" style="font-size:13px;letter-spacing:.5px" id="ds-export-val">Nicht bereit</div>
         <div class="dk">Druckmappe</div>
-        <div class="dsub" id="ds-export-sub">Nach Berechnung</div>
+        <div class="dsub" id="ds-export-sub">Nach Planung verfügbar</div>
       </div>
+    </div>
+    <div id="next-action-bar" class="next-action-bar">
+      <span class="na-txt">Noch keine Daten — schnell loslegen mit Demo</span>
+      <button class="na-btn" onclick="loadDemoAndCalc()">Demo starten</button>
     </div>
     <div id="ds-conflict-bar" class="ds-conflict-bar" onclick="goStep(4)"></div>
   </div>
@@ -657,6 +685,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div class="page-hdr">
     <h1>Gästeliste hochladen</h1>
     <p>Lade den Tagesexport aus deinem Hotelprogramm hoch — oder starte direkt mit der Demo.</p>
+    <p style="margin-top:8px;font-size:11px;color:var(--dim);background:var(--card);
+              border:1px solid var(--border);border-radius:8px;padding:9px 14px;line-height:1.6">
+      Für den Schnellstart reicht eine PMS-Datei oder die Demo.
+      Zusätzliche Dateien (Abreisen, Forecast, Tischkonfiguration) verbessern die Genauigkeit.
+    </p>
   </div>
 
   <div class="s1-demo-hero" onclick="loadDemoAndCalc()">
@@ -3106,6 +3139,30 @@ function updateNextActionBtn(){
     btn.onclick=loadDemoAndCalc;
   }
 }
+function updateNextActionBar(){
+  const bar=el('next-action-bar');
+  if(!bar) return;
+  if(calcDone){
+    const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+    if(reds>0){
+      bar.className='next-action-bar na-red';
+      bar.innerHTML=`<span class="na-txt">Plan bereit — ${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
+        <button class="na-btn" onclick="goStep(4)">Hinweise prüfen</button>`;
+    } else {
+      bar.className='next-action-bar';
+      bar.innerHTML=`<span class="na-txt">Tischplan bereit — Drucklisten für Rezeption und Service stehen bereit</span>
+        <button class="na-btn" onclick="goStep(5)">Druckmappe öffnen</button>`;
+    }
+  } else if(typeof fileStatus!=='undefined'&&(fileStatus.ankuenfte||fileStatus.inhaus)){
+    bar.className='next-action-bar';
+    bar.innerHTML=`<span class="na-txt">Dateien geladen — Tischplan noch nicht berechnet</span>
+      <button class="na-btn" onclick="goStep(3)">Tischplan berechnen</button>`;
+  } else {
+    bar.className='next-action-bar';
+    bar.innerHTML=`<span class="na-txt">Noch keine Daten — schnell loslegen mit Demo</span>
+      <button class="na-btn" onclick="loadDemoAndCalc()">Demo starten</button>`;
+  }
+}
 function goBack(){if(currentStep>0) goStep(currentStep-1);}
 function goNext(){const next=currentStep+1;if(next<=5) goStep(next);}
 
@@ -3149,7 +3206,10 @@ function updateDashboard(){
     el('ds-warns-sub').textContent=redCount>0?`${redCount} kritisch`:(yellowCount>0?'zur Prüfung':'Alles OK ✓');
     el('ds-plan-sub').textContent='Tischplan ansehen →';
     el('ds-export-sub').textContent='Druckmappe öffnen →';
+    const pv=el('ds-plan-val');if(pv) pv.textContent='Bereit';
+    const ev=el('ds-export-val');if(ev) ev.textContent='PDF bereit';
     updateNextActionBtn();
+    updateNextActionBar();
     const cb=el('ds-conflict-bar');
     if(cb){
       if(redCount>0){
@@ -3166,20 +3226,27 @@ function updateDashboard(){
     }
   } else {
     // Empty states — no plan calculated yet
-    ['ds-gaeste','ds-ankuenfte','ds-tische','ds-warns'].forEach(id=>{
-      const e=el(id); if(e) e.textContent='—';
-    });
+    const emptyVals={
+      'ds-gaeste':'Keine Daten',
+      'ds-ankuenfte':'—',
+      'ds-tische':'Kein Plan',
+      'ds-warns':'—'
+    };
+    Object.entries(emptyVals).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
     const subs={
-      'ds-gaeste-sub':'Noch kein Plan berechnet',
-      'ds-ankuenfte-sub':'—',
-      'ds-tische-sub':'—',
-      'ds-warns-sub':'—',
+      'ds-gaeste-sub':'Demo starten oder PMS-Export laden',
+      'ds-ankuenfte-sub':'Erscheint nach Datenladen',
+      'ds-tische-sub':'Restaurantplan nach Laden',
+      'ds-warns-sub':'Automatisch nach Prüfung',
       'ds-plan-sub':'Demo starten →',
-      'ds-export-sub':'Nach Berechnung verfügbar'
+      'ds-export-sub':'Nach Planung verfügbar'
     };
     Object.entries(subs).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
+    const pv=el('ds-plan-val');if(pv) pv.textContent='Kein Plan';
+    const ev=el('ds-export-val');if(ev) ev.textContent='Nicht bereit';
     const cb=el('ds-conflict-bar');if(cb) cb.style.display='none';
     updateNextActionBtn();
+    updateNextActionBar();
   }
   const hn=localStorage.getItem('hsi_hotel');
   if(hn){
