@@ -2333,6 +2333,8 @@ function runCalc(){
 
   // Update step 4
   renderWarnings();
+  // Sync Start tab stats immediately after every calculation
+  updateDashboard();
 }
 
 function stepAnim(n){
@@ -3241,7 +3243,11 @@ function startMeal(meal){
   updateMealCards();
   if(calcDone){goStep(3);}
   else if(fileStatus.ankuenfte||fileStatus.inhaus){currentStep=2;goStep(3);}
-  else{loadDemoAndCalc();}
+  else{
+    // Load demo then navigate to floor plan for selected meal
+    loadDemo();isDemoMode=true;currentStep=2;autoMap();
+    setTimeout(()=>{runCalc();goStep(3);},200);
+  }
 }
 function updateMealCards(){
   const meal=el('dash-meal').value;
@@ -3484,7 +3490,13 @@ function loadDemoAndCalc(){
   loadDemo();
   isDemoMode=true;
   currentStep=2;
-  setTimeout(()=>{goStep(3);},200);
+  autoMap();
+  setStatus('Demo-Daten geladen — berechne Tischplan…','spin');
+  setTimeout(()=>{
+    runCalc();
+    // Stay on Start tab — user navigates to other tabs themselves
+    goStep(0);
+  }, 200);
 }
 
 function markStepDone(step,done){
