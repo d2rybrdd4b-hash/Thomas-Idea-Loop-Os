@@ -444,14 +444,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
            background:#F5EFE3;border-radius:10px;overflow:hidden}
 
 /* Zonen-Spalten Layout */
-.fp-zones-wrap{display:flex;gap:10px;height:100%;overflow-x:auto;overflow-y:hidden;
-               padding:12px;box-sizing:border-box;align-items:stretch}
+.fp-zones-wrap{display:flex;gap:8px;height:100%;overflow-x:auto;overflow-y:hidden;
+               padding:10px;box-sizing:border-box;align-items:stretch}
 .fp-zones-wrap::-webkit-scrollbar{height:5px}
 .fp-zones-wrap::-webkit-scrollbar-track{background:rgba(0,0,0,.06);border-radius:3px}
-.fp-zones-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:3px}
-.fp-zone-col{display:flex;flex-direction:column;gap:6px;flex:1;min-width:108px;max-width:240px}
-.fp-zone-hdr{font-size:7px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
-             padding:5px 8px;border-radius:6px;text-align:center;flex-shrink:0;
+.fp-zones-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.2);border-radius:3px}
+.fp-zone-col{display:flex;flex-direction:column;gap:5px;flex:1;min-width:96px;max-width:220px;
+             border-radius:10px;padding:7px 6px 7px;box-sizing:border-box}
+.fp-zone-hdr{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+             padding:6px 8px;border-radius:7px;text-align:center;flex-shrink:0;
              border-bottom-width:2px;border-bottom-style:solid}
 .fp-zone-grid{display:grid;gap:6px;flex:1;overflow-y:auto;align-content:start}
 .fp-zone-grid::-webkit-scrollbar{width:3px}
@@ -535,7 +536,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .dash-controls{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
-  #fp-render{height:65vh;min-height:320px}
+  #fp-render{height:68vh;min-height:340px}
+  .fp-zone-col{min-width:82px}
+  .fp-zone-hdr{font-size:8px;letter-spacing:1px;padding:5px 6px}
   .tbl-preview{font-size:10px}
   .tbl-preview th,.tbl-preview td{padding:6px 8px}
 }
@@ -610,6 +613,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </select>
       </div>
       <p class="dash-tagline">Tischpläne für Frühstück, Mittagessen und Abendessen —<br>mit Drucklisten für Rezeption, Service und Küche.</p>
+      <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
 
     <div class="dash-main-q">Was möchtest du heute vorbereiten?</div>
@@ -2509,9 +2513,9 @@ function renderFP(tables,guests){
       </div>`;
     }).join('');
 
-    return`<div class="fp-zone-col">
-      <div class="fp-zone-hdr" style="color:${col};border-bottom-color:${col}55;background:${col}0D">
-        ${name}&thinsp;(${zone})
+    return`<div class="fp-zone-col" style="background:${col}08;border-left:3px solid ${col}40">
+      <div class="fp-zone-hdr" style="color:${col};border-bottom-color:${col}60;background:${col}14">
+        ${name}
       </div>
       <div class="fp-zone-grid" style="grid-template-columns:${'1fr '.repeat(nCols).trim()}">
         ${cardsHtml}
@@ -3190,7 +3194,8 @@ function updateDashboard(){
   const dateStr=dm?dm.value:getTodayStr();
   const meal=el('dash-meal');
   const mealNames={fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'};
-  el('dash-date-display').textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  const dd=el('dash-date-display');
+  if(dd) dd.textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   if(calcDone){
     el('ds-gaeste').textContent=assignedGuests.length;
     el('ds-gaeste-sub').textContent='Gäste mit Tisch';
