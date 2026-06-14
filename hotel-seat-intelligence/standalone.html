@@ -377,7 +377,40 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .meal-card .meal-ico{font-size:28px;margin-bottom:8px}
 .meal-card .meal-tit{font-size:14px;font-weight:700;margin-bottom:4px;letter-spacing:.2px}
 .meal-card .meal-sub{font-size:11px;color:var(--dim);line-height:1.5}
-/* Quick Upload (Start tab) */
+/* View Toggle (Grundriss / Gästeliste) */
+.view-toggle{display:flex;background:var(--bg);border:1px solid var(--border);
+             border-radius:9px;padding:3px;gap:3px}
+.vt-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+        padding:6px 10px;border:none;background:none;color:var(--dim);
+        font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;transition:all .18s;
+        white-space:nowrap}
+.vt-btn.vt-act{background:var(--panel);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.vt-btn svg{width:14px;height:14px;flex-shrink:0}
+/* Gästeliste */
+.glist-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.glist-hdr{display:grid;grid-template-columns:70px 1fr 38px 90px;
+           background:var(--panel);padding:8px 12px;
+           font-size:9px;font-weight:700;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+.glist-row{display:grid;grid-template-columns:70px 1fr 38px 90px;
+           padding:9px 12px;border-top:1px solid var(--border);font-size:12px;
+           align-items:center;cursor:pointer;transition:background .15s}
+.glist-row:hover{background:var(--gold-glow)}
+.glist-row.gl-new{background:rgba(58,180,224,.04)}
+.gl-tisch{font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+.gl-name{color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gl-name em{font-size:9px;color:var(--dim);font-style:normal;margin-left:4px}
+.gl-pax{color:var(--dim);text-align:center;font-weight:600}
+.gl-grund{font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;
+          text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;display:inline-block}
+.gl-grund.g-stamm{background:rgba(200,168,75,.15);color:var(--gold)}
+.gl-grund.g-gruppe{background:rgba(58,180,224,.15);color:#3AB4E0}
+.gl-grund.g-vip{background:rgba(46,204,113,.18);color:var(--green)}
+.gl-grund.g-ankunft{background:rgba(255,255,255,.06);color:var(--dim)}
+.gl-no-data{text-align:center;color:var(--dim);padding:24px;font-size:12px}
+@media(max-width:520px){
+  .glist-hdr,.glist-row{grid-template-columns:58px 1fr 30px 76px}
+  .vt-btn{padding:6px 6px;font-size:10px}
+}
 .qu-label{font-size:13px;font-weight:700;text-align:center;color:var(--text);margin:12px 0 14px;letter-spacing:.2px}
 .qu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
 .qu-card{background:var(--card);border:2px dashed var(--border);border-radius:16px;
@@ -1073,13 +1106,20 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <button class="fp-fs-close" onclick="closeFPFullscreen()">✕ Schließen</button>
         </div>
         <div class="fp-header">
-          <h3>GRUNDRISS</h3>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:10px;color:var(--dim)">Tisch antippen für Details</span>
-            <button class="fp-fs-open" onclick="openFPFullscreen()" title="Vollbild">⤢ Vollbild</button>
+          <div class="view-toggle">
+            <button class="vt-btn vt-act" id="vt-grundriss" onclick="switchView('grundriss')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              Grundriss
+            </button>
+            <button class="vt-btn" id="vt-liste" onclick="switchView('liste')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+              Gästeliste
+            </button>
           </div>
+          <button class="fp-fs-open" id="fp-fs-btn" onclick="openFPFullscreen()" title="Vollbild">⤢ Vollbild</button>
         </div>
         <div id="fp-render"></div>
+        <div id="fp-guestlist" style="display:none"></div>
         <div id="fp-detail" style="display:none"></div>
 
 <!-- Tisch-Detail Popup (centered overlay) -->
@@ -2724,6 +2764,91 @@ function exportFPasPNG(dateStr){
 // ══════════════════════════════════════════════════════════════
 const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
 let lastTables=[];
+
+// ── VIEW TOGGLE ──
+function switchView(v){
+  const grundriss=el('fp-render');
+  const liste=el('fp-guestlist');
+  const fsBtn=el('fp-fs-btn');
+  const btnG=el('vt-grundriss');
+  const btnL=el('vt-liste');
+  if(v==='liste'){
+    if(grundriss) grundriss.style.display='none';
+    if(liste){liste.style.display='block';renderGuestList();}
+    if(fsBtn) fsBtn.style.display='none';
+    if(btnG) btnG.classList.remove('vt-act');
+    if(btnL) btnL.classList.add('vt-act');
+  } else {
+    if(grundriss) grundriss.style.display='block';
+    if(liste) liste.style.display='none';
+    if(fsBtn) fsBtn.style.display='';
+    if(btnG) btnG.classList.add('vt-act');
+    if(btnL) btnL.classList.remove('vt-act');
+  }
+}
+function getAssignReason(g){
+  const b=g.begruendung||'';
+  if(b.includes('Bleibegast')||b.includes('Stammtisch'))
+    return{cls:'g-stamm',lbl:'Stammgast'};
+  if(b.includes('Gruppe')||b.includes('Familie'))
+    return{cls:'g-gruppe',lbl:'Gruppe'};
+  if(g.vip)
+    return{cls:'g-vip',lbl:'VIP'};
+  if(g.status==='AN'||g.status==='AN·AB')
+    return{cls:'g-ankunft',lbl:'Ankunft'};
+  return{cls:'g-ankunft',lbl:'Inhaus'};
+}
+function renderGuestList(){
+  const container=el('fp-guestlist');
+  if(!container) return;
+  if(!assignedGuests.length){
+    container.innerHTML='<div class="gl-no-data">Noch kein Tischplan berechnet.</div>';
+    return;
+  }
+  // Group by table, sort numerically
+  const byTable={};
+  assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const t=g.zugewiesener_tisch;
+    if(!byTable[t]) byTable[t]=[];
+    byTable[t].push(g);
+  });
+  const sortedTables=Object.keys(byTable).sort((a,b)=>{
+    const na=parseInt(a)||0,nb=parseInt(b)||0;
+    return na!==nb?na-nb:a.localeCompare(b);
+  });
+  let html='<div class="glist-wrap">'
+    +'<div class="glist-hdr"><div>Tisch</div><div>Gast</div><div>PAX</div><div>Grund</div></div>';
+  sortedTables.forEach(tId=>{
+    const gs=byTable[tId];
+    gs.forEach((g,i)=>{
+      const name=(g.vorname?g.vorname[0]+'. ':'')+g.nachname;
+      const extras=[];
+      if(g.allergie) extras.push('⚠ '+g.allergie);
+      if(g.kinder>0) extras.push(g.kinder+'K');
+      if(g.zimmer) extras.push('Zi.'+g.zimmer);
+      const reason=getAssignReason(g);
+      const isNew=g.status==='AN'||g.status==='AN·AB';
+      html+=`<div class="glist-row${isNew?' gl-new':''}" onclick="showTableDetail('${tId}')">
+        <div class="gl-tisch">${i===0?tId:''}</div>
+        <div class="gl-name">${name}${extras.length?`<em>${extras.join(' · ')}</em>`:''}</div>
+        <div class="gl-pax">${g.pax}</div>
+        <div><span class="gl-grund ${reason.cls}">${reason.lbl}</span></div>
+      </div>`;
+    });
+  });
+  // Unassigned guests
+  const unassigned=assignedGuests.filter(g=>!g.zugewiesener_tisch);
+  if(unassigned.length){
+    html+=`<div class="glist-row" style="background:rgba(231,76,60,.04)">
+      <div class="gl-tisch" style="color:var(--red)">—</div>
+      <div class="gl-name" style="color:var(--dim)">${unassigned.length} Gast${unassigned.length>1?'e':''} ohne Tisch</div>
+      <div class="gl-pax">${unassigned.reduce((s,g)=>s+g.pax,0)}</div>
+      <div><span class="gl-grund" style="background:rgba(231,76,60,.15);color:var(--red)">Offen</span></div>
+    </div>`;
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
 
 function renderFP(tables,guests){
   lastTables=tables;
