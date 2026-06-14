@@ -664,7 +664,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
       <div class="dash-meta">
         <input type="text" id="dash-hotel-name" placeholder="Hotelname eingeben"
-          oninput="localStorage.setItem('hsi_hotel',this.value);el('dash-hotel-title').textContent=this.value||'Hotel Seat Intelligence'">
+          oninput="syncHotelName(this.value)">
         <input type="date" id="dash-date" onchange="updateDashboard()">
         <select id="dash-meal" onchange="updateDashboard();updateMealCards()">
           <option value="fruehstueck">🌅 Frühstück</option>
@@ -1127,7 +1127,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </div>
         <div class="form-row">
           <label>HOTEL-NAME (Kopfzeile)</label>
-          <input type="text" id="export-hotel" placeholder="Hotel Name">
+          <input type="text" id="export-hotel" placeholder="Hotel Name" oninput="syncHotelName(this.value)">
         </div>
       </div>
       <div style="margin-top:8px">
@@ -1575,6 +1575,34 @@ function buildVortagRow(row,tc,zc,sc,nc,pc,ec){
   return{Tisch:tisch,Zimmernummer:zimmer,Status:status,Nachname:nachname,AnzahlPersonen:pax||'2',Extras:extras};
 }
 
+// Baut Tischkonfiguration aus Vortags-Zeilen (Panorama-Format)
+function extractTablesFromVortag(rows){
+  const tableMap={};
+  rows.forEach(r=>{
+    const id=r.Tisch;
+    const zimmer=String(r.Zimmernummer||'').trim();
+    if(!id||!/^\d/.test(id)) return;
+    if(/^zu\s/i.test(zimmer)) return; // Satelliten-Tische überspringen
+    const pax=parseInt(r.AnzahlPersonen)||2;
+    const n=parseInt(id);
+    // Zonen-Schema: 6xx = Panorama Restaurant, 7xx = Neue Restaurants, sonst = Extern
+    let zone='X';
+    if(n>=600&&n<700) zone='P';
+    else if(n>=700&&n<800) zone='N';
+    if(!tableMap[id]){
+      tableMap[id]={Tisch:id,Zone:zone,Kapazitaet:Math.max(pax,2),Kategorie:3,Aktiv:'1'};
+    } else {
+      // Kapazität nach oben anpassen wenn größere Gruppe gesehen
+      tableMap[id].Kapazitaet=Math.max(tableMap[id].Kapazitaet,pax);
+    }
+  });
+  const tischRows=Object.values(tableMap).sort((a,b)=>parseInt(a.Tisch)-parseInt(b.Tisch));
+  return{
+    headers:['Tisch','Zone','Kapazitaet','Kategorie','Aktiv'],
+    rows:tischRows
+  };
+}
+
 // ── Allergen- und Kinder-Extraktion aus Bemerkungsfeldern ──
 function enrichFromBemerkung(g){
   const bem=(g.bemerkung||'')+' '+(g.extras||'');
@@ -1673,8 +1701,15 @@ function handleFile(key,input){
           parsedFiles[key]=panorama;
           fileStatus[key]=true;
           const card=el('fc-'+key);if(card) card.classList.add('ok');
-          const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+panorama.rows.length+' Tische (Panorama)';
-          setStatus(file.name+' geladen — '+panorama.rows.length+' Tischeinträge erkannt','go');
+          // Auto-extract table config from Vortag if no custom tische file loaded
+          if(!fileStatus.tische){
+            parsedFiles.tische=extractTablesFromVortag(panorama.rows);
+            fileStatus.tische=true;
+            const tc=el('fc-tische');if(tc) tc.classList.add('ok');
+            const tb=el('fb-tische');if(tb) tb.textContent='✓ Auto — '+parsedFiles.tische.rows.length+' Tische aus Vortag';
+          }
+          const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+panorama.rows.length+' Einträge (Panorama)';
+          setStatus(file.name+' geladen — '+panorama.rows.length+' Tischeinträge, '+parsedFiles.tische.rows.length+' Tische erkannt','go');
           checkS1Ready();return;
         }
         // Fall back to generic sheet→CSV
@@ -2611,7 +2646,7 @@ function exportFPasPNG(dateStr){
 // ══════════════════════════════════════════════════════════════
 //  FLOOR PLAN RENDER
 // ══════════════════════════════════════════════════════════════
-const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
+const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
 let lastTables=[];
 
 function renderFP(tables,guests){
@@ -2756,7 +2791,7 @@ function renderFP(tables,guests){
 function openFPFullscreen(){
   const c=el('s3-fp-container');
   c.classList.add('fp-fs');
-  const hotel=el('dash-hotel-name')?.value||'Hotel Seat Intelligence';
+  const hotel=getHotelName()||'Hotel Seat Intelligence';
   el('fp-fs-hotel').textContent=hotel;
   document.addEventListener('keydown',fpEscHandler);
   document.body.style.overflow='hidden';
@@ -3169,7 +3204,16 @@ function switchPrint(type){
   });
 }
 function getHotelName(){
-  return el('dash-hotel-name')?.value||el('export-hotel')?.value||'Hotel';
+  return localStorage.getItem('hsi_hotel')||el('dash-hotel-name')?.value||el('export-hotel')?.value||'Hotel';
+}
+function syncHotelName(v){
+  if(v===undefined) v=localStorage.getItem('hsi_hotel')||'';
+  if(!v) return;
+  localStorage.setItem('hsi_hotel',v);
+  const inp=el('dash-hotel-name');if(inp&&inp.value!==v) inp.value=v;
+  const eh=el('export-hotel');if(eh&&eh.value!==v) eh.value=v;
+  const ht=el('dash-hotel-title');if(ht) ht.textContent=v;
+  const fsh=el('fp-fs-hotel');if(fsh) fsh.textContent=v;
 }
 function getSlotLabel(){
   const v=el('slot-sel')?.value||el('dash-meal')?.value||'fruehstueck';
@@ -3320,8 +3364,7 @@ function goStep(n){
     el('s5-locked').style.display=reds.length>0?'block':'none';
     el('btn-export').disabled=reds.length>0;
     el('export-name').value=`Tischplan_${refDate}`;
-    const hn=el('dash-hotel-name');
-    if(hn&&hn.value) el('export-hotel').value=hn.value;
+    syncHotelName();
   }
 
   currentStep=n;
@@ -3501,11 +3544,7 @@ function updateDashboard(){
     updateNextActionBtn();
     updateNextActionBar();
   }
-  const hn=localStorage.getItem('hsi_hotel');
-  if(hn){
-    const inp=el('dash-hotel-name');if(inp&&!inp.value) inp.value=hn;
-    el('dash-hotel-title').textContent=hn;
-  }
+  syncHotelName();
 }
 
 function toggleOptFiles(btn){
