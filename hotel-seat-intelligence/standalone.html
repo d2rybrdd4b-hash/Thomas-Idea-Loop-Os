@@ -31,7 +31,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .theme-pill{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;padding:2px 6px;border-radius:20px;transition:background .2s}
 .theme-pill:hover{background:rgba(255,255,255,.06)}
 .theme-pill-icon{font-size:11px;color:rgba(255,255,255,.4);line-height:1;transition:color .2s;font-style:normal}
-[data-theme="day"] .theme-pill-icon{color:rgba(30,43,74,.4)}
+[data-theme="day"] .theme-pill-icon{color:rgba(255,255,255,.5)}
 .theme-pill-track{width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;transition:background .25s,border-color .25s;flex-shrink:0}
 .theme-pill-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.65);transition:transform .25s,background .25s}
 [data-theme="day"] .theme-pill-track{background:rgba(155,107,26,.15);border-color:rgba(155,107,26,.35)}
@@ -533,12 +533,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
   .page{padding:16px 12px calc(80px + env(safe-area-inset-bottom,0px))}
-  #hdr-steps .hstep .slabel{display:none}
+  #hdr-steps{display:none}
   .file-grid{grid-template-columns:1fr 1fr}
   .map-grid{grid-template-columns:1fr}
   .dash-controls{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
+  .meal-actions{grid-template-columns:1fr}
   .fp-zone-col{min-width:130px;flex-basis:130px}
   .fp-zone-hdr{font-size:8px;letter-spacing:1px}
   .tbl-preview{font-size:10px}
