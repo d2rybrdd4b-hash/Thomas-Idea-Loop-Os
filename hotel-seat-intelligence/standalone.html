@@ -399,6 +399,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                           white-space:nowrap;transition:opacity .18s;flex-shrink:0}
 .next-action-bar.na-red .na-btn{color:var(--red)}
 .next-action-bar .na-btn:hover{opacity:.82}
+.restore-banner{background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);
+                color:var(--green);border-radius:10px;padding:10px 14px;margin-bottom:8px;
+                display:flex;align-items:center;gap:10px;font-size:11px}
+.restore-banner.rb-stale{background:rgba(230,126,34,.12);border-color:rgba(230,126,34,.3);color:#E67E22}
+.rb-txt{flex:1;font-weight:500}
+.rb-btn{background:none;border:1px solid currentColor;border-radius:6px;padding:5px 10px;
+        font-size:10px;font-weight:700;cursor:pointer;color:inherit;white-space:nowrap}
 .dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .dstat{background:var(--card);border:1px solid var(--border);border-radius:12px;
        padding:16px 18px;position:relative;overflow:hidden}
@@ -688,6 +695,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div class="dsub" id="ds-export-sub">Nach Planung verfügbar</div>
       </div>
     </div>
+    <div id="restore-banner" class="restore-banner" style="display:none"></div>
     <div id="next-action-bar" class="next-action-bar">
       <span class="na-txt">Noch keine Daten — schnell loslegen mit Demo</span>
       <button class="na-btn" onclick="loadDemoAndCalc()">Demo starten</button>
@@ -2335,6 +2343,7 @@ function runCalc(){
   renderWarnings();
   // Sync Start tab stats immediately after every calculation
   updateDashboard();
+  saveState();
 }
 
 function stepAnim(n){
@@ -3508,6 +3517,63 @@ function markStepDone(step,done){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  STATE PERSISTENCE
+// ══════════════════════════════════════════════════════════════
+function saveState(){
+  try{
+    localStorage.setItem('hsi_state',JSON.stringify({
+      assignedGuests,
+      lastTables,
+      warnings,
+      resolvedWarnings:[...resolvedWarnings],
+      refDate,
+      isDemoMode,
+      savedAt:new Date().toISOString()
+    }));
+  }catch(e){/* localStorage full or unavailable */}
+}
+
+function clearState(){
+  localStorage.removeItem('hsi_state');
+  assignedGuests=[];lastTables=[];warnings=[];resolvedWarnings=new Set();
+  calcDone=false;isDemoMode=false;
+  const rb=el('restore-banner');if(rb) rb.style.display='none';
+  updateDashboard();updateStepUI(0);
+}
+
+function restoreState(){
+  try{
+    const raw=localStorage.getItem('hsi_state');
+    if(!raw) return false;
+    const s=JSON.parse(raw);
+    if(!s.assignedGuests||!s.lastTables) return false;
+    // Don't restore if saved date is yesterday or older (stale plan)
+    const savedDate=(s.refDate||'').slice(0,10);
+    const today=getTodayStr();
+    assignedGuests=s.assignedGuests;
+    lastTables=s.lastTables;
+    warnings=s.warnings||[];
+    resolvedWarnings=new Set(s.resolvedWarnings||[]);
+    refDate=s.refDate||today;
+    isDemoMode=!!s.isDemoMode;
+    calcDone=true;
+    // Show restore banner
+    const rb=el('restore-banner');
+    if(rb){
+      const when=s.savedAt?new Date(s.savedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
+      const stale=savedDate&&savedDate<today;
+      rb.style.display='flex';
+      rb.innerHTML=`<span class="rb-txt">${stale?'⚠️ Plan vom Vortag ('+savedDate+')':'✓ Plan wiederhergestellt'+( when?' — gespeichert '+when:'')+(isDemoMode?' · Demo':'')} </span><button class="rb-btn" onclick="clearState()">Neu starten</button>`;
+      rb.className='restore-banner'+(stale?' rb-stale':'');
+    }
+    // Rebuild floor plan from saved tables/guests
+    renderFP(lastTables,assignedGuests);
+    renderWarnings();
+    return true;
+  }catch(e){return false;}
+}
+
+// ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
 // Restore theme
@@ -3526,6 +3592,8 @@ setupDragDrop();
 updateDashboard();
 updateStepUI(0);
 updateTabBar(0);
+restoreState();
+if(calcDone) updateDashboard();
 
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
