@@ -2330,65 +2330,92 @@ function renderFP(tables,guests){
     tG[g.zugewiesener_tisch].push(g);
   });
 
-  // OpenTable-style palette — fixed warm light, independent of UI theme
+  // OpenTable palette — fixed warm light, independent of UI theme
   const FP={
     bg:'#F5EFE3',tblFree:'#FFFFFF',tblBorder:'#C8BFA8',
     textDark:'#1A1820',textId:'#6A6258',textDim:'#9A9080',
-    seatFree:'#FFFFFF',seatBorder:'#C0B89A',
     conflict:'#C0302A',future:'#9B6B1A',
     zones:{A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A'}
   };
   const ZONE_LABEL={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
 
-  const getDim=kap=>({
-    w:kap<=2?70:kap<=4?84:kap<=6?98:kap<=8?112:kap<=10?126:140,
-    h:kap<=2?38:kap<=4?42:kap<=6?46:kap<=8?50:kap<=10?54:58
+  // Uniform card height — width scales with capacity
+  const CARD_H=52;
+  const cardW=kap=>kap<=2?72:kap<=4?88:kap<=6?102:kap<=8?116:kap<=10?128:140;
+
+  // ── Auto-layout: group by zone, grid per zone ─────────────────
+  const activeTables=tables.filter(t=>t.aktiv);
+  const byZone={};
+  activeTables.forEach(t=>{
+    if(!byZone[t.zone]) byZone[t.zone]=[];
+    byZone[t.zone].push(t);
   });
 
-  // Seat dots: top + bottom rows
-  const getSeats=(cx,cy,w,h,pax)=>{
-    const OFF=11,seats=[],rx=cx-w/2,ry=cy-h/2;
-    const top=Math.ceil(pax/2),bot=Math.floor(pax/2),sr=pax>8?3.5:4.5;
-    for(let i=0;i<top;i++) seats.push({x:rx+(w/(top+1))*(i+1),y:ry-OFF,r:sr,i});
-    for(let i=0;i<bot;i++) seats.push({x:rx+(w/(bot+1))*(i+1),y:ry+h+OFF,r:sr,i:top+i});
-    return seats;
-  };
+  const GAP_X=16,  // horizontal gap between columns within a zone
+        GAP_Y=38,  // vertical gap between rows (space for badges)
+        ZONE_PAD=30, // gap between zones
+        TOP=40,LEFT=18;
 
-  // Canvas
-  let maxX=560,maxY=420;
-  tables.filter(t=>t.aktiv).forEach(t=>{
-    const {w,h}=getDim(t.kapazitaet);
-    if(t.x+w/2+20>maxX) maxX=t.x+w/2+20;
-    if(t.y+h/2+30+46>maxY) maxY=t.y+h/2+30+46;
+  const tPos=new Map();
+  let zoneStartX=LEFT;
+
+  Object.keys(byZone).sort().forEach(zone=>{
+    const zt=byZone[zone];
+    // Columns: 1 for ≤3 tables, 2 for ≤8, 3 for more
+    const nC=zt.length<=3?1:zt.length<=8?2:3;
+    const mW=Math.max(...zt.map(t=>cardW(t.kapazitaet)));
+    const colW=mW+GAP_X;
+    zt.forEach((t,i)=>{
+      const col=i%nC,row=Math.floor(i/nC);
+      tPos.set(t.tisch_id,{
+        x:zoneStartX+col*colW+mW/2,
+        y:TOP+row*(CARD_H+GAP_Y)+CARD_H/2
+      });
+    });
+    zoneStartX+=nC*colW+ZONE_PAD;
   });
 
-  // Zone bounding boxes
+  // Dynamic canvas — expands to fit any hotel size
+  let maxX=100,maxY=100;
+  activeTables.forEach(t=>{
+    const p=tPos.get(t.tisch_id);
+    if(!p) return;
+    const w=cardW(t.kapazitaet);
+    if(p.x+w/2+16>maxX) maxX=p.x+w/2+16;
+    if(p.y+CARD_H/2+24+42>maxY) maxY=p.y+CARD_H/2+24+42;
+  });
+
+  // Zone background boxes
   const zB={};
-  tables.filter(t=>t.aktiv).forEach(t=>{
-    const {w,h}=getDim(t.kapazitaet);
-    const p=18;
+  activeTables.forEach(t=>{
+    const p=tPos.get(t.tisch_id);
+    if(!p) return;
+    const w=cardW(t.kapazitaet),pad=14;
     if(!zB[t.zone]) zB[t.zone]={x1:9999,x2:-9999,y1:9999,y2:-9999};
     const b=zB[t.zone];
-    b.x1=Math.min(b.x1,t.x-w/2-p);b.x2=Math.max(b.x2,t.x+w/2+p);
-    b.y1=Math.min(b.y1,t.y-h/2-22);b.y2=Math.max(b.y2,t.y+h/2+22);
+    b.x1=Math.min(b.x1,p.x-w/2-pad);b.x2=Math.max(b.x2,p.x+w/2+pad);
+    b.y1=Math.min(b.y1,p.y-CARD_H/2-14);b.y2=Math.max(b.y2,p.y+CARD_H/2+20);
   });
-
   const zoneBg=Object.entries(zB).map(([z,b])=>{
     const col=FP.zones[z]||FP.textDim;
     const name=ZONE_LABEL[z]||('Zone '+z);
-    const cx=(b.x1+b.x2)/2;
     return`<rect x="${b.x1}" y="${b.y1}" width="${b.x2-b.x1}" height="${b.y2-b.y1}"
-             rx="18" fill="${col}" fill-opacity="0.05" stroke="${col}" stroke-opacity="0.18" stroke-width="1"/>
-           <text x="${cx}" y="${b.y1+12}" text-anchor="middle" font-size="8"
-             fill="${col}" fill-opacity="0.65" font-weight="800" letter-spacing="2.5">${name.toUpperCase()}</text>`;
+             rx="16" fill="${col}" fill-opacity="0.05" stroke="${col}" stroke-opacity="0.18" stroke-width="1"/>
+           <text x="${((b.x1+b.x2)/2).toFixed(0)}" y="${(b.y1+11).toFixed(0)}" text-anchor="middle"
+             font-size="8" fill="${col}" fill-opacity="0.65" font-weight="800"
+             letter-spacing="2.5">${name.toUpperCase()}</text>`;
   }).join('');
 
-  const tableSvg=tables.filter(t=>t.aktiv).map(t=>{
+  // ── Table cards ───────────────────────────────────────────────
+  const tableSvg=activeTables.map(t=>{
+    const pos=tPos.get(t.tisch_id);
+    if(!pos) return'';
+    const cx=pos.x,cy=pos.y;
+    const w=cardW(t.kapazitaet),h=CARD_H;
+    const rx=cx-w/2,ry=cy-h/2;
     const gs=tG[t.tisch_id]||[];
     const usedPax=gs.reduce((s,g)=>s+g.pax,0);
     const col=FP.zones[t.zone]||FP.textDim;
-    const {w,h}=getDim(t.kapazitaet);
-    const rx=t.x-w/2,ry=t.y-h/2;
     const overloaded=usedPax>t.kapazitaet;
     const hasConflikt=!!t.konflikt;
     const occupied=gs.length>0;
@@ -2402,14 +2429,13 @@ function renderFP(tables,guests){
       else{tFill=col;tStroke=col;tSW=1.5;tFillOp=0.08;}
     }
 
-    // Seat dots
-    const seats=getSeats(t.x,t.y,w,h,t.kapazitaet);
-    const seatsSvg=seats.map(s=>{
-      const occ=s.i<usedPax;
-      return`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${s.r}"
-               fill="${occ?col:FP.seatFree}" fill-opacity="${occ?0.85:1}"
-               stroke="${occ?col:FP.seatBorder}" stroke-width="1.5"/>`;
-    }).join('');
+    // Occupancy fill bar — bottom of card
+    const barW=w-14,barX=rx+7,barY=ry+h-10;
+    const fillW=t.kapazitaet>0?barW*Math.min(1,usedPax/t.kapazitaet):0;
+    const fillCol=overloaded||hasConflikt?FP.conflict:col;
+    const fillBar=
+      `<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="4" rx="2" fill="${FP.tblBorder}" opacity="0.4"/>` +
+      (occupied&&fillW>0?`<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${fillW.toFixed(1)}" height="4" rx="2" fill="${fillCol}" opacity="0.75"/>`:'');
 
     // Guest text
     const g0=gs[0];
@@ -2420,10 +2446,9 @@ function renderFP(tables,guests){
     const hasVip=gs.some(g=>g.vip);
     const hasKids=gs.some(g=>g.kinder>0);
 
-    // Structured micro-badges below seat dots
-    const sr_val=t.kapazitaet>8?3.5:4.5;
-    const bStripY=ry+h+11+sr_val+6;
-    const bH=8,bPad=3,bGap=2;
+    // Micro-badge pills — directly below card
+    const bStripY=ry+h+11;
+    const bH=10,bPad=4,bGap=2;
     let bx=rx+2,badgePillsSvg='';
     if(occupied){
       const seenA=new Set(),seenS=new Set(),pills=[];
@@ -2436,11 +2461,11 @@ function renderFP(tables,guests){
         });
       });
       for(const b of pills){
-        const tw=b.label.length*4+bPad*2;
+        const tw=b.label.length*4.5+bPad*2;
         if(bx+tw>rx+w-2) break;
         badgePillsSvg+=
-          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="2.5" fill="${b.col}" opacity="0.9"/>` +
-          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+2.5).toFixed(1)}" text-anchor="middle" font-size="6" fill="white" font-weight="800">${b.label}</text>`;
+          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="3" fill="${b.col}" opacity="0.9"/>` +
+          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+3).toFixed(1)}" text-anchor="middle" font-size="7" fill="white" font-weight="800">${b.label}</text>`;
         bx+=tw+bGap;
       }
     }
@@ -2454,41 +2479,47 @@ function renderFP(tables,guests){
       `<rect x="${rx+w-25}" y="${ry+2}" width="23" height="13" rx="4" fill="${badgeCol}" fill-opacity="0.14"/>
        <text x="${rx+w-13.5}" y="${ry+11}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
     const futureTxt=zukunft?
-      `<text x="${t.x}" y="${t.y+4}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
+      `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
 
     return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer">
-      ${seatsSvg}
       <rect x="${rx}" y="${ry}" width="${w}" height="${h}" rx="7"
         fill="${tFill}" fill-opacity="${tFillOp}" stroke="${tStroke}" stroke-width="${tSW}" ${strokeDash}
         filter="url(#ts)"/>
-      <text x="${t.x}" y="${ry+11}" text-anchor="middle" font-size="9"
+      <text x="${cx}" y="${ry+11}" text-anchor="middle" font-size="9"
         fill="${FP.textId}" font-weight="700" letter-spacing=".4">${t.tisch_id}</text>
       <text x="${rx+w-5}" y="${ry+11}" text-anchor="end" font-size="8"
         fill="${overloaded?FP.conflict:occupied?col:FP.textDim}" font-weight="600">${usedPax||0}/${t.kapazitaet}</text>
-      ${occupied&&guestMain?`<text x="${t.x}" y="${t.y+(extra?2:5)}" text-anchor="middle"
-          font-size="${w>=98?12:11}" fill="${FP.textDark}" font-weight="700">${guestMain}</text>`:''}
-      ${occupied&&extra?`<text x="${t.x}" y="${t.y+17}" text-anchor="middle"
+      ${occupied&&guestMain?`<text x="${cx}" y="${cy+(extra?0:3)}" text-anchor="middle"
+          font-size="${w>=102?12:11}" fill="${FP.textDark}" font-weight="700">${guestMain}</text>`:''}
+      ${occupied&&extra?`<text x="${cx}" y="${cy+13}" text-anchor="middle"
           font-size="8" fill="${col}" font-weight="600">${extra} weitere</text>`:''}
-      ${!occupied&&!zukunft?`<text x="${t.x}" y="${t.y+5}" text-anchor="middle"
-          font-size="9" fill="${FP.textDim}">—</text>`:''}
+      ${!occupied&&!zukunft?`<text x="${cx}" y="${cy+3}" text-anchor="middle"
+          font-size="10" fill="${FP.textDim}">frei</text>`:''}
       ${futureTxt}
+      ${fillBar}
       ${conflictDot}${badge}${badgePillsSvg}
     </g>`;
   }).join('');
 
+  // Legend — with fill bar sample
   const legData=[
-    {col:FP.zones.B,label:'Belegt'},
+    {col:FP.zones.B,label:'Belegt (Balken = Auslastung)'},
     {col:FP.conflict,label:'Konflikt'},
     {col:FP.future,label:'Reserviert',dash:true},
     {col:FP.tblBorder,label:'Frei'}
   ];
-  const lW=96,legY=maxY-15,legStartX=Math.max(8,(maxX-legData.length*lW)/2);
-  const leg=legData.map((e,i)=>`<g transform="translate(${legStartX+i*lW},${legY})">
-    <rect x="0" y="-7" width="12" height="10" rx="2.5"
-      fill="${e.col}" fill-opacity="0.15" stroke="${e.col}" stroke-width="1.2"
-      ${e.dash?'stroke-dasharray="4,2"':''}/>
-    <text x="16" y="2" font-size="8" fill="${FP.textDim}">${e.label}</text>
-  </g>`).join('');
+  const lW=118,legY=maxY-13,legStartX=Math.max(8,(maxX-legData.length*lW)/2);
+  const leg=legData.map((e,i)=>{
+    const lx=legStartX+i*lW;
+    const bar=i===0?
+      `<rect x="0" y="-6" width="16" height="5" rx="2" fill="${e.col}" fill-opacity="0.2" stroke="${e.col}" stroke-width="1"/>
+       <rect x="0" y="-6" width="8" height="5" rx="2" fill="${e.col}" fill-opacity="0.75"/>`:
+      `<rect x="0" y="-6" width="14" height="9" rx="2.5"
+        fill="${e.col}" fill-opacity="0.15" stroke="${e.col}" stroke-width="1.2"
+        ${e.dash?'stroke-dasharray="4,2"':''}/>`;
+    return`<g transform="translate(${lx},${legY})">${bar}
+      <text x="20" y="2" font-size="8" fill="${FP.textDim}">${e.label}</text></g>`;
+  }).join('');
 
   container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
