@@ -3403,7 +3403,7 @@ function goStep(n){
   if(n===2&&!fileStatus.vortag&&!fileStatus.ankuenfte&&!fileStatus.inhaus){
     alert('Bitte erst Pflicht-Dateien laden (Schritt 1).');return;
   }
-  if(n===3&&currentStep<2) return;
+  if(n===3&&!calcDone&&currentStep<2) return;
   if(n===4&&!calcDone) return;
   if(n===5&&!calcDone) return;
 
