@@ -423,7 +423,48 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 /* ── FLOOR PLAN ── */
 #fp-render{width:100%;height:min(560px,68vh);min-height:300px;position:relative;
-           background:var(--bg);border-radius:10px;overflow:hidden}
+           background:#F5EFE3;border-radius:10px;overflow:hidden}
+
+/* Zonen-Spalten Layout */
+.fp-zones-wrap{display:flex;gap:10px;height:100%;overflow-x:auto;overflow-y:hidden;
+               padding:12px;box-sizing:border-box;align-items:stretch}
+.fp-zones-wrap::-webkit-scrollbar{height:5px}
+.fp-zones-wrap::-webkit-scrollbar-track{background:rgba(0,0,0,.06);border-radius:3px}
+.fp-zones-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:3px}
+.fp-zone-col{display:flex;flex-direction:column;gap:6px;flex:1;min-width:108px;max-width:240px}
+.fp-zone-hdr{font-size:7px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+             padding:5px 8px;border-radius:6px;text-align:center;flex-shrink:0;
+             border-bottom-width:2px;border-bottom-style:solid}
+.fp-zone-grid{display:grid;gap:6px;flex:1;overflow-y:auto;align-content:start}
+.fp-zone-grid::-webkit-scrollbar{width:3px}
+.fp-zone-grid::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
+
+/* Tischkarte */
+.fp-tcard{background:#fff;border:1.5px solid #C8BFA8;border-radius:9px;
+          padding:7px 8px 7px;cursor:pointer;transition:transform .12s,box-shadow .12s;
+          display:flex;flex-direction:column;gap:3px;
+          box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.fp-tcard:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.13)}
+.fp-card-row{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.fp-card-id{font-size:9px;font-weight:800;color:#6A6258;letter-spacing:.3px}
+.fp-card-pax{font-size:8px;font-weight:700;color:#9A9080}
+.fp-card-name{font-size:11px;font-weight:700;color:#1A1820;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.fp-card-sub{font-size:8px;font-weight:600;line-height:1.2}
+.fp-bar-wrap{height:4px;background:rgba(200,191,168,.4);border-radius:2px;overflow:hidden;margin-top:1px}
+.fp-bar-fill{height:100%;border-radius:2px;opacity:.78;transition:width .3s}
+.fp-card-tags{display:flex;flex-wrap:wrap;gap:2px;margin-top:1px}
+.fp-tag{font-size:6px;font-weight:800;color:#fff;padding:1px 4px;border-radius:2px;
+        letter-spacing:.3px;line-height:1.5;white-space:nowrap}
+.fp-tag-outline{font-size:6px;font-weight:800;padding:1px 4px;border-radius:2px;
+                border-width:1px;border-style:solid;line-height:1.5;white-space:nowrap}
+.fp-conflict-dot{width:15px;height:15px;border-radius:50%;display:inline-flex;
+                 align-items:center;justify-content:center;font-size:8px;font-weight:900;
+                 color:#fff;background:#C0302A;flex-shrink:0}
+/* Print: floor plan HTML section */
+.fp-print-section .fp-zones-wrap{height:auto;overflow:visible;flex-wrap:wrap}
+.fp-print-section .fp-zone-col{min-width:130px;page-break-inside:avoid}
+@media print{.fp-zones-wrap{flex-wrap:wrap;height:auto;overflow:visible}}
 /* Fullscreen mode */
 #s3-fp-container.fp-fs{position:fixed;inset:0;z-index:150;border-radius:0!important;
   border:none!important;margin:0!important;padding:0!important;background:var(--bg)!important;
@@ -2320,32 +2361,9 @@ function printAsPDF(){
   },400);
 }
 function exportFPasPNG(dateStr){
-  const svgEl=el('fp-render')?.querySelector('svg');
-  if(!svgEl){setStatus('Grundriss nicht verfügbar — bitte Schritt 3 ausführen','warn');return;}
-  try{
-    const vb=svgEl.viewBox.baseVal;
-    const sw=Math.max(800,vb.width||800);
-    const sh=Math.round(sw*(vb.height||500)/Math.max(1,vb.width||800));
-    const svgData=new XMLSerializer().serializeToString(svgEl);
-    const blob=new Blob([svgData],{type:'image/svg+xml'});
-    const url=URL.createObjectURL(blob);
-    const img=new Image();
-    img.onload=()=>{
-      const cv=document.createElement('canvas');
-      cv.width=sw*2;cv.height=sh*2;
-      const ctx=cv.getContext('2d');
-      ctx.fillStyle='#F5EFE3';ctx.fillRect(0,0,cv.width,cv.height);
-      ctx.drawImage(img,0,0,cv.width,cv.height);
-      URL.revokeObjectURL(url);
-      const a=document.createElement('a');
-      a.href=cv.toDataURL('image/png');
-      a.download=`Grundriss_${dateStr}.png`;
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setStatus('Grundriss als PNG gespeichert: Grundriss_'+dateStr+'.png','go');
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);setStatus('PNG-Export fehlgeschlagen','warn');};
-    img.src=url;
-  }catch(e){setStatus('PNG-Export nicht möglich: '+e.message,'warn');}
+  // Floor plan is HTML-based — PNG export requires html2canvas (not loaded).
+  // Inform user to use the PDF print option with "Grundriss" checkbox instead.
+  setStatus('Grundriss-PNG: Bitte PDF-Druck mit "Grundriss"-Haken verwenden.','warn');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2359,6 +2377,7 @@ function renderFP(tables,guests){
   const container=el('fp-render');
   if(!container) return;
 
+  // Build guest-per-table map
   const tG={};
   guests.forEach(g=>{
     if(!g.zugewiesener_tisch) return;
@@ -2366,23 +2385,9 @@ function renderFP(tables,guests){
     tG[g.zugewiesener_tisch].push(g);
   });
 
-  const FP={
-    bg:'#F5EFE3',tblFree:'#FFFFFF',tblBorder:'#C8BFA8',
-    textDark:'#1A1820',textId:'#6A6258',textDim:'#9A9080',
-    conflict:'#C0302A',future:'#9B6B1A',
-    zones:{A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A'}
-  };
-  const ZONE_LABEL={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
-
-  const CARD_H=52;
-  const cardW=kap=>kap<=2?72:kap<=4?88:kap<=6?102:kap<=8?116:kap<=10?128:140;
-
-  // Responsive container-filling layout — reads real screen size
-  const cW=Math.max(300,container.clientWidth||container.offsetWidth||600);
-  const cH=Math.max(200,container.clientHeight||container.offsetHeight||400);
-  const SIDE=12,TOP_PAD=46,BOT_PAD=30;
-  const availW=cW-2*SIDE;
-  const availH=cH-TOP_PAD-BOT_PAD;
+  const ZC={A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A'};
+  const ZN={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
+  const CC='#C0302A',FC='#9B6B1A';
 
   const activeTables=tables.filter(t=>t.aktiv);
   const byZone={};
@@ -2391,203 +2396,97 @@ function renderFP(tables,guests){
     byZone[t.zone].push(t);
   });
   const sortedZones=Object.keys(byZone).sort();
-  const nZ=sortedZones.length;
 
-  if(!nZ){
-    container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">Keine aktiven Tische.</div>';
+  if(!sortedZones.length){
+    container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9A9080;font-size:13px">Keine aktiven Tische.</div>';
     return;
   }
 
-  // Zone grid: nZC columns x nZR rows — adapts to container aspect ratio
-  const cAspect=Math.max(0.4,availW/Math.max(1,availH));
-  const nZC=Math.max(1,Math.min(nZ,Math.round(Math.sqrt(nZ*cAspect))));
-  const nZR=Math.ceil(nZ/nZC);
-  const zCellW=availW/nZC;
-  const zCellH=availH/nZR;
-  const ZONE_LBL_H=18;
-
-  const tPos=new Map();
-
-  sortedZones.forEach((zone,zi)=>{
+  const zonesHtml=sortedZones.map(zone=>{
     const zt=byZone[zone];
-    const zCol=zi%nZC,zRow=Math.floor(zi/nZC);
-    const zX0=SIDE+zCol*zCellW;
-    const zY0=TOP_PAD+zRow*zCellH;
-    const tAreaW=zCellW;
-    const tAreaH=Math.max(1,zCellH-ZONE_LBL_H);
-    const n=zt.length;
+    const col=ZC[zone]||'#7A7060';
+    const name=ZN[zone]||('Zone '+zone);
 
-    const mW=Math.max(...zt.map(t=>cardW(t.kapazitaet)));
-    const fitsInRow=Math.max(1,Math.floor(tAreaW/(mW*0.85+6)));
-    const nTC=Math.max(1,Math.min(n,fitsInRow,
-                Math.max(1,Math.round(Math.sqrt(n*(tAreaW/Math.max(1,tAreaH)))))));
-    const nTR=Math.ceil(n/nTC);
-    const tCellW=tAreaW/nTC;
-    const tCellH=tAreaH/Math.max(nTR,1);
+    // 2 columns per zone if 3+ tables, 1 column otherwise
+    const nCols=zt.length>=3?2:1;
 
-    zt.forEach((t,i)=>{
-      const tc=i%nTC,tr=Math.floor(i/nTC);
-      tPos.set(t.tisch_id,{
-        x:zX0+(tc+0.5)*tCellW,
-        y:zY0+ZONE_LBL_H+(tr+0.5)*tCellH,
-        cellW:tCellW,cellH:tCellH
-      });
-    });
-  });
+    const cardsHtml=zt.map(t=>{
+      const gs=tG[t.tisch_id]||[];
+      const usedPax=gs.reduce((s,g)=>s+g.pax,0);
+      const overloaded=usedPax>t.kapazitaet;
+      const hasConflikt=!!t.konflikt;
+      const occupied=gs.length>0;
+      const zukunft=!!t.zukunft_belegt&&!occupied;
 
-  const maxX=cW,maxY=cH;
+      // Card colours
+      let bg='#FFFFFF',border='#C8BFA8',bw='1.5px',bdash='';
+      if(occupied){
+        if(overloaded||hasConflikt){bg='#FFF0EF';border=CC;bw='2px';}
+        else{bg=col+'14';border=col;}
+      } else if(zukunft){bg='#FDF8F0';border=FC;bdash='border-style:dashed';}
 
-  // Zone backgrounds — from cell boundaries, no overlap possible
-  const zoneBg=sortedZones.map((zone,zi)=>{
-    const zCol=zi%nZC,zRow=Math.floor(zi/nZC);
-    const zX0=SIDE+zCol*zCellW;
-    const zY0=TOP_PAD+zRow*zCellH;
-    const col=FP.zones[zone]||FP.textDim;
-    const name=ZONE_LABEL[zone]||('Zone '+zone);
-    return`<rect x="${(zX0+3).toFixed(0)}" y="${(zY0+2).toFixed(0)}"
-             width="${(zCellW-6).toFixed(0)}" height="${(zCellH-4).toFixed(0)}"
-             rx="12" fill="${col}" fill-opacity="0.06" stroke="${col}" stroke-opacity="0.2" stroke-width="1"/>
-           <text x="${(zX0+zCellW/2).toFixed(0)}" y="${(zY0+14).toFixed(0)}" text-anchor="middle"
-             font-size="8" fill="${col}" fill-opacity="0.7" font-weight="800"
-             letter-spacing="2">${name.toUpperCase()}</text>`;
-  }).join('');
+      // Fill bar
+      const fillPct=t.kapazitaet>0?(Math.min(1,usedPax/t.kapazitaet)*100).toFixed(0):0;
+      const fillCol=overloaded||hasConflikt?CC:col;
 
-  // Table cards
-  const tableSvg=activeTables.map(t=>{
-    const pos=tPos.get(t.tisch_id);
-    if(!pos) return'';
-    const cx=pos.x,cy=pos.y;
-    const tCellW=pos.cellW,tCellH=pos.cellH;
-    const w=Math.max(60,Math.min(cardW(t.kapazitaet),tCellW-8));
-    const h=Math.min(CARD_H,Math.max(30,tCellH-14));
-    const rx=cx-w/2,ry=cy-h/2;
+      // Guest text
+      const g0=gs[0];
+      const maxC=10;
+      const lname=g0?(g0.nachname.length>maxC?g0.nachname.slice(0,maxC-1)+'…':g0.nachname):'';
+      const init=g0&&g0.vorname?g0.vorname.charAt(0)+'. ':'';
+      const guestMain=g0?(init+lname):(zukunft?'reserviert':'frei');
+      const extra=gs.length>1?`<div class="fp-card-sub" style="color:${col}">+${gs.length-1} weitere</div>`:'';
+      const futureTxt=zukunft?`<div class="fp-card-sub" style="color:${FC}">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</div>`:'';
 
-    const gs=tG[t.tisch_id]||[];
-    const usedPax=gs.reduce((s,g)=>s+g.pax,0);
-    const col=FP.zones[t.zone]||FP.textDim;
-    const overloaded=usedPax>t.kapazitaet;
-    const hasConflikt=!!t.konflikt;
-    const occupied=gs.length>0;
-    const zukunft=!!t.zukunft_belegt&&!occupied;
+      // VIP / KID tags
+      const hasVip=gs.some(g=>g.vip);
+      const hasKids=gs.some(g=>g.kinder>0);
+      const conflictDot=(overloaded||hasConflikt)?`<span class="fp-conflict-dot">!</span>`:'';
+      const vipTag=hasVip&&!(overloaded||hasConflikt)?`<span class="fp-tag-outline" style="color:${FC};border-color:${FC}55;background:${FC}12">VIP</span>`:'';
+      const kidTag=hasKids?`<span class="fp-tag-outline" style="color:#1A628A;border-color:#1A628A55;background:#1A628A12">KID</span>`:'';
 
-    let tFill=FP.tblFree,tStroke=FP.tblBorder,tSW=1.5,tFillOp=1,strokeDash='';
-    if(zukunft){tFill='#FDF8F0';tStroke=FP.future;tSW=1.5;strokeDash='stroke-dasharray="5,3"';}
-    else if(occupied){
-      if(overloaded||hasConflikt){tFill='#FFF0EF';tStroke=FP.conflict;tSW=2.5;}
-      else if(usedPax>=t.kapazitaet){tFill=col;tStroke=col;tSW=2;tFillOp=0.15;}
-      else{tFill=col;tStroke=col;tSW=1.5;tFillOp=0.08;}
-    }
-
-    // Occupancy fill bar inside card
-    const barW=w-12,barX=rx+6,barY=ry+h-9;
-    const fillW=t.kapazitaet>0?barW*Math.min(1,usedPax/t.kapazitaet):0;
-    const fillCol=overloaded||hasConflikt?FP.conflict:col;
-    const fillBar=
-      `<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="4" rx="2" fill="${FP.tblBorder}" opacity="0.4"/>` +
-      (occupied&&fillW>0?`<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${fillW.toFixed(1)}" height="4" rx="2" fill="${fillCol}" opacity="0.75"/>`:'');
-
-    // Guest text — truncated to card width
-    const g0=gs[0];
-    const maxC=Math.max(5,Math.floor(w/7.5));
-    const lname=g0?(g0.nachname.length>maxC?g0.nachname.slice(0,maxC-1)+'...':g0.nachname):'';
-    const init=g0&&g0.vorname?g0.vorname.charAt(0)+'. ':'';
-    const guestMain=g0?(init+lname):'';
-    const extra=gs.length>1?`+${gs.length-1}`:'';
-    const hasVip=gs.some(g=>g.vip);
-    const hasKids=gs.some(g=>g.kinder>0);
-    const textSz=Math.max(9,Math.min(12,h*0.24)).toFixed(0);
-    const nameY=(cy+(extra?-h*0.06:h*0.07)).toFixed(1);
-    const extraY=(cy+h*0.27).toFixed(1);
-
-    // Micro-badges — only if cell has space below the card
-    const badgeSpace=tCellH-h;
-    const bH=badgeSpace>=18?10:badgeSpace>=12?8:0;
-    let badgePillsSvg='';
-    if(bH>0&&occupied){
-      const bStripY=ry+h+bH/2+3;
-      const bPad=bH>8?4:3,bGap=2,bFz=bH>8?7:6;
-      const seenA=new Set(),seenS=new Set(),pills=[];
-      gs.forEach(g=>{
-        ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).forEach(d=>{
-          if(!seenA.has(d.key)){seenA.add(d.key);pills.push({label:d.label,col:'#C04030'});}
+      // Allergen + special badges
+      const seenA=new Set(),seenS=new Set();
+      let badges='';
+      if(occupied){
+        gs.forEach(g=>{
+          ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).forEach(d=>{
+            if(!seenA.has(d.key)){seenA.add(d.key);badges+=`<span class="fp-tag" style="background:#C04030">${d.label}</span>`;}
+          });
+          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).forEach(d=>{
+            if(!seenS.has(d.key)){seenS.add(d.key);badges+=`<span class="fp-tag" style="background:${d.col}">${d.label}</span>`;}
+          });
         });
-        SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).forEach(d=>{
-          if(!seenS.has(d.key)){seenS.add(d.key);pills.push({label:d.label,col:d.col});}
-        });
-      });
-      let bx=rx+2;
-      for(const b of pills){
-        const tw=b.label.length*(bH>8?4.5:4)+bPad*2;
-        if(bx+tw>rx+w-2) break;
-        badgePillsSvg+=
-          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="${bH>8?3:2}" fill="${b.col}" opacity="0.9"/>` +
-          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+bFz*0.4).toFixed(1)}" text-anchor="middle" font-size="${bFz}" fill="white" font-weight="800">${b.label}</text>`;
-        bx+=tw+bGap;
       }
-    }
 
-    const conflictDot=(overloaded||hasConflikt)?
-      `<circle cx="${(rx+w-7).toFixed(1)}" cy="${(ry+7).toFixed(1)}" r="7" fill="${FP.conflict}"/>
-       <text x="${(rx+w-7).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="9" fill="white" font-weight="900">!</text>`:'';
-    const badgeTxt=hasVip?'VIP':hasKids?'KID':'';
-    const badgeCol=hasVip?FP.future:FP.zones.F;
-    const badge=badgeTxt&&!(overloaded||hasConflikt)?
-      `<rect x="${(rx+w-25).toFixed(1)}" y="${(ry+2).toFixed(1)}" width="23" height="13" rx="4" fill="${badgeCol}" fill-opacity="0.14"/>
-       <text x="${(rx+w-13.5).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
-    const futureTxt=zukunft?
-      `<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
+      const tagRow=(vipTag||kidTag)?`<div class="fp-card-tags">${vipTag}${kidTag}</div>`:'';
+      const badgeRow=badges?`<div class="fp-card-tags">${badges}</div>`:'';
 
-    return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer">
-      <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" rx="7"
-        fill="${tFill}" fill-opacity="${tFillOp}" stroke="${tStroke}" stroke-width="${tSW}" ${strokeDash}
-        filter="url(#ts)"/>
-      <text x="${cx.toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="9"
-        fill="${FP.textId}" font-weight="700" letter-spacing=".4">${t.tisch_id}</text>
-      <text x="${(rx+w-5).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="end" font-size="8"
-        fill="${overloaded?FP.conflict:occupied?col:FP.textDim}" font-weight="600">${usedPax||0}/${t.kapazitaet}</text>
-      ${occupied&&guestMain?`<text x="${cx.toFixed(1)}" y="${nameY}" text-anchor="middle"
-          font-size="${textSz}" fill="${FP.textDark}" font-weight="700">${guestMain}</text>`:''}
-      ${occupied&&extra?`<text x="${cx.toFixed(1)}" y="${extraY}" text-anchor="middle"
-          font-size="8" fill="${col}" font-weight="600">${extra} weitere</text>`:''}
-      ${!occupied&&!zukunft?`<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle"
-          font-size="9" fill="${FP.textDim}">frei</text>`:''}
-      ${futureTxt}
-      ${fillBar}
-      ${conflictDot}${badge}${badgePillsSvg}
-    </g>`;
+      return`<div class="fp-tcard" onclick="showTableDetail('${t.tisch_id}')"
+               style="background:${bg};border:${bw} solid ${border};${bdash}">
+        <div class="fp-card-row">
+          <span class="fp-card-id">${t.tisch_id}</span>
+          <span class="fp-card-pax" style="color:${overloaded?CC:occupied?col:'#9A9080'}">${usedPax||0}/${t.kapazitaet}</span>
+          ${conflictDot}
+        </div>
+        <div class="fp-card-name" style="color:${occupied?'#1A1820':'#B0A898'}">${guestMain}</div>
+        ${extra}${futureTxt}${tagRow}
+        <div class="fp-bar-wrap"><div class="fp-bar-fill" style="width:${fillPct}%;background:${fillCol}"></div></div>
+        ${badgeRow}
+      </div>`;
+    }).join('');
+
+    return`<div class="fp-zone-col">
+      <div class="fp-zone-hdr" style="color:${col};border-bottom-color:${col}55;background:${col}0D">
+        ${name}&thinsp;(${zone})
+      </div>
+      <div class="fp-zone-grid" style="grid-template-columns:${'1fr '.repeat(nCols).trim()}">
+        ${cardsHtml}
+      </div>
+    </div>`;
   }).join('');
 
-  // Legend
-  const legData=[
-    {col:FP.zones.B,label:'Belegt',bar:true},
-    {col:FP.conflict,label:'Konflikt'},
-    {col:FP.future,label:'Reserviert',dash:true},
-    {col:FP.tblBorder,label:'Frei'},
-    {col:'#C04030',label:'Allergie'}
-  ];
-  const lW=Math.min(100,(maxX-16)/legData.length);
-  const legY=maxY-13;
-  const legStartX=Math.max(8,(maxX-legData.length*lW)/2);
-  const leg=legData.map((e,i)=>{
-    const lx=legStartX+i*lW;
-    const sym=e.bar?
-      `<rect x="0" y="-6" width="16" height="5" rx="2" fill="${e.col}" fill-opacity="0.2" stroke="${e.col}" stroke-width="1"/>
-       <rect x="0" y="-6" width="8" height="5" rx="2" fill="${e.col}" fill-opacity="0.75"/>`:
-      `<rect x="0" y="-6" width="13" height="8" rx="2.5" fill="${e.col}" fill-opacity="0.18" stroke="${e.col}" stroke-width="1.2" ${e.dash?'stroke-dasharray="4,2"':''}/>`;
-    return`<g transform="translate(${lx.toFixed(0)},${legY})">${sym}
-      <text x="19" y="2" font-size="7" fill="${FP.textDim}">${e.label}</text></g>`;
-  }).join('');
-
-  container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
-    <defs>
-      <filter id="ts" x="-8%" y="-15%" width="120%" height="145%">
-        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#00000014"/>
-      </filter>
-    </defs>
-    <rect width="${maxX}" height="${maxY}" fill="${FP.bg}"/>
-    ${zoneBg}${tableSvg}${leg}
-  </svg>`;
+  container.innerHTML=`<div class="fp-zones-wrap">${zonesHtml}</div>`;
 }
 
 function openFPFullscreen(){
@@ -3023,16 +2922,14 @@ function renderPrintView(type){
   else if(type==='reception') body=renderReceptionList();
   else body=renderSpecialList();
 
-  // Include floor plan SVG if checkbox is checked
+  // Include floor plan HTML if checkbox is checked
   let fpSection='';
   if(el('chk-fp-print')?.checked){
-    const svgEl=el('fp-render')?.querySelector('svg');
-    if(svgEl){
-      const clone=svgEl.cloneNode(true);
-      clone.setAttribute('width','100%');
-      clone.removeAttribute('height');
-      clone.style.cssText='width:100%;height:auto;display:block;max-height:200mm';
-      fpSection=`<div style="margin-bottom:20px;page-break-after:avoid">
+    const fpWrap=el('fp-render')?.querySelector('.fp-zones-wrap');
+    if(fpWrap){
+      const clone=fpWrap.cloneNode(true);
+      clone.style.cssText='display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding:10px;box-sizing:border-box;align-items:stretch';
+      fpSection=`<div class="fp-print-section" style="margin-bottom:20px;page-break-after:avoid">
         <div class="pgroup-hdr" style="border-color:#9B6B1A;color:#9B6B1A">Grundriss — ${hotel}</div>
         <div style="background:#F5EFE3;border-radius:8px;padding:10px;margin-top:6px">${clone.outerHTML}</div>
       </div><div style="page-break-before:always"></div>`;
