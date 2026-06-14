@@ -1355,21 +1355,21 @@ const DEFAULT_SW={
 //  FIELD ALIASES
 // ══════════════════════════════════════════════════════════════
 const FIELD_ALIASES={
-  Nachname:['Nachname','LastName','Name','Familienname','Gast','GuestName','Gast-Name','surname','family_name'],
+  Nachname:['Nachname','LastName','Name','Familienname','Gast','GuestName','Gast-Name','surname','family_name','Gastname(n)','GastName','Gast Name'],
   Zimmernummer:['Zimmernummer','Room','Zimmer','ZimmerNr','RoomNo','RoomNumber','Zimmer-Nr','ZNr','Zimmer Nr','room_number'],
   AnzahlPersonen:['AnzahlPersonen','PAX','Personen','Pax','Anzahl','Total','Guests','Anz. Personen','adults','pax'],
-  GastID:['GastID','guest_id','ID','Gast-ID','GuestID','GNr','Nr','Gast Nr','profile_id'],
+  GastID:['GastID','guest_id','ID','Gast-ID','GuestID','GNr','Nr','Gast Nr','profile_id','Res.-Nr.','Res.Nr.','ReservierungsNr'],
   Vorname:['Vorname','FirstName','Givenname','Vorn.','first_name','given_name'],
   CheckIn:['CheckIn','Anreise','ArrivalDate','Arrival','AnreiseDatum','Check-In','Anr.','AN','arrival'],
   CheckOut:['CheckOut','Abreise','DepartureDate','Departure','AbreiseDatum','Check-Out','Abr.','AB','departure'],
-  VorherigerTisch:['VorherigerTisch','PreviousTable','LastTable','TischGestern','VT','Tisch-Gestern','prev_table'],
-  GastTyp:['GastTyp','GuestType','Typ','Type','Kategorie','Category','guest_type'],
+  VorherigerTisch:['VorherigerTisch','PreviousTable','LastTable','TischGestern','VT','Tisch-Gestern','prev_table','Tisch'],
+  GastTyp:['GastTyp','GuestType','Typ','Type','Kategorie','Category','guest_type','Status'],
   VIP:['VIP','Vip','IsVip','vip_flag','VIPLevel','vip_level'],
   KinderUnter12:['KinderUnter12','Kinder','Children','Kids','KidCount','child_count'],
-  Zimmerkategorie:['Zimmerkategorie','RoomType','ZimmerTyp','room_type','category'],
+  Zimmerkategorie:['Zimmerkategorie','RoomType','ZimmerTyp','room_type','category','Kat.'],
   Allergie:['Allergie','Allergien','Allergy','Allergies','dietary','DietaryReq','Diät','Diaet','SpecialDiet','AllergyInfo'],
   Sprache:['Sprache','Language','Lang','Nationalitaet','Nationality'],
-  Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests','SpecialRequest','Special Requests','Bedarf','Sonderwunsch','Sonderhinweis'],
+  Bemerkung:['Bemerkung','Notes','Notizen','Comment','Remarks','special_requests','SpecialRequest','Special Requests','Bedarf','Sonderwunsch','Sonderhinweis','Bemerk.','Extras','Bemerk. (Zi.)'],
   Tisch:['Tisch','Table','TischNr','TableNo','TischID','table_id'],
   Zone:['Zone','Bereich','Area','Section','section'],
   EssenZeit:['EssenZeit','EssensZeit','DinnerTime','MealTime','Tischzeit','Uhrzeit','Zeit']
@@ -1537,6 +1537,86 @@ S01,C,12,1,8`;
 // ══════════════════════════════════════════════════════════════
 //  CSV PARSER
 // ══════════════════════════════════════════════════════════════
+// ── PANORAMA HOTEL: Vortags-Tischplan Doppelspalten-Parser ──
+function parseVortagPanorama(wb){
+  const ws=wb.Sheets['Tischplan'];
+  if(!ws) return null;
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  // Row 2 (index 2) must contain 'Tisch' twice for Panorama format
+  const hdr=aoa[2]||[];
+  const tischCount=hdr.filter(c=>c&&String(c).trim()==='Tisch').length;
+  if(tischCount<1) return null;
+
+  const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
+  const rows=[];
+  for(let i=4;i<aoa.length;i++){
+    const row=aoa[i]||[];
+    // Check stop condition
+    const allVals=row.filter(c=>c!=null).map(c=>String(c).trim().toLowerCase());
+    if(allVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))) break;
+    // Left restaurant (cols 1-6)
+    const r1=buildVortagRow(row,1,2,3,4,5,6);
+    if(r1) rows.push(r1);
+    // Right restaurant (cols 8-13)
+    const r2=buildVortagRow(row,8,9,10,11,12,13);
+    if(r2) rows.push(r2);
+  }
+  return rows.length>0?{headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows}:null;
+}
+
+function buildVortagRow(row,tc,zc,sc,nc,pc,ec){
+  const tisch=row[tc]!=null?String(row[tc]).trim():'';
+  if(!tisch||tisch==='\xa0'||!/^\d/.test(tisch)) return null;
+  const zimmer=row[zc]!=null?String(row[zc]).trim():'';
+  const status=row[sc]!=null?String(row[sc]).trim():'';
+  const nachname=row[nc]!=null?String(row[nc]).trim():'';
+  const pax=row[pc]!=null?String(row[pc]).trim():'2';
+  const extras=row[ec]!=null?String(row[ec]).trim():'';
+  return{Tisch:tisch,Zimmernummer:zimmer,Status:status,Nachname:nachname,AnzahlPersonen:pax||'2',Extras:extras};
+}
+
+// ── Allergen- und Kinder-Extraktion aus Bemerkungsfeldern ──
+function enrichFromBemerkung(g){
+  const bem=(g.bemerkung||'')+' '+(g.extras||'');
+  if(!bem.trim()) return g;
+
+  const allergenTests=[
+    [/kein schwein|kein schweinefleisch/i,'kein Schwein'],
+    [/kein rind|kein rindfleisch/i,'kein Rind'],
+    [/kein geflügel|kein huhn/i,'kein Geflügel'],
+    [/laktoseintoler/i,'Laktoseintoleranz'],
+    [/kein soja/i,'kein Soja'],
+    [/milcheiweiß|milch.?eiwei/i,'Milcheiweiß'],
+    [/gluten/i,'Glutenunverträglichkeit'],
+    [/vegan/i,'vegan'],
+    [/lakto.?ovo.?vegetar|vegetarisch/i,'vegetarisch'],
+    [/nussallergie/i,'Nussallergie'],
+    [/histamin/i,'Histaminunverträglichkeit'],
+    [/fischunverträglich/i,'kein Fisch'],
+  ];
+
+  const found=[];
+  allergenTests.forEach(([re,label])=>{
+    if(re.test(bem)) found.push(label);
+  });
+  if(found.length){
+    g.allergie=g.allergie?g.allergie+', '+found.join(', '):found.join(', ');
+  }
+
+  // Kinder aus "davon X Kind" oder "X Kind(er)"
+  const kindM=bem.match(/davon\s+(\d+)\s*kind/i)||bem.match(/(\d+)\s*kind(?:er)?\s*\(?\d*j?\)?/i);
+  if(kindM&&!g.kinder) g.kinder=parseInt(kindM[1])||1;
+
+  // Babys
+  const babyM=bem.match(/(\d+)\s*baby|babybett/i);
+  if(babyM&&!g.kinder) g.kinder=1;
+
+  // STAMM → VIP
+  if(/\bstamm\b/i.test(bem)) g.vip=true;
+
+  return g;
+}
+
 function parseCSV(text){
   const lines=text.trim().split(/\r?\n/);
   if(lines.length<2) return{headers:[],rows:[]};
@@ -1580,6 +1660,37 @@ function handleFile(key,input){
   const file=input.files[0];
   setStatus('Lade '+file.name+'…','spin');
   el('fn-'+key).textContent=file.name;
+  const ext=file.name.split('.').pop().toLowerCase();
+
+  // Special path: Vortag XLSX → try Panorama double-column parser first
+  if(key==='vortag'&&(ext==='xlsx'||ext==='xls')){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const panorama=parseVortagPanorama(wb);
+        if(panorama){
+          parsedFiles[key]=panorama;
+          fileStatus[key]=true;
+          const card=el('fc-'+key);if(card) card.classList.add('ok');
+          const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+panorama.rows.length+' Tische (Panorama)';
+          setStatus(file.name+' geladen — '+panorama.rows.length+' Tischeinträge erkannt','go');
+          checkS1Ready();return;
+        }
+        // Fall back to generic sheet→CSV
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const csv=XLSX.utils.sheet_to_csv(ws);
+        const parsed=parseCSV(csv);
+        parsedFiles[key]=parsed;fileStatus[key]=true;
+        const card=el('fc-'+key);if(card) card.classList.add('ok');
+        const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+parsed.rows.length+' Zeilen';
+        setStatus(file.name+' geladen','go');checkS1Ready();
+      }catch(err){setStatus('Fehler: '+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
   readFileText(file,(text,err)=>{
     if(err){setStatus('Fehler: '+err.message);return;}
     const parsed=parseCSV(text);
@@ -1594,8 +1705,9 @@ function handleFile(key,input){
 }
 
 function checkS1Ready(){
-  const required=['vortag','ankuenfte','inhaus'];
-  const ok=required.every(k=>fileStatus[k]);
+  // Inhaus is optional when Vortag is present (vortag already contains in-house guests)
+  const hasGuests=fileStatus.ankuenfte||fileStatus.inhaus;
+  const ok=fileStatus.vortag&&hasGuests;
   el('btn-s1-next').disabled=!ok;
   if(ok) setStatus('Pflichtdateien geladen — bereit für Schritt 2','go');
 }
@@ -1730,9 +1842,9 @@ function getVortag(){
   return parsedFiles.vortag.rows.map(r=>{
     const tisch=r.Tisch||r.TischID||r.table_id||'';
     const zimmer=r.Zimmernummer||r.Room||r.Zimmer||'';
-    const nachname=r.Nachname||r.LastName||r.Name||'';
+    const nachname=r.Nachname||r.LastName||r['Gastname(n)']||r.Name||'';
     return{tisch,zimmer,nachname};
-  });
+  }).filter(r=>r.tisch&&r.zimmer); // only rows with both table and room
 }
 
 function updateS2Warnings(){
@@ -1791,11 +1903,20 @@ function renderPreview(rows){
 // ══════════════════════════════════════════════════════════════
 //  PMS PROFILES
 // ══════════════════════════════════════════════════════════════
+const BUILTIN_PMS={
+  'Panorama Hotel':{
+    Nachname:'Gastname(n)',Zimmernummer:'Zimmer',AnzahlPersonen:'Personen',
+    GastID:'Res.-Nr.',CheckIn:'Anreise',CheckOut:'Abreise',
+    Bemerkung:'Bemerk.',Zimmerkategorie:'Kat.',VorherigerTisch:'Tisch'
+  }
+};
 function loadPMSProfiles(){
   try{pmsProfiles=JSON.parse(localStorage.getItem('hsi_pms_profiles')||'{}')}catch(e){pmsProfiles={}}
+  const merged={...BUILTIN_PMS,...pmsProfiles};
+  pmsProfiles=merged;
   const sel=el('pms-profile-sel');
   sel.innerHTML='<option value="">— Profil laden —</option>'+
-    Object.keys(pmsProfiles).map(k=>`<option value="${k}">${k}</option>`).join('');
+    Object.keys(merged).map(k=>`<option value="${k}">${k}</option>`).join('');
 }
 function savePMSProfile(){
   openModal('pms-save-modal');
@@ -1961,6 +2082,7 @@ function parseGuests(rows){
       zimmer_kat:getField(r,'Zimmerkategorie')||'',
       allergie:getField(r,'Allergie')||'',
       bemerkung:getField(r,'Bemerkung')||'',
+      extras:getField(r,'Extras')||'',
       sprache:getField(r,'Sprache')||'',
       essen_zeit:getField(r,'EssenZeit')||getField(r,'EssensZeit')||'',
       zugewiesener_tisch:'',
@@ -1968,6 +2090,7 @@ function parseGuests(rows){
       status:'',
       warnings:[]
     };
+    return enrichFromBemerkung(g);
   });
 }
 
