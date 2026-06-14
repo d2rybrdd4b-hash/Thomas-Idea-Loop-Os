@@ -422,7 +422,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .eico-svg svg{width:28px;height:28px;fill:none;stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── FLOOR PLAN ── */
-#fp-render{width:100%;height:min(480px,56vh);min-height:280px;position:relative;
+#fp-render{width:100%;height:min(560px,68vh);min-height:300px;position:relative;
            background:var(--bg);border-radius:10px;overflow:hidden}
 /* Fullscreen mode */
 #s3-fp-container.fp-fs{position:fixed;inset:0;z-index:150;border-radius:0!important;
@@ -476,7 +476,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .dash-controls{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
-  #fp-render{height:58vh;min-height:300px}
+  #fp-render{height:65vh;min-height:320px}
   .tbl-preview{font-size:10px}
   .tbl-preview th,.tbl-preview td{padding:6px 8px}
 }
@@ -484,7 +484,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .page{padding:20px 16px calc(80px + env(safe-area-inset-bottom,0px))}
   .dash-controls{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:repeat(4,1fr)}
-  #fp-render{height:50vh;min-height:350px}
+  #fp-render{height:60vh;min-height:380px}
 }
 @media(max-width:900px){
   #sticky-bar{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
@@ -1015,8 +1015,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">Rezeptionsliste</button>
     <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">Sonderhinweise</button>
     <div style="flex:1"></div>
-    <button class="ptool-btn" onclick="window.print()">Drucken / PDF</button>
-    <button class="ptool-btn" onclick="closePrint()" style="margin-left:8px">✕ Schließen</button>
+    <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="chk-fp-print" style="accent-color:var(--gold)">Grundriss
+    </label>
+    <button class="ptool-btn" onclick="window.print()" style="margin-left:8px">Drucken / PDF</button>
+    <button class="ptool-btn" onclick="closePrint()" style="margin-left:4px">✕ Schließen</button>
   </div>
   <div id="print-content"></div>
 </div>
@@ -2308,8 +2311,41 @@ function toggleTheme(){
   if(calcDone) renderFP(lastTables,assignedGuests);
 }
 function printAsPDF(){
+  const incFP=el('exp-include-fp')?.checked!==false;
   openPrint('service');
-  setTimeout(()=>window.print(),350);
+  if(el('chk-fp-print')) el('chk-fp-print').checked=incFP;
+  setTimeout(()=>{
+    renderPrintView(activePrintView||'service');
+    window.print();
+  },400);
+}
+function exportFPasPNG(dateStr){
+  const svgEl=el('fp-render')?.querySelector('svg');
+  if(!svgEl){setStatus('Grundriss nicht verfügbar — bitte Schritt 3 ausführen','warn');return;}
+  try{
+    const vb=svgEl.viewBox.baseVal;
+    const sw=Math.max(800,vb.width||800);
+    const sh=Math.round(sw*(vb.height||500)/Math.max(1,vb.width||800));
+    const svgData=new XMLSerializer().serializeToString(svgEl);
+    const blob=new Blob([svgData],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{
+      const cv=document.createElement('canvas');
+      cv.width=sw*2;cv.height=sh*2;
+      const ctx=cv.getContext('2d');
+      ctx.fillStyle='#F5EFE3';ctx.fillRect(0,0,cv.width,cv.height);
+      ctx.drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url);
+      const a=document.createElement('a');
+      a.href=cv.toDataURL('image/png');
+      a.download=`Grundriss_${dateStr}.png`;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setStatus('Grundriss als PNG gespeichert: Grundriss_'+dateStr+'.png','go');
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);setStatus('PNG-Export fehlgeschlagen','warn');};
+    img.src=url;
+  }catch(e){setStatus('PNG-Export nicht möglich: '+e.message,'warn');}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2330,7 +2366,6 @@ function renderFP(tables,guests){
     tG[g.zugewiesener_tisch].push(g);
   });
 
-  // OpenTable palette — fixed warm light, independent of UI theme
   const FP={
     bg:'#F5EFE3',tblFree:'#FFFFFF',tblBorder:'#C8BFA8',
     textDark:'#1A1820',textId:'#6A6258',textDim:'#9A9080',
@@ -2339,80 +2374,94 @@ function renderFP(tables,guests){
   };
   const ZONE_LABEL={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
 
-  // Uniform card height — width scales with capacity
   const CARD_H=52;
   const cardW=kap=>kap<=2?72:kap<=4?88:kap<=6?102:kap<=8?116:kap<=10?128:140;
 
-  // ── Auto-layout: group by zone, grid per zone ─────────────────
+  // Responsive container-filling layout — reads real screen size
+  const cW=Math.max(300,container.clientWidth||container.offsetWidth||600);
+  const cH=Math.max(200,container.clientHeight||container.offsetHeight||400);
+  const SIDE=12,TOP_PAD=46,BOT_PAD=30;
+  const availW=cW-2*SIDE;
+  const availH=cH-TOP_PAD-BOT_PAD;
+
   const activeTables=tables.filter(t=>t.aktiv);
   const byZone={};
   activeTables.forEach(t=>{
     if(!byZone[t.zone]) byZone[t.zone]=[];
     byZone[t.zone].push(t);
   });
+  const sortedZones=Object.keys(byZone).sort();
+  const nZ=sortedZones.length;
 
-  const GAP_X=16,  // horizontal gap between columns within a zone
-        GAP_Y=38,  // vertical gap between rows (space for badges)
-        ZONE_PAD=30, // gap between zones
-        TOP=40,LEFT=18;
+  if(!nZ){
+    container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">Keine aktiven Tische.</div>';
+    return;
+  }
+
+  // Zone grid: nZC columns x nZR rows — adapts to container aspect ratio
+  const cAspect=Math.max(0.4,availW/Math.max(1,availH));
+  const nZC=Math.max(1,Math.min(nZ,Math.round(Math.sqrt(nZ*cAspect))));
+  const nZR=Math.ceil(nZ/nZC);
+  const zCellW=availW/nZC;
+  const zCellH=availH/nZR;
+  const ZONE_LBL_H=18;
 
   const tPos=new Map();
-  let zoneStartX=LEFT;
 
-  Object.keys(byZone).sort().forEach(zone=>{
+  sortedZones.forEach((zone,zi)=>{
     const zt=byZone[zone];
-    // Columns: 1 for ≤3 tables, 2 for ≤8, 3 for more
-    const nC=zt.length<=3?1:zt.length<=8?2:3;
+    const zCol=zi%nZC,zRow=Math.floor(zi/nZC);
+    const zX0=SIDE+zCol*zCellW;
+    const zY0=TOP_PAD+zRow*zCellH;
+    const tAreaW=zCellW;
+    const tAreaH=Math.max(1,zCellH-ZONE_LBL_H);
+    const n=zt.length;
+
     const mW=Math.max(...zt.map(t=>cardW(t.kapazitaet)));
-    const colW=mW+GAP_X;
+    const fitsInRow=Math.max(1,Math.floor(tAreaW/(mW*0.85+6)));
+    const nTC=Math.max(1,Math.min(n,fitsInRow,
+                Math.max(1,Math.round(Math.sqrt(n*(tAreaW/Math.max(1,tAreaH)))))));
+    const nTR=Math.ceil(n/nTC);
+    const tCellW=tAreaW/nTC;
+    const tCellH=tAreaH/Math.max(nTR,1);
+
     zt.forEach((t,i)=>{
-      const col=i%nC,row=Math.floor(i/nC);
+      const tc=i%nTC,tr=Math.floor(i/nTC);
       tPos.set(t.tisch_id,{
-        x:zoneStartX+col*colW+mW/2,
-        y:TOP+row*(CARD_H+GAP_Y)+CARD_H/2
+        x:zX0+(tc+0.5)*tCellW,
+        y:zY0+ZONE_LBL_H+(tr+0.5)*tCellH,
+        cellW:tCellW,cellH:tCellH
       });
     });
-    zoneStartX+=nC*colW+ZONE_PAD;
   });
 
-  // Dynamic canvas — expands to fit any hotel size
-  let maxX=100,maxY=100;
-  activeTables.forEach(t=>{
-    const p=tPos.get(t.tisch_id);
-    if(!p) return;
-    const w=cardW(t.kapazitaet);
-    if(p.x+w/2+16>maxX) maxX=p.x+w/2+16;
-    if(p.y+CARD_H/2+24+42>maxY) maxY=p.y+CARD_H/2+24+42;
-  });
+  const maxX=cW,maxY=cH;
 
-  // Zone background boxes
-  const zB={};
-  activeTables.forEach(t=>{
-    const p=tPos.get(t.tisch_id);
-    if(!p) return;
-    const w=cardW(t.kapazitaet),pad=14;
-    if(!zB[t.zone]) zB[t.zone]={x1:9999,x2:-9999,y1:9999,y2:-9999};
-    const b=zB[t.zone];
-    b.x1=Math.min(b.x1,p.x-w/2-pad);b.x2=Math.max(b.x2,p.x+w/2+pad);
-    b.y1=Math.min(b.y1,p.y-CARD_H/2-14);b.y2=Math.max(b.y2,p.y+CARD_H/2+20);
-  });
-  const zoneBg=Object.entries(zB).map(([z,b])=>{
-    const col=FP.zones[z]||FP.textDim;
-    const name=ZONE_LABEL[z]||('Zone '+z);
-    return`<rect x="${b.x1}" y="${b.y1}" width="${b.x2-b.x1}" height="${b.y2-b.y1}"
-             rx="16" fill="${col}" fill-opacity="0.05" stroke="${col}" stroke-opacity="0.18" stroke-width="1"/>
-           <text x="${((b.x1+b.x2)/2).toFixed(0)}" y="${(b.y1+11).toFixed(0)}" text-anchor="middle"
-             font-size="8" fill="${col}" fill-opacity="0.65" font-weight="800"
-             letter-spacing="2.5">${name.toUpperCase()}</text>`;
+  // Zone backgrounds — from cell boundaries, no overlap possible
+  const zoneBg=sortedZones.map((zone,zi)=>{
+    const zCol=zi%nZC,zRow=Math.floor(zi/nZC);
+    const zX0=SIDE+zCol*zCellW;
+    const zY0=TOP_PAD+zRow*zCellH;
+    const col=FP.zones[zone]||FP.textDim;
+    const name=ZONE_LABEL[zone]||('Zone '+zone);
+    return`<rect x="${(zX0+3).toFixed(0)}" y="${(zY0+2).toFixed(0)}"
+             width="${(zCellW-6).toFixed(0)}" height="${(zCellH-4).toFixed(0)}"
+             rx="12" fill="${col}" fill-opacity="0.06" stroke="${col}" stroke-opacity="0.2" stroke-width="1"/>
+           <text x="${(zX0+zCellW/2).toFixed(0)}" y="${(zY0+14).toFixed(0)}" text-anchor="middle"
+             font-size="8" fill="${col}" fill-opacity="0.7" font-weight="800"
+             letter-spacing="2">${name.toUpperCase()}</text>`;
   }).join('');
 
-  // ── Table cards ───────────────────────────────────────────────
+  // Table cards
   const tableSvg=activeTables.map(t=>{
     const pos=tPos.get(t.tisch_id);
     if(!pos) return'';
     const cx=pos.x,cy=pos.y;
-    const w=cardW(t.kapazitaet),h=CARD_H;
+    const tCellW=pos.cellW,tCellH=pos.cellH;
+    const w=Math.max(60,Math.min(cardW(t.kapazitaet),tCellW-8));
+    const h=Math.min(CARD_H,Math.max(30,tCellH-14));
     const rx=cx-w/2,ry=cy-h/2;
+
     const gs=tG[t.tisch_id]||[];
     const usedPax=gs.reduce((s,g)=>s+g.pax,0);
     const col=FP.zones[t.zone]||FP.textDim;
@@ -2422,35 +2471,41 @@ function renderFP(tables,guests){
     const zukunft=!!t.zukunft_belegt&&!occupied;
 
     let tFill=FP.tblFree,tStroke=FP.tblBorder,tSW=1.5,tFillOp=1,strokeDash='';
-    if(zukunft){tFill='#FDF8F0';tStroke=FP.future;tSW=1.5;strokeDash='stroke-dasharray="6,3"';}
+    if(zukunft){tFill='#FDF8F0';tStroke=FP.future;tSW=1.5;strokeDash='stroke-dasharray="5,3"';}
     else if(occupied){
       if(overloaded||hasConflikt){tFill='#FFF0EF';tStroke=FP.conflict;tSW=2.5;}
       else if(usedPax>=t.kapazitaet){tFill=col;tStroke=col;tSW=2;tFillOp=0.15;}
       else{tFill=col;tStroke=col;tSW=1.5;tFillOp=0.08;}
     }
 
-    // Occupancy fill bar — bottom of card
-    const barW=w-14,barX=rx+7,barY=ry+h-10;
+    // Occupancy fill bar inside card
+    const barW=w-12,barX=rx+6,barY=ry+h-9;
     const fillW=t.kapazitaet>0?barW*Math.min(1,usedPax/t.kapazitaet):0;
     const fillCol=overloaded||hasConflikt?FP.conflict:col;
     const fillBar=
       `<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${barW.toFixed(1)}" height="4" rx="2" fill="${FP.tblBorder}" opacity="0.4"/>` +
       (occupied&&fillW>0?`<rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="${fillW.toFixed(1)}" height="4" rx="2" fill="${fillCol}" opacity="0.75"/>`:'');
 
-    // Guest text
+    // Guest text — truncated to card width
     const g0=gs[0];
-    const lname=g0?(g0.nachname.length>13?g0.nachname.slice(0,12)+'…':g0.nachname):'';
+    const maxC=Math.max(5,Math.floor(w/7.5));
+    const lname=g0?(g0.nachname.length>maxC?g0.nachname.slice(0,maxC-1)+'...':g0.nachname):'';
     const init=g0&&g0.vorname?g0.vorname.charAt(0)+'. ':'';
     const guestMain=g0?(init+lname):'';
     const extra=gs.length>1?`+${gs.length-1}`:'';
     const hasVip=gs.some(g=>g.vip);
     const hasKids=gs.some(g=>g.kinder>0);
+    const textSz=Math.max(9,Math.min(12,h*0.24)).toFixed(0);
+    const nameY=(cy+(extra?-h*0.06:h*0.07)).toFixed(1);
+    const extraY=(cy+h*0.27).toFixed(1);
 
-    // Micro-badge pills — directly below card
-    const bStripY=ry+h+11;
-    const bH=10,bPad=4,bGap=2;
-    let bx=rx+2,badgePillsSvg='';
-    if(occupied){
+    // Micro-badges — only if cell has space below the card
+    const badgeSpace=tCellH-h;
+    const bH=badgeSpace>=18?10:badgeSpace>=12?8:0;
+    let badgePillsSvg='';
+    if(bH>0&&occupied){
+      const bStripY=ry+h+bH/2+3;
+      const bPad=bH>8?4:3,bGap=2,bFz=bH>8?7:6;
       const seenA=new Set(),seenS=new Set(),pills=[];
       gs.forEach(g=>{
         ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).forEach(d=>{
@@ -2460,72 +2515,74 @@ function renderFP(tables,guests){
           if(!seenS.has(d.key)){seenS.add(d.key);pills.push({label:d.label,col:d.col});}
         });
       });
+      let bx=rx+2;
       for(const b of pills){
-        const tw=b.label.length*4.5+bPad*2;
+        const tw=b.label.length*(bH>8?4.5:4)+bPad*2;
         if(bx+tw>rx+w-2) break;
         badgePillsSvg+=
-          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="3" fill="${b.col}" opacity="0.9"/>` +
-          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+3).toFixed(1)}" text-anchor="middle" font-size="7" fill="white" font-weight="800">${b.label}</text>`;
+          `<rect x="${bx.toFixed(1)}" y="${(bStripY-bH/2).toFixed(1)}" width="${tw.toFixed(1)}" height="${bH}" rx="${bH>8?3:2}" fill="${b.col}" opacity="0.9"/>` +
+          `<text x="${(bx+tw/2).toFixed(1)}" y="${(bStripY+bFz*0.4).toFixed(1)}" text-anchor="middle" font-size="${bFz}" fill="white" font-weight="800">${b.label}</text>`;
         bx+=tw+bGap;
       }
     }
 
     const conflictDot=(overloaded||hasConflikt)?
-      `<circle cx="${rx+w-7}" cy="${ry+7}" r="7" fill="${FP.conflict}"/>
-       <text x="${rx+w-7}" y="${ry+11}" text-anchor="middle" font-size="9" fill="white" font-weight="900">!</text>`:'';
+      `<circle cx="${(rx+w-7).toFixed(1)}" cy="${(ry+7).toFixed(1)}" r="7" fill="${FP.conflict}"/>
+       <text x="${(rx+w-7).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="9" fill="white" font-weight="900">!</text>`:'';
     const badgeTxt=hasVip?'VIP':hasKids?'KID':'';
     const badgeCol=hasVip?FP.future:FP.zones.F;
     const badge=badgeTxt&&!(overloaded||hasConflikt)?
-      `<rect x="${rx+w-25}" y="${ry+2}" width="23" height="13" rx="4" fill="${badgeCol}" fill-opacity="0.14"/>
-       <text x="${rx+w-13.5}" y="${ry+11}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
+      `<rect x="${(rx+w-25).toFixed(1)}" y="${(ry+2).toFixed(1)}" width="23" height="13" rx="4" fill="${badgeCol}" fill-opacity="0.14"/>
+       <text x="${(rx+w-13.5).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="7" fill="${badgeCol}" font-weight="800">${badgeTxt}</text>`:'';
     const futureTxt=zukunft?
-      `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
+      `<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" font-size="9" fill="${FP.future}" font-weight="600">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</text>`:'';
 
     return`<g onclick="showTableDetail('${t.tisch_id}')" style="cursor:pointer">
-      <rect x="${rx}" y="${ry}" width="${w}" height="${h}" rx="7"
+      <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" rx="7"
         fill="${tFill}" fill-opacity="${tFillOp}" stroke="${tStroke}" stroke-width="${tSW}" ${strokeDash}
         filter="url(#ts)"/>
-      <text x="${cx}" y="${ry+11}" text-anchor="middle" font-size="9"
+      <text x="${cx.toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="middle" font-size="9"
         fill="${FP.textId}" font-weight="700" letter-spacing=".4">${t.tisch_id}</text>
-      <text x="${rx+w-5}" y="${ry+11}" text-anchor="end" font-size="8"
+      <text x="${(rx+w-5).toFixed(1)}" y="${(ry+11).toFixed(1)}" text-anchor="end" font-size="8"
         fill="${overloaded?FP.conflict:occupied?col:FP.textDim}" font-weight="600">${usedPax||0}/${t.kapazitaet}</text>
-      ${occupied&&guestMain?`<text x="${cx}" y="${cy+(extra?0:3)}" text-anchor="middle"
-          font-size="${w>=102?12:11}" fill="${FP.textDark}" font-weight="700">${guestMain}</text>`:''}
-      ${occupied&&extra?`<text x="${cx}" y="${cy+13}" text-anchor="middle"
+      ${occupied&&guestMain?`<text x="${cx.toFixed(1)}" y="${nameY}" text-anchor="middle"
+          font-size="${textSz}" fill="${FP.textDark}" font-weight="700">${guestMain}</text>`:''}
+      ${occupied&&extra?`<text x="${cx.toFixed(1)}" y="${extraY}" text-anchor="middle"
           font-size="8" fill="${col}" font-weight="600">${extra} weitere</text>`:''}
-      ${!occupied&&!zukunft?`<text x="${cx}" y="${cy+3}" text-anchor="middle"
-          font-size="10" fill="${FP.textDim}">frei</text>`:''}
+      ${!occupied&&!zukunft?`<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle"
+          font-size="9" fill="${FP.textDim}">frei</text>`:''}
       ${futureTxt}
       ${fillBar}
       ${conflictDot}${badge}${badgePillsSvg}
     </g>`;
   }).join('');
 
-  // Legend — with fill bar sample
+  // Legend
   const legData=[
-    {col:FP.zones.B,label:'Belegt (Balken = Auslastung)'},
+    {col:FP.zones.B,label:'Belegt',bar:true},
     {col:FP.conflict,label:'Konflikt'},
     {col:FP.future,label:'Reserviert',dash:true},
-    {col:FP.tblBorder,label:'Frei'}
+    {col:FP.tblBorder,label:'Frei'},
+    {col:'#C04030',label:'Allergie'}
   ];
-  const lW=118,legY=maxY-13,legStartX=Math.max(8,(maxX-legData.length*lW)/2);
+  const lW=Math.min(100,(maxX-16)/legData.length);
+  const legY=maxY-13;
+  const legStartX=Math.max(8,(maxX-legData.length*lW)/2);
   const leg=legData.map((e,i)=>{
     const lx=legStartX+i*lW;
-    const bar=i===0?
+    const sym=e.bar?
       `<rect x="0" y="-6" width="16" height="5" rx="2" fill="${e.col}" fill-opacity="0.2" stroke="${e.col}" stroke-width="1"/>
        <rect x="0" y="-6" width="8" height="5" rx="2" fill="${e.col}" fill-opacity="0.75"/>`:
-      `<rect x="0" y="-6" width="14" height="9" rx="2.5"
-        fill="${e.col}" fill-opacity="0.15" stroke="${e.col}" stroke-width="1.2"
-        ${e.dash?'stroke-dasharray="4,2"':''}/>`;
-    return`<g transform="translate(${lx},${legY})">${bar}
-      <text x="20" y="2" font-size="8" fill="${FP.textDim}">${e.label}</text></g>`;
+      `<rect x="0" y="-6" width="13" height="8" rx="2.5" fill="${e.col}" fill-opacity="0.18" stroke="${e.col}" stroke-width="1.2" ${e.dash?'stroke-dasharray="4,2"':''}/>`;
+    return`<g transform="translate(${lx.toFixed(0)},${legY})">${sym}
+      <text x="19" y="2" font-size="7" fill="${FP.textDim}">${e.label}</text></g>`;
   }).join('');
 
   container.innerHTML=`<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
     <defs>
       <filter id="ts" x="-8%" y="-15%" width="120%" height="145%">
-        <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#00000018"/>
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#00000014"/>
       </filter>
     </defs>
     <rect width="${maxX}" height="${maxY}" fill="${FP.bg}"/>
@@ -2533,9 +2590,6 @@ function renderFP(tables,guests){
   </svg>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-//  FLOOR PLAN FULLSCREEN
-// ══════════════════════════════════════════════════════════════
 function openFPFullscreen(){
   const c=el('s3-fp-container');
   c.classList.add('fp-fs');
@@ -2926,6 +2980,8 @@ function exportExcel(){
   XLSX.writeFile(wb,filename);
   el('s5-done').style.display='block';
   setStatus('Excel exportiert: '+filename,'go');
+  // Export floor plan as separate PNG if checkbox is checked
+  if(el('exp-include-fp')?.checked) exportFPasPNG(dateStr);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2967,7 +3023,23 @@ function renderPrintView(type){
   else if(type==='reception') body=renderReceptionList();
   else body=renderSpecialList();
 
-  el('print-content').innerHTML=hdr+body;
+  // Include floor plan SVG if checkbox is checked
+  let fpSection='';
+  if(el('chk-fp-print')?.checked){
+    const svgEl=el('fp-render')?.querySelector('svg');
+    if(svgEl){
+      const clone=svgEl.cloneNode(true);
+      clone.setAttribute('width','100%');
+      clone.removeAttribute('height');
+      clone.style.cssText='width:100%;height:auto;display:block;max-height:200mm';
+      fpSection=`<div style="margin-bottom:20px;page-break-after:avoid">
+        <div class="pgroup-hdr" style="border-color:#9B6B1A;color:#9B6B1A">Grundriss — ${hotel}</div>
+        <div style="background:#F5EFE3;border-radius:8px;padding:10px;margin-top:6px">${clone.outerHTML}</div>
+      </div><div style="page-break-before:always"></div>`;
+    }
+  }
+
+  el('print-content').innerHTML=hdr+fpSection+body;
 }
 function renderBadgesHtml(g){
   const ab=ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).map(d=>
