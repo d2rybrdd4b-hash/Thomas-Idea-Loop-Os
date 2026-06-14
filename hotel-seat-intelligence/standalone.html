@@ -440,23 +440,22 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .eico-svg svg{width:28px;height:28px;fill:none;stroke:var(--gold);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── FLOOR PLAN ── */
-#fp-render{width:100%;height:min(560px,68vh);min-height:300px;position:relative;
+#fp-render{width:100%;height:auto;min-height:300px;position:relative;
            background:#F5EFE3;border-radius:10px;overflow:hidden}
 
 /* Zonen-Spalten Layout */
-.fp-zones-wrap{display:flex;gap:8px;height:100%;overflow-x:auto;overflow-y:hidden;
-               padding:10px;box-sizing:border-box;align-items:stretch}
-.fp-zones-wrap::-webkit-scrollbar{height:5px}
+.fp-zones-wrap{display:flex;flex-wrap:wrap;gap:8px;height:100%;overflow-x:hidden;overflow-y:auto;
+               padding:10px;box-sizing:border-box;align-content:flex-start}
+.fp-zones-wrap::-webkit-scrollbar{width:4px}
 .fp-zones-wrap::-webkit-scrollbar-track{background:rgba(0,0,0,.06);border-radius:3px}
 .fp-zones-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,.2);border-radius:3px}
-.fp-zone-col{display:flex;flex-direction:column;gap:5px;flex:1;min-width:96px;max-width:220px;
-             border-radius:10px;padding:7px 6px 7px;box-sizing:border-box}
+.fp-zone-col{display:flex;flex-direction:column;gap:5px;
+             flex:1 1 148px;min-width:148px;max-width:260px;
+             border-radius:10px;padding:7px 7px 8px;box-sizing:border-box}
 .fp-zone-hdr{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
              padding:6px 8px;border-radius:7px;text-align:center;flex-shrink:0;
              border-bottom-width:2px;border-bottom-style:solid}
-.fp-zone-grid{display:grid;gap:6px;flex:1;overflow-y:auto;align-content:start}
-.fp-zone-grid::-webkit-scrollbar{width:3px}
-.fp-zone-grid::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
+.fp-zone-grid{display:grid;gap:5px;align-content:start}
 
 /* Tischkarte */
 .fp-tcard{background:#fff;border:1.5px solid #C8BFA8;border-radius:9px;
@@ -481,14 +480,14 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                  align-items:center;justify-content:center;font-size:8px;font-weight:900;
                  color:#fff;background:#C0302A;flex-shrink:0}
 /* Print: floor plan HTML section */
-.fp-print-section .fp-zones-wrap{height:auto;overflow:visible;flex-wrap:wrap}
+.fp-print-section .fp-zones-wrap{overflow:visible}
 .fp-print-section .fp-zone-col{min-width:130px;page-break-inside:avoid}
-@media print{.fp-zones-wrap{flex-wrap:wrap;height:auto;overflow:visible}}
+@media print{.fp-zones-wrap{overflow:visible}}
 /* Fullscreen mode */
 #s3-fp-container.fp-fs{position:fixed;inset:0;z-index:150;border-radius:0!important;
   border:none!important;margin:0!important;padding:0!important;background:var(--bg)!important;
   display:flex;flex-direction:column}
-#s3-fp-container.fp-fs #fp-render{height:calc(100vh - 52px)!important;border-radius:0;flex:1}
+#s3-fp-container.fp-fs #fp-render{min-height:calc(100vh - 52px)!important;height:auto!important;border-radius:0;flex:1}
 #s3-fp-container.fp-fs #fp-detail{display:none!important}
 #s3-fp-container.fp-fs .fp-header{display:none}
 .fp-fs-bar{display:none;align-items:center;gap:12px;padding:10px 16px;height:52px;flex-shrink:0;
@@ -536,9 +535,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .dash-controls{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
-  #fp-render{height:68vh;min-height:340px}
-  .fp-zone-col{min-width:82px}
-  .fp-zone-hdr{font-size:8px;letter-spacing:1px;padding:5px 6px}
+  .fp-zone-col{min-width:130px;flex-basis:130px}
+  .fp-zone-hdr{font-size:8px;letter-spacing:1px}
   .tbl-preview{font-size:10px}
   .tbl-preview th,.tbl-preview td{padding:6px 8px}
 }
@@ -546,7 +544,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .page{padding:20px 16px calc(80px + env(safe-area-inset-bottom,0px))}
   .dash-controls{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:repeat(4,1fr)}
-  #fp-render{height:60vh;min-height:380px}
+  .fp-zone-col{min-width:140px;flex-basis:140px}
 }
 @media(max-width:900px){
   #sticky-bar{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
@@ -2445,7 +2443,7 @@ function renderFP(tables,guests){
     const name=ZN[zone]||('Zone '+zone);
 
     // 2 columns per zone if 3+ tables, 1 column otherwise
-    const nCols=zt.length>=3?2:1;
+    const nCols=1;
 
     const cardsHtml=zt.map(t=>{
       const gs=tG[t.tisch_id]||[];
