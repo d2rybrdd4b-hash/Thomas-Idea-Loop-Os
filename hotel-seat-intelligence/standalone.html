@@ -377,6 +377,40 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .meal-card .meal-ico{font-size:28px;margin-bottom:8px}
 .meal-card .meal-tit{font-size:14px;font-weight:700;margin-bottom:4px;letter-spacing:.2px}
 .meal-card .meal-sub{font-size:11px;color:var(--dim);line-height:1.5}
+/* Quick Upload (Start tab) */
+.qu-label{font-size:13px;font-weight:700;text-align:center;color:var(--text);margin:12px 0 14px;letter-spacing:.2px}
+.qu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.qu-card{background:var(--card);border:2px dashed var(--border);border-radius:16px;
+         padding:20px 12px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
+.qu-card:hover{border-color:var(--gold);border-style:solid;background:var(--gold-glow)}
+.qu-card.qu-ok{border-color:var(--green);border-style:solid;background:rgba(46,204,113,.07)}
+.qu-card.qu-opt{opacity:.65}
+.qu-card.qu-opt.qu-ok{opacity:1}
+.qu-ico{margin-bottom:8px;color:var(--dim);display:flex;justify-content:center}
+.qu-ico svg{width:28px;height:28px}
+.qu-card.qu-ok .qu-ico{color:var(--green)}
+.qu-tit{font-size:13px;font-weight:700;margin-bottom:3px}
+.qu-sub{font-size:10px;color:var(--dim);line-height:1.4}
+.qu-badge{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;
+          letter-spacing:.8px;text-transform:uppercase;padding:4px 8px;border-radius:5px;
+          background:rgba(255,255,255,.06);color:var(--dim)}
+.qu-card.qu-ok .qu-badge{background:rgba(46,204,113,.15);color:var(--green)}
+.qu-calc-btn{width:100%;padding:16px;font-size:15px;font-weight:700;border-radius:13px;
+             letter-spacing:.3px;margin-bottom:4px}
+.qu-calc-btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.qu-done-banner{background:rgba(46,204,113,.1);border:1.5px solid rgba(46,204,113,.35);
+                border-radius:14px;padding:16px 20px;display:flex;align-items:center;
+                gap:14px;margin-bottom:12px}
+.qu-done-ico{font-size:32px;color:var(--green);font-weight:700;flex-shrink:0}
+.qu-done-tit{font-size:16px;font-weight:700;color:var(--green);margin-bottom:2px}
+.qu-done-sub{font-size:11px;color:var(--dim)}
+.qu-result-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.qu-result-actions .btn{flex:1;min-width:90px;padding:13px 10px;text-align:center;font-size:13px}
+.btn-outline{background:var(--card);border:1.5px solid var(--border);color:var(--text);
+             border-radius:11px;font-weight:600;cursor:pointer;transition:all .22s}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-danger{border-color:rgba(231,76,60,.3)!important;color:var(--red)!important}
+.btn-danger:hover{border-color:var(--red)!important;background:rgba(231,76,60,.08)!important}
 .dash-main-q{font-size:16px;font-weight:700;color:var(--text);text-align:center;
              margin:12px 0 18px;letter-spacing:.2px}
 .dash-demo-card{background:var(--gold-glow);border:1.5px solid rgba(200,168,75,.55);
@@ -597,6 +631,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
   .meal-actions{grid-template-columns:1fr}
+  .qu-grid{grid-template-columns:1fr 1fr}
+  .qu-result-actions{flex-wrap:wrap}
   .fp-zone-col{min-width:130px;flex-basis:130px}
   .fp-zone-hdr{font-size:8px;letter-spacing:1px}
   .tbl-preview{font-size:10px}
@@ -676,31 +712,70 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
 
-    <div class="dash-main-q">Was möchtest du heute vorbereiten?</div>
-
-    <div class="meal-actions">
-      <div class="meal-card" id="mc-fruehstueck" onclick="startMeal('fruehstueck')">
-        <div class="meal-ico">🌅</div>
-        <div class="meal-tit">Frühstücksplan erstellen</div>
-        <div class="meal-sub">Gäste platzieren, Serviceplan drucken, Rezeption informieren.</div>
+    <!-- Upload state: shown when no plan calculated yet -->
+    <div id="dash-upload">
+      <div class="qu-label">Dateien hochladen — Tischplan wird automatisch erstellt</div>
+      <div class="qu-grid">
+        <div class="qu-card" id="qu-vortag" onclick="el('fi-vortag').click()">
+          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
+          <div class="qu-tit">Vortags-Tischplan</div>
+          <div class="qu-sub">Wer saß gestern wo</div>
+          <div class="qu-badge" id="qb-vortag">Hochladen</div>
+        </div>
+        <div class="qu-card" id="qu-ankuenfte" onclick="el('fi-ankuenfte').click()">
+          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+          <div class="qu-tit">Anreisen</div>
+          <div class="qu-sub">Heutige Ankünfte aus PMS</div>
+          <div class="qu-badge" id="qb-ankuenfte">Hochladen</div>
+        </div>
+        <div class="qu-card qu-opt" id="qu-inhaus" onclick="el('fi-inhaus').click()">
+          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/></svg></div>
+          <div class="qu-tit">Inhaus-Gäste</div>
+          <div class="qu-sub">Alle Hausgäste (optional)</div>
+          <div class="qu-badge" id="qb-inhaus">Optional</div>
+        </div>
       </div>
-      <div class="meal-card" id="mc-mittag" onclick="startMeal('mittag')">
-        <div class="meal-ico">☀️</div>
-        <div class="meal-tit">Mittagessen planen</div>
-        <div class="meal-sub">Tische und Zeiten für die Mittagsbelegung vorbereiten.</div>
-      </div>
-      <div class="meal-card sel" id="mc-abend" onclick="startMeal('abend')">
-        <div class="meal-ico">🌙</div>
-        <div class="meal-tit">Abendessen planen</div>
-        <div class="meal-sub">Zeitfenster, Tischrotation und Sonderwünsche prüfen.</div>
+      <button class="btn btn-gold qu-calc-btn" id="btn-quick-calc" onclick="quickCalc()" disabled>Tischplan berechnen →</button>
+      <div class="dash-demo-card" onclick="loadDemoAndCalc()" style="margin-top:10px">
+        <span class="ddc-arrow">▶</span>
+        <div class="ddc-body">
+          <div class="ddc-title">Demo mit Beispielhotel starten</div>
+          <div class="ddc-sub">Sofort testen mit 60 Gästen — kein Upload nötig.</div>
+        </div>
       </div>
     </div>
 
-    <div class="dash-demo-card" onclick="loadDemoAndCalc()">
-      <span class="ddc-arrow">▶</span>
-      <div class="ddc-body">
-        <div class="ddc-title">Demo mit Beispielhotel starten</div>
-        <div class="ddc-sub">Sofort testen mit 60 Gästen, Gruppen, Familien, VIPs und Warnungen — kein Upload nötig.</div>
+    <!-- Result state: shown after plan is calculated -->
+    <div id="dash-result" style="display:none">
+      <div class="qu-done-banner">
+        <div class="qu-done-ico">✓</div>
+        <div class="qu-done-body">
+          <div class="qu-done-tit">Tischplan fertig</div>
+          <div class="qu-done-sub" id="qu-done-sub">Gäste verteilt</div>
+        </div>
+      </div>
+      <div class="qu-result-actions">
+        <button class="btn btn-gold" onclick="goStep(3)">Tischplan anzeigen →</button>
+        <button class="btn btn-outline" onclick="goTab(2)">Drucklisten</button>
+        <button class="btn btn-outline btn-danger" onclick="clearState()">Neuer Tag</button>
+      </div>
+      <div class="dash-main-q">Mahlzeit wechseln:</div>
+      <div class="meal-actions">
+        <div class="meal-card" id="mc-fruehstueck" onclick="startMeal('fruehstueck')">
+          <div class="meal-ico">🌅</div>
+          <div class="meal-tit">Frühstücksplan</div>
+          <div class="meal-sub">Gäste platzieren, Serviceplan drucken.</div>
+        </div>
+        <div class="meal-card" id="mc-mittag" onclick="startMeal('mittag')">
+          <div class="meal-ico">☀️</div>
+          <div class="meal-tit">Mittagessen</div>
+          <div class="meal-sub">Tische und Zeiten vorbereiten.</div>
+        </div>
+        <div class="meal-card sel" id="mc-abend" onclick="startMeal('abend')">
+          <div class="meal-ico">🌙</div>
+          <div class="meal-tit">Abendessen</div>
+          <div class="meal-sub">Zeitfenster und Sonderwünsche.</div>
+        </div>
       </div>
     </div>
 
@@ -1745,6 +1820,7 @@ function checkS1Ready(){
   const ok=fileStatus.vortag&&hasGuests;
   el('btn-s1-next').disabled=!ok;
   if(ok) setStatus('Pflichtdateien geladen — bereit für Schritt 2','go');
+  updateQuickUploadCards();
 }
 
 function handleFileObj(key,file){
@@ -3478,6 +3554,37 @@ function updateMealCards(){
   });
 }
 
+// ── QUICK UPLOAD ──
+function updateQuickUploadCards(){
+  ['vortag','ankuenfte','inhaus'].forEach(k=>{
+    const qc=el('qu-'+k);const qb=el('qb-'+k);
+    if(!qc||!qb) return;
+    if(fileStatus[k]){qc.classList.add('qu-ok');qb.textContent='✓ Geladen';}
+    else{qc.classList.remove('qu-ok');qb.textContent=k==='inhaus'?'Optional':'Hochladen';}
+  });
+  const canCalc=fileStatus.vortag&&(fileStatus.ankuenfte||fileStatus.inhaus);
+  const btn=el('btn-quick-calc');if(btn) btn.disabled=!canCalc;
+  const upl=el('dash-upload');const res=el('dash-result');
+  if(upl) upl.style.display=calcDone?'none':'block';
+  if(res) res.style.display=calcDone?'block':'none';
+  if(calcDone){
+    const sub=el('qu-done-sub');
+    if(sub){
+      const gc=assignedGuests.length;
+      const tc=lastTables.filter(t=>t.aktiv).length;
+      const wc=warnings.filter(w=>!resolvedWarnings.has(w.id)&&!resolvedWarnings.has(w.msg)).length;
+      sub.textContent=`${gc} Gäste verteilt · ${tc} Tische · ${wc>0?wc+' Hinweis'+(wc>1?'e':''):'Keine Warnungen'}`;
+    }
+  }
+}
+function quickCalc(){
+  if(!fileStatus.vortag||((!fileStatus.ankuenfte)&&!fileStatus.inhaus)) return;
+  autoMap();
+  setStatus('Berechne Tischplan…','spin');
+  currentStep=2;
+  setTimeout(()=>{runCalc();},200);
+}
+
 // ── DASHBOARD ──
 function updateDashboard(){
   const dm=el('dash-date');
@@ -3545,6 +3652,7 @@ function updateDashboard(){
     updateNextActionBar();
   }
   syncHotelName();
+  updateQuickUploadCards();
 }
 
 function toggleOptFiles(btn){
