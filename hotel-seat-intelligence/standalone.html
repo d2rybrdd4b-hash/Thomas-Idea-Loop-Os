@@ -2505,9 +2505,9 @@ function renderFP(tables,guests){
           ${conflictDot}
         </div>
         <div class="fp-card-name" style="color:${occupied?'#1A1820':'#B0A898'}">${guestMain}</div>
-        ${extra}${futureTxt}${tagRow}
+        ${extra}${futureTxt}
         <div class="fp-bar-wrap"><div class="fp-bar-fill" style="width:${fillPct}%;background:${fillCol}"></div></div>
-        ${badgeRow}
+        ${tagRow}${badgeRow}
       </div>`;
     }).join('');
 
