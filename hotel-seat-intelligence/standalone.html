@@ -526,6 +526,47 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 #fp-detail .fd-close{margin-left:auto;background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer}
 #fp-detail .fd-guest{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px}
 #fp-detail .fd-guest:last-child{border-bottom:none}
+/* ── TABLE DETAIL POPUP (centered overlay) ── */
+#fp-popup{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;
+          background:rgba(0,0,0,.55);backdrop-filter:blur(5px);padding:16px}
+#fp-popup.hidden{display:none}
+.fpp-card{background:var(--panel);border:1px solid var(--border);border-radius:18px;
+          width:100%;max-width:440px;max-height:82vh;overflow-y:auto;
+          box-shadow:0 24px 64px rgba(0,0,0,.4);animation:fppIn .18s ease-out}
+@keyframes fppIn{from{transform:scale(.94) translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.fpp-hdr{display:flex;align-items:center;gap:10px;padding:18px 18px 12px;
+         border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);border-radius:18px 18px 0 0;z-index:1}
+.fpp-tid{font-size:24px;font-weight:800;color:var(--gold)}
+.fpp-zone{font-size:11px;color:var(--dim);background:var(--bg);border-radius:6px;padding:3px 8px}
+.fpp-pax{font-size:11px;color:var(--dim);margin-left:4px}
+.fpp-close{margin-left:auto;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;
+           padding:4px 8px;border-radius:8px;transition:color .15s}
+.fpp-close:hover{color:var(--text)}
+.fpp-body{padding:14px 18px 18px}
+.fpp-guest{padding:10px 0;border-bottom:1px solid var(--border)}
+.fpp-guest:last-child{border-bottom:none}
+.fpp-guest-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:4px}
+.fpp-room{font-weight:700;color:var(--gold);min-width:44px}
+.fpp-name{flex:1;font-weight:500}
+.fpp-pax-ct{color:var(--dim);font-size:11px}
+.fpp-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.fpp-chip{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;letter-spacing:.3px}
+.fpp-chip-vip{background:rgba(200,168,75,.18);color:var(--gold);border:1px solid rgba(200,168,75,.4)}
+.fpp-chip-kid{background:rgba(52,152,219,.15);color:#3498db;border:1px solid rgba(52,152,219,.35)}
+.fpp-chip-allg{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.35)}
+.fpp-remark{font-size:10px;color:var(--dim);margin-top:2px}
+.fpp-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.fpp-free-btn{background:rgba(231,76,60,.12);color:var(--red);border:1px solid rgba(231,76,60,.3);
+              border-radius:8px;padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer}
+.fpp-move-btn{background:rgba(52,152,219,.1);color:#3498db;border:1px solid rgba(52,152,219,.3);
+              border-radius:8px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer}
+.fpp-empty{color:var(--dim);font-size:12px;padding:8px 0}
+.fpp-future{background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.3);border-radius:10px;
+            padding:12px;margin-top:4px}
+.fpp-future-lbl{font-size:10px;font-weight:700;color:var(--gold);margin-bottom:6px}
+.fpp-future-info{font-size:11px;margin-bottom:6px}
+.fpp-override-btn{background:none;border:1px solid var(--gold);color:var(--gold);
+                  border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer}
 #fp-detail .fd-room{font-weight:700;color:var(--gold);min-width:40px}
 #fp-detail .fd-name{flex:1}
 #fp-detail .fd-pax{color:var(--dim)}
@@ -965,6 +1006,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </div>
         <div id="fp-render"></div>
         <div id="fp-detail" style="display:none"></div>
+
+<!-- Tisch-Detail Popup (centered overlay) -->
+<div id="fp-popup" class="hidden" onclick="if(event.target===this)closeFPPopup()">
+  <div class="fpp-card" id="fpp-card"></div>
+</div>
       </div>
 
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
@@ -3412,7 +3458,7 @@ function moveGuest(guestId, newTischId){
   renderFP(lastTables,assignedGuests);
   updateWarnStrip();
   updateDashboard();
-  el('fp-detail').dataset.open='';
+  closeFPPopup();
   showTableDetail(newTischId);
 }
 
@@ -3430,57 +3476,82 @@ function freeTable(tischId){
   t.belegt=false;
   t.belegtPax=0;
   t.gast_id=null;
-  el('fp-detail').style.display='none';
-  el('fp-detail').dataset.open='';
+  closeFPPopup();
   renderFP(lastTables,assignedGuests);
   updateWarnStrip();
   updateDashboard();
 }
 
+function closeFPPopup(){
+  const p=el('fp-popup');
+  if(p){p.classList.add('hidden');p._openId='';}
+}
+
 function showTableDetail(tischId){
-  const detail=el('fp-detail');
-  if(!detail) return;
-  if(detail.dataset.open===tischId){detail.style.display='none';detail.dataset.open='';return;}
-  detail.dataset.open=tischId;
+  const popup=el('fp-popup');const card=el('fpp-card');
+  if(!popup||!card) return;
+  if(popup._openId===tischId){closeFPPopup();return;}
+  popup._openId=tischId;
+
   const t=lastTables.find(t=>t.tisch_id===tischId);
-  if(!t){detail.style.display='none';return;}
+  if(!t){closeFPPopup();return;}
   const gs=assignedGuests.filter(g=>g.zugewiesener_tisch===tischId);
   const zoneName=ZONE_NAMES[t.zone]||t.zone;
   const usedPax=gs.reduce((s,g)=>s+g.pax,0);
-  const gRows=gs.map(g=>`
-    <div class="fd-guest">
-      <span class="fd-room">Zi.${g.zimmer}</span>
-      <span class="fd-name">${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}${g.kinder>0?' 👶'+g.kinder:''}${g.allergie?` <span style="color:var(--orange);font-size:10px">⚠ ${g.allergie}</span>`:''}</span>
-      <span class="fd-pax">${g.pax} PAX</span>
-      ${g.essen_zeit?`<span style="font-size:10px;color:var(--dim)">🕐 ${g.essen_zeit}</span>`:''}
-      <button class="fd-move-btn" onclick="openMoveGuestModal('${g.id}')">→ Verschieben</button>
+
+  const guestBlocks=gs.map(g=>{
+    const chips=[];
+    if(g.vip) chips.push(`<span class="fpp-chip fpp-chip-vip">VIP</span>`);
+    if(g.kinder>0) chips.push(`<span class="fpp-chip fpp-chip-kid">Kind ×${g.kinder}</span>`);
+    const allergene=(g.allergie||'').split(/[,;]+/).map(a=>a.trim()).filter(Boolean);
+    allergene.forEach(a=>chips.push(`<span class="fpp-chip fpp-chip-allg">⚠ ${a}</span>`));
+    return`<div class="fpp-guest">
+      <div class="fpp-guest-row">
+        <span class="fpp-room">Zi.${g.zimmer}</span>
+        <span class="fpp-name">${g.vorname?g.vorname+' ':''}${g.nachname}</span>
+        <span class="fpp-pax-ct">${g.pax} PAX${g.essen_zeit?' · '+g.essen_zeit:''}</span>
+      </div>
+      ${chips.length?`<div class="fpp-chips">${chips.join('')}</div>`:''}
+      ${g.begruendung?`<div class="fpp-remark">${g.begruendung}</div>`:''}
+      <div class="fpp-actions">
+        <button class="fpp-move-btn" onclick="openMoveGuestModal('${g.id}')">→ Verschieben</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  let body='';
+  if(gs.length===0&&t.zukunft_info){
+    body=`<div class="fpp-future">
+      <div class="fpp-future-lbl">⏳ ZUKUNFTS-RESERVIERUNG</div>
+      <div class="fpp-future-info">Ab <b>${t.zukunft_info.check_in}</b> — <b>${t.zukunft_info.name}</b>${t.zukunft_info.vip?' ⭐':''} · Zi.${t.zukunft_info.zimmer} · ${t.zukunft_info.pax} PAX</div>
+      <button class="fpp-override-btn" onclick="overrideFutureTable('${tischId}')">Trotzdem verwenden — neu berechnen</button>
+    </div>`;
+  } else if(gs.length===0){
+    body=`<div class="fpp-empty">Tisch ist frei.</div>`;
+  } else {
+    body=guestBlocks;
+    body+=`<div class="fpp-actions" style="margin-top:16px">
+      <button class="fpp-free-btn" onclick="freeTable('${tischId}')">Tisch freigeben</button>
+    </div>`;
+  }
+
+  card.innerHTML=`
+    <div class="fpp-hdr">
+      <div class="fpp-tid">${tischId}</div>
+      <div class="fpp-zone">${zoneName}</div>
+      ${t.kategorie?`<span class="fpp-chip fpp-chip-vip" style="margin-left:4px">Kat.${t.kategorie}</span>`:''}
+      <div class="fpp-pax">${usedPax}/${t.kapazitaet} PAX</div>
+      <button class="fpp-close" onclick="closeFPPopup()">✕</button>
     </div>
-    ${g.begruendung?`<div style="font-size:9px;color:var(--dim);padding:2px 0 6px 44px;border-bottom:1px solid var(--border)">${g.begruendung}</div>`:''}`).join('');
-  detail.style.display='';
-  detail.innerHTML=`
-    <div class="fd-header">
-      <div class="fd-tid">${tischId}</div>
-      <div class="fd-zone">${zoneName}</div>
-      ${t.kategorie?`<div style="font-size:10px;color:var(--gold);background:var(--gold-glow);border:1px solid rgba(200,168,75,.3);border-radius:5px;padding:2px 7px;margin-left:4px">Kat.${t.kategorie}</div>`:''}
-      <div style="font-size:11px;color:var(--dim);margin-left:8px">${usedPax}/${t.kapazitaet} PAX belegt</div>
-      ${gs.length>0?`<button class="fd-free-btn" onclick="freeTable('${tischId}')">Freigeben</button>`:''}
-      <button class="fd-close" onclick="el('fp-detail').style.display='none';el('fp-detail').dataset.open=''">✕</button>
-    </div>
-    ${gs.length===0&&t.zukunft_info?`
-      <div style="background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.3);border-radius:8px;padding:10px;margin:4px 0">
-        <div style="font-size:10px;font-weight:700;color:#c8a84b;margin-bottom:4px">⏳ ZUKUNFTS-RESERVIERUNG</div>
-        <div style="font-size:11px;margin-bottom:2px">Ab <b>${t.zukunft_info.check_in}</b> für <b>${t.zukunft_info.name}</b>${t.zukunft_info.vip?' ⭐':''}</div>
-        <div style="font-size:10px;color:var(--dim);margin-bottom:8px">Zi.${t.zukunft_info.zimmer} · ${t.zukunft_info.pax} PAX · bis ${t.zukunft_info.check_out}</div>
-        <button class="fd-free-btn" style="border-color:#c8a84b;color:#c8a84b" onclick="overrideFutureTable('${tischId}')">Trotzdem verwenden — neu berechnen</button>
-      </div>`
-    :gs.length===0?'<div style="color:var(--dim);font-size:11px;padding:8px 0">Tisch ist frei</div>':gRows}`;
-  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+    <div class="fpp-body">${body}</div>`;
+
+  popup.classList.remove('hidden');
 }
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeFPPopup();});
 
 function overrideFutureTable(tischId){
   tableOverrides.add(tischId);
-  el('fp-detail').style.display='none';
-  el('fp-detail').dataset.open='';
+  closeFPPopup();
   setStatus('Tisch '+tischId+' freigegeben — wird neu berechnet…','spin');
   setTimeout(()=>runCalc(),100);
 }
