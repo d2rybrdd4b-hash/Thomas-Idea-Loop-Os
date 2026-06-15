@@ -678,9 +678,20 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tcfg-bonus{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .tcfg-bonus-inp{width:46px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;
   background:var(--bg);color:var(--text);font-size:12px;text-align:center}
-.tcfg-minscore{display:flex;align-items:center;gap:4px;flex-shrink:0;border-left:1px solid var(--border);padding-left:8px}
+.tcfg-minscore{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .tcfg-minscore-inp{width:46px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;
   background:var(--bg);color:var(--text);font-size:12px;text-align:center}
+/* Score legend */
+.score-legend-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;margin-bottom:14px}
+.score-leg-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--dim);margin-bottom:8px}
+.score-leg-grid{display:flex;flex-wrap:wrap;gap:5px 14px;margin-bottom:8px}
+.score-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text)}
+.score-leg-pts{font-weight:700;color:var(--gold);background:var(--gold-glow);
+  border:1px solid rgba(200,168,75,.3);border-radius:4px;padding:1px 6px;font-size:10px;white-space:nowrap}
+.score-leg-hint{font-size:10px;color:var(--dim);line-height:1.5;border-top:1px solid var(--border);
+  padding-top:7px;margin-top:4px}
 .fp-score-badge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;
   background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold)55}
 .fp-threshold-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;opacity:.55}
@@ -1099,16 +1110,17 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </label>
     </div>
     <div id="smart-assign-panel" style="display:none;margin-top:16px">
-      <div class="tcfg-section-hdr">Tischkonfiguration</div>
+      <!-- Score-Legende: zeigt wer wieviel Punkte bekommt -->
+      <div id="score-legend" class="score-legend-box"></div>
+      <div style="margin-bottom:14px">
+        <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte anpassen →</button>
+      </div>
+      <!-- Tischkonfiguration -->
+      <div class="tcfg-section-hdr">MIN.SCORE pro Tisch</div>
       <div id="tisch-config-list"></div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-gold btn-sm" onclick="saveTischConfig()">Speichern</button>
         <button class="btn btn-outline btn-sm" onclick="resetTischConfig()">Zurücksetzen</button>
-      </div>
-      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-        <div class="tcfg-section-hdr">Score-Gewichte</div>
-        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Wie viele Punkte bekommt VIP, Familie, Langzeitgast usw.?</div>
-        <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte bearbeiten →</button>
       </div>
     </div>
   </div>
@@ -2421,12 +2433,13 @@ function getTablesForConfig(){
 }
 function initCfg(tid){if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0,minScore:0};}
 function renderTableConfigPanel(){
+  renderScoreLegend();
   const list=el('tisch-config-list');
   if(!list) return;
   const tables=getTablesForConfig();
-  list.innerHTML=`<div style="display:grid;grid-template-columns:40px 1fr auto auto;gap:0;font-size:10px;font-weight:700;
+  list.innerHTML=`<div style="display:grid;grid-template-columns:40px 1fr auto;gap:0;font-size:10px;font-weight:700;
     color:var(--dim);padding:4px 0 6px;border-bottom:1px solid var(--border);letter-spacing:.4px">
-    <span>TISCH</span><span>TAGS</span><span style="padding-right:8px">BONUS</span><span>MIN.SCORE</span>
+    <span>TISCH</span><span>TAGS</span><span>MIN.SCORE</span>
   </div>`+tables.map(t=>{
     const cfg=tableConfig[t.tisch_id]||{};
     const tags=cfg.tags||[];
@@ -2438,13 +2451,7 @@ function renderTableConfigPanel(){
       <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
         <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
         ${td.icon} ${td.label}</label>`).join('')}</div>
-      <div class="tcfg-bonus">
-        <span style="font-size:10px;color:var(--dim)">+</span>
-        <input type="number" min="0" max="30" value="${bonus}" class="tcfg-bonus-inp"
-               onchange="onBonusChange(this,'${t.tisch_id}')">
-        <span style="font-size:10px;color:var(--dim)">Pkt</span>
-      </div>
-      <div class="tcfg-minscore" title="Mindest-Score: Nur Gäste mit ≥ diesem Score bekommen diesen Tisch in Runde 1. Bleibt er leer, füllt Runde 2 ihn auf.">
+      <div class="tcfg-minscore" title="Nur Gäste mit ≥ diesem Score bekommen diesen Tisch in Runde 1. Bleibt er leer, füllt Runde 2 auf.">
         <span style="font-size:10px;color:var(--dim)">≥</span>
         <input type="number" min="0" max="100" step="5" value="${minScore}" class="tcfg-minscore-inp"
                onchange="onMinScoreChange(this,'${t.tisch_id}')">
@@ -2452,6 +2459,33 @@ function renderTableConfigPanel(){
       </div>
     </div>`;
   }).join('');
+}
+function renderScoreLegend(){
+  const box=el('score-legend');
+  if(!box) return;
+  const labels={
+    vip:'VIP-Gast',langzeit:'Langzeit (>7 Tg.)',fruehbucher:'Frühbucher',
+    familie:'Familie (Kinder)',allergie:'Allergie/Diät',stammgast:'Stammgast',
+    anreisetag:'Anreisetag',abreisetag:'Abreisetag',gruppe:'Gruppe'
+  };
+  const sw=scoreGewichte||DEFAULT_SW;
+  const sorted=Object.entries(sw).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const items=sorted.map(([k,v])=>
+    `<div class="score-leg-item"><span>${labels[k]||k}</span><span class="score-leg-pts">+${v} Pkt</span></div>`
+  ).join('');
+  // Example: who reaches which level
+  const vip=sw.vip||0, stamm=sw.stammgast||0, fam=sw.familie||0, an=sw.anreisetag||0;
+  const ex1=vip; const ex2=stamm+an; const ex3=fam;
+  box.innerHTML=`
+    <div class="score-leg-title">Wer bekommt den besten Platz?</div>
+    <div class="score-leg-grid">${items}</div>
+    <div class="score-leg-hint">
+      Beispiele: VIP-Gast = <strong>${ex1} Pkt</strong> &nbsp;·&nbsp;
+      Stammgast + Anreisetag = <strong>${ex2} Pkt</strong> &nbsp;·&nbsp;
+      Familie = <strong>${ex3} Pkt</strong><br>
+      Setze MIN.SCORE auf einen Tisch, damit nur Gäste ab dieser Punktzahl ihn in Runde 1 bekommen.
+      Bleibt er leer, wird er in Runde 2 automatisch aufgefüllt.
+    </div>`;
 }
 function onTagChange(inp,tid){
   initCfg(tid);
@@ -2532,6 +2566,7 @@ function saveWeights(){
   localStorage.setItem('hsi_weights',JSON.stringify(scoreGewichte));
   closeModal('weights-modal');
   setStatus('Gewichte gespeichert','go');
+  renderScoreLegend();
 }
 function resetWeights(){
   scoreGewichte={...DEFAULT_SW};
