@@ -594,6 +594,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .fp-conflict-dot{width:15px;height:15px;border-radius:50%;display:inline-flex;
                  align-items:center;justify-content:center;font-size:8px;font-weight:900;
                  color:#fff;background:#C0302A;flex-shrink:0}
+.fp-legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 12px 4px;
+           border-top:1px solid var(--border);margin-top:4px}
+.fp-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-sub);white-space:nowrap}
+.fp-leg-dot{display:inline-flex;align-items:center;justify-content:center;
+            width:16px;height:16px;border-radius:4px;font-size:9px;font-weight:800;flex-shrink:0}
 /* Print: floor plan HTML section */
 .fp-print-section .fp-zones-wrap{overflow:visible}
 .fp-print-section .fp-zone-col{min-width:130px;page-break-inside:avoid}
@@ -1548,6 +1553,10 @@ const ALLERGIE_DEFS=[
   {key:'SOJ',label:'SOJ',test:/soja|soy/i},
   {key:'EI' ,label:'EI' ,test:/\bei\b|\beier\b/i},
   {key:'VGN',label:'VGN',test:/vegan/i},
+  {key:'VGT',label:'VGT',test:/vegetar/i},
+  {key:'HIS',label:'HIS',test:/histamin/i},
+  {key:'FIS',label:'FIS',test:/(kein fisch|fischunvert|no fish)/i},
+  {key:'SCH',label:'SCH',test:/(kein schwein|kein pork|schweinefleisch)/i},
 ];
 const SPECIAL_DEFS=[
   {key:'RS' ,label:'RS' ,col:'#3A7BD5',test:/(rollstuhl|wheelchair)/i},
@@ -2300,10 +2309,12 @@ function parseGuests(rows){
     const co=parseDate(getField(r,'CheckOut'));
     const pax=parseInt(getField(r,'AnzahlPersonen'))||1;
     const vip=String(getField(r,'VIP')).toLowerCase();
-    const isVip=vip==='1'||vip==='true'||vip==='ja'||vip==='yes'||vip==='vip';
+    const gt=String(getField(r,'GastTyp')||'');
+    const isVip=vip==='1'||vip==='true'||vip==='ja'||vip==='yes'||vip==='vip'
+      ||/^(vip|stamm|stammgast)/i.test(gt);
     const kinder=parseInt(getField(r,'KinderUnter12'))||0;
     const vt=getField(r,'VorherigerTisch')||'';
-    return{
+    const g={
       id:getField(r,'GastID')||'G'+(i+1),
       nachname:getField(r,'Nachname')||'Unbekannt',
       vorname:getField(r,'Vorname')||'',
@@ -2949,8 +2960,8 @@ function renderFP(tables,guests){
     tG[g.zugewiesener_tisch].push(g);
   });
 
-  const ZC={A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A'};
-  const ZN={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke'};
+  const ZC={A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A',P:'#2A7A5A',N:'#7A4A2A',X:'#606060'};
+  const ZN={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
   const CC='#C0302A',FC='#9B6B1A';
 
   const activeTables=tables.filter(t=>t.aktiv);
@@ -3022,22 +3033,25 @@ function renderFP(tables,guests){
 
       // VIP / KID als Mini-Chips inline mit Gastnamen
       const hasVip=gs.some(g=>g.vip);
-      const hasKids=gs.some(g=>g.kinder>0);
+      const totalKids=gs.reduce((s,g)=>s+(g.kinder||0),0);
+      const hasKids=totalKids>0;
       const conflictDot=(overloaded||hasConflikt)?`<span class="fp-conflict-dot">!</span>`:'';
-      const vipChip=hasVip&&!(overloaded||hasConflikt)
-        ?`<span class="fp-mini-chip" style="background:${FC}18;color:${FC};border:1px solid ${FC}44">V</span>`:'';
-      const kidChip=hasKids
-        ?`<span class="fp-mini-chip" style="background:#1A628A18;color:#1A628A;border:1px solid #1A628A44">K</span>`:'';
+      const vipChip=hasVip&&!isDemoMode
+        ?`<span class="fp-mini-chip" style="background:${FC}22;color:${FC};border:1px solid ${FC}55;font-size:10px">⭐</span>`:'';
+      const kidChip=hasKids&&!isDemoMode
+        ?`<span class="fp-mini-chip" style="background:#1A628A18;color:#1A628A;border:1px solid #1A628A44">K${totalKids>1?totalKids:''}</span>`:'';
+      const demoChip=isDemoMode&&occupied
+        ?`<span class="fp-mini-chip" style="background:#88808018;color:#888;border:1px solid #88808055;font-size:9px">DEMO</span>`:'';
 
-      // Allergen + special badges
+      // Allergen + special badges (only from real data, not demo)
       const seenA=new Set(),seenS=new Set();
       let badges='';
-      if(occupied){
+      if(occupied&&!isDemoMode){
         gs.forEach(g=>{
-          ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).forEach(d=>{
+          ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')||d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')).forEach(d=>{
             if(!seenA.has(d.key)){seenA.add(d.key);badges+=`<span class="fp-tag" style="background:#C04030">${d.label}</span>`;}
           });
-          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).forEach(d=>{
+          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')).forEach(d=>{
             if(!seenS.has(d.key)){seenS.add(d.key);badges+=`<span class="fp-tag" style="background:${d.col}">${d.label}</span>`;}
           });
         });
@@ -3053,7 +3067,7 @@ function renderFP(tables,guests){
           ${conflictDot}
         </div>
         <div class="fp-name-row">
-          ${vipChip}${kidChip}
+          ${vipChip}${kidChip}${demoChip}
           <span class="fp-card-name" style="color:${occupied?'#1A1820':'#B0A898'}">${guestMain}</span>
         </div>
         ${extra}${futureTxt}
@@ -3072,7 +3086,17 @@ function renderFP(tables,guests){
     </div>`;
   }).join('');
 
-  container.innerHTML=`<div class="fp-zones-wrap">${zonesHtml}</div>`;
+  const legendItems=[
+    {col:FC,  label:'VIP-Gast',   icon:'⭐'},
+    {col:'#1A628A',label:'Kind unter 12',icon:'K'},
+    {col:'#C04030',label:'Allergie/Diät',icon:'⚠'},
+    {col:'#C0302A',label:'Konflikt/Überb.',icon:'!'},
+  ];
+  const legendHtml=isDemoMode
+    ?`<div class="fp-legend"><span class="fp-legend-item" style="color:#888"><span class="fp-leg-dot" style="background:#88808030;border:1px solid #aaa">D</span>Demo-Daten — keine echten Gäste</span></div>`
+    :`<div class="fp-legend">${legendItems.map(l=>`<span class="fp-legend-item"><span class="fp-leg-dot" style="background:${l.col}20;color:${l.col};border:1px solid ${l.col}55">${l.icon}</span>${l.label}</span>`).join('')}</div>`;
+
+  container.innerHTML=`<div class="fp-zones-wrap">${zonesHtml}</div>${legendHtml}`;
 }
 
 function openFPFullscreen(){
