@@ -596,6 +596,34 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                  color:#fff;background:#C0302A;flex-shrink:0}
 .fp-room-row{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap}
 .fp-room-num{font-size:9px;color:var(--dim);font-weight:600;white-space:nowrap}
+.fp-ttag-row{font-size:11px;letter-spacing:1px;margin-top:1px;opacity:.75}
+/* Toggle switch */
+.toggle-sw{position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+.toggle-knob{position:absolute;inset:0;background:var(--border);border-radius:24px;transition:.25s}
+.toggle-knob::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;
+  background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.toggle-sw input:checked+.toggle-knob{background:var(--gold)}
+.toggle-sw input:checked+.toggle-knob::before{transform:translateX(20px)}
+/* Smart assign card */
+.s1-smart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px}
+.s1-smart-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.s1-smart-title{font-size:14px;font-weight:700;color:var(--text)}
+.s1-smart-sub{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
+/* Table config panel */
+.tcfg-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tcfg-row:last-child{border-bottom:none}
+.tcfg-id{font-size:12px;font-weight:800;color:var(--gold);min-width:40px;flex-shrink:0}
+.tcfg-tags{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.tcfg-tag{display:flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;border-radius:6px;
+  border:1px solid var(--border);cursor:pointer;user-select:none;transition:.15s;color:var(--dim)}
+.tcfg-tag input{display:none}
+.tcfg-tag-on{background:var(--gold-glow);border-color:var(--gold);color:var(--gold);font-weight:700}
+.tcfg-bonus{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.tcfg-bonus-inp{width:46px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg);color:var(--text);font-size:12px;text-align:center}
+.tcfg-section-hdr{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.5px;
+  padding:10px 0 6px;text-transform:uppercase}
 .fp-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px 8px;
            border-top:2px solid var(--border);margin-top:6px;background:var(--panel);border-radius:0 0 10px 10px}
 .fp-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
@@ -980,6 +1008,33 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   <div id="s1-progress">
     <div class="ptxt" id="s1-ptxt">Dateien werden verarbeitet…</div>
     <div class="pbar-wrap"><div class="pbar" id="s1-pbar"></div></div>
+  </div>
+
+  <!-- Smart Table Assignment -->
+  <div class="s1-smart-card">
+    <div class="s1-smart-hdr">
+      <div>
+        <div class="s1-smart-title">Intelligente Tischzuweisung</div>
+        <div class="s1-smart-sub">Tags &amp; Bonus-Punkte pro Tisch definieren — optional, für Hotels mit spezifischen Platzierungsregeln.</div>
+      </div>
+      <label class="toggle-sw" title="Intelligente Tischzuweisung ein-/ausschalten">
+        <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
+        <span class="toggle-knob"></span>
+      </label>
+    </div>
+    <div id="smart-assign-panel" style="display:none;margin-top:16px">
+      <div class="tcfg-section-hdr">Tischkonfiguration</div>
+      <div id="tisch-config-list"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="saveTischConfig()">Speichern</button>
+        <button class="btn btn-outline btn-sm" onclick="resetTischConfig()">Zurücksetzen</button>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <div class="tcfg-section-hdr">Score-Gewichte</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Wie viele Punkte bekommt VIP, Familie, Langzeitgast usw.?</div>
+        <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte bearbeiten →</button>
+      </div>
+    </div>
   </div>
 
   <div class="bot">
@@ -1506,9 +1561,19 @@ let resolvedWarnings=new Set();
 let pmsProfiles={};
 let zimmerRegeln=[];
 let tischRegeln=[];
-let tableOverrides=new Set(); // tisch_ids where user overrode future reservation
+let tableOverrides=new Set();
 let scoreGewichte={};
+let tableConfig={};
+let smartAssignEnabled=false;
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
+
+const TABLE_TAGS=[
+  {key:'fenster', icon:'🪟', label:'Fenster/Ausblick'},
+  {key:'vip',    icon:'⭐', label:'VIP-Bereich'},
+  {key:'familie',icon:'👨‍👩‍👧', label:'Familie'},
+  {key:'ruhig',  icon:'🔇', label:'Ruhige Ecke'},
+  {key:'outdoor',icon:'🌿', label:'Outdoor/Terrasse'},
+];
 let currentStep=0;
 let calcDone=false;
 let isDemoMode=false;
@@ -2254,6 +2319,88 @@ function saveTischRegeln(){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  SMART TABLE ASSIGNMENT
+// ══════════════════════════════════════════════════════════════
+function loadSmartAssign(){
+  smartAssignEnabled=localStorage.getItem('hsi_smart_assign')==='1';
+  try{tableConfig=JSON.parse(localStorage.getItem('hsi_table_config')||'{}');}
+  catch(e){tableConfig={};}
+  const chk=el('chk-smart-assign');
+  if(chk) chk.checked=smartAssignEnabled;
+  const panel=el('smart-assign-panel');
+  if(panel) panel.style.display=smartAssignEnabled?'block':'none';
+  if(smartAssignEnabled) renderTableConfigPanel();
+}
+function onSmartAssignToggle(enabled){
+  smartAssignEnabled=enabled;
+  localStorage.setItem('hsi_smart_assign',enabled?'1':'0');
+  const panel=el('smart-assign-panel');
+  if(panel) panel.style.display=enabled?'block':'none';
+  if(enabled) renderTableConfigPanel();
+}
+function getTablesForConfig(){
+  return(lastTables&&lastTables.length?lastTables:DEFAULT_TABLES).filter(t=>t.aktiv);
+}
+function renderTableConfigPanel(){
+  const list=el('tisch-config-list');
+  if(!list) return;
+  const tables=getTablesForConfig();
+  list.innerHTML=tables.map(t=>{
+    const cfg=tableConfig[t.tisch_id]||{};
+    const tags=cfg.tags||[];
+    const bonus=cfg.bonus||0;
+    return`<div class="tcfg-row" data-tid="${t.tisch_id}">
+      <div class="tcfg-id">${t.tisch_id}</div>
+      <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
+        <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
+        ${td.icon} ${td.label}</label>`).join('')}</div>
+      <div class="tcfg-bonus">
+        <span style="font-size:10px;color:var(--dim)">+</span>
+        <input type="number" min="0" max="30" value="${bonus}" class="tcfg-bonus-inp"
+               onchange="onBonusChange(this,'${t.tisch_id}')">
+        <span style="font-size:10px;color:var(--dim)">Pkt</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function onTagChange(inp,tid){
+  if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0};
+  const tags=tableConfig[tid].tags||[];
+  tableConfig[tid].tags=inp.checked?[...new Set([...tags,inp.value])]:tags.filter(t=>t!==inp.value);
+  inp.parentElement.classList.toggle('tcfg-tag-on',inp.checked);
+}
+function onBonusChange(inp,tid){
+  if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0};
+  tableConfig[tid].bonus=Math.min(30,Math.max(0,parseInt(inp.value)||0));
+}
+function saveTischConfig(){
+  localStorage.setItem('hsi_table_config',JSON.stringify(tableConfig));
+  setStatus('Tischkonfiguration gespeichert','go');
+}
+function resetTischConfig(){
+  tableConfig={};
+  localStorage.removeItem('hsi_table_config');
+  renderTableConfigPanel();
+  setStatus('Tischkonfiguration zurückgesetzt','go');
+}
+function findBestTableWithTag(ts,tag,pax,nights,checkIn,checkOut,cal){
+  const avail=ts.filter(t=>{
+    if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
+    if(!(tableConfig[t.tisch_id]?.tags||[]).includes(tag)) return false;
+    if(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id)){
+      if(!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut)) return false;
+    }
+    return true;
+  });
+  if(!avail.length) return null;
+  avail.sort((a,b)=>{
+    const bd=(tableConfig[b.tisch_id]?.bonus||0)-(tableConfig[a.tisch_id]?.bonus||0);
+    return bd||( nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
+  });
+  return avail[0]||null;
+}
+
+// ══════════════════════════════════════════════════════════════
 //  SCORE GEWICHTE
 // ══════════════════════════════════════════════════════════════
 function loadWeights(){
@@ -2425,7 +2572,13 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
   if(avail.length===0) return null;
   const inZone=avail.filter(t=>t.zone===prefZone);
   const pool=inZone.length>0?inZone:avail;
-  pool.sort((a,b)=>nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
+  pool.sort((a,b)=>{
+    if(smartAssignEnabled){
+      const bd=(tableConfig[b.tisch_id]?.bonus||0)-(tableConfig[a.tisch_id]?.bonus||0);
+      if(bd!==0) return bd;
+    }
+    return nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0);
+  });
   return pool[0]||null;
 }
 
@@ -2699,6 +2852,19 @@ function runCalc(){
       } else if(override.zone){
         targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
         if(targetTisch) ruleApplied++;
+      }
+    }
+    if(!targetTisch&&smartAssignEnabled){
+      const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
+      // Hard rule: child → prefer 'familie' tagged table
+      if(g.kinder>0){
+        const t=findBestTableWithTag(ts,'familie',g.pax,nights,g.check_in,g.check_out,tableCalendar);
+        if(t){targetTisch=t;ruleApplied++;}
+      }
+      // Hard rule: VIP → prefer 'vip' tagged table
+      if(!targetTisch&&g.vip){
+        const t=findBestTableWithTag(ts,'vip',g.pax,nights,g.check_in,g.check_out,tableCalendar);
+        if(t){targetTisch=t;ruleApplied++;}
       }
     }
     if(!targetTisch){
@@ -3038,6 +3204,11 @@ function renderFP(tables,guests){
       const extra=gs.length>1?`<div class="fp-card-sub" style="color:${col}">+${gs.length-1} weitere</div>`:'';
       const futureTxt=zukunft?`<div class="fp-card-sub" style="color:${FC}">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</div>`:'';
 
+      // Table tags (only when smart assign enabled)
+      const tTags=smartAssignEnabled?(tableConfig[t.tisch_id]?.tags||[]):[];
+      const tTagIcons=TABLE_TAGS.filter(td=>tTags.includes(td.key)).map(td=>td.icon).join('');
+      const tTagRow=tTagIcons?`<div class="fp-ttag-row" title="${TABLE_TAGS.filter(td=>tTags.includes(td.key)).map(td=>td.label).join(', ')}">${tTagIcons}</div>`:'';
+
       // VIP / KID als Mini-Chips inline mit Gastnamen
       const hasVip=gs.some(g=>g.vip);
       const totalKids=gs.reduce((s,g)=>s+(g.kinder||0),0);
@@ -3100,6 +3271,7 @@ function renderFP(tables,guests){
                style="background:${bg};border:${bw} solid ${border};${bdash}">
         <div class="fp-card-row">
           <span class="fp-card-id">${t.tisch_id}</span>
+          ${tTagRow}
           <span class="fp-card-pax" style="color:${overloaded?CC:occupied?col:'#9A9080'}">${usedPax||0}/${t.kapazitaet}</span>
           ${conflictDot}
         </div>
@@ -4256,6 +4428,7 @@ loadPMSProfiles();
 loadRules();
 loadTischRegeln();
 loadWeights();
+loadSmartAssign();
 el('ref-date').value=getTodayStr();
 document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-DE');
 setStatus('Bereit','');
