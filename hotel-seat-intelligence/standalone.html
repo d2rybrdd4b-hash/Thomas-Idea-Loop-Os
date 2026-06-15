@@ -396,6 +396,53 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .meal-pill.mp-act{background:var(--gold-glow);border-color:var(--gold);color:var(--gold);font-weight:700}
 .fp-meal-ctx{font-size:11px;font-weight:700;color:var(--dim);padding:3px 10px;
              background:var(--card);border:1px solid var(--border);border-radius:20px;white-space:nowrap}
+/* ── COCKPIT START TAB ── */
+.cockpit-hero{display:flex;align-items:center;gap:12px;background:rgba(46,204,113,.08);
+              border:1.5px solid rgba(46,204,113,.25);border-radius:14px;padding:14px 16px;margin-bottom:12px;flex-wrap:wrap}
+.cockpit-status{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.cockpit-status-ico{font-size:26px;color:var(--green);font-weight:700;flex-shrink:0;line-height:1}
+.cockpit-status-tit{font-size:15px;font-weight:700;color:var(--green);margin-bottom:2px}
+.cockpit-status-sub{font-size:11px;color:var(--dim)}
+.cockpit-kpis{display:flex;gap:6px;flex-shrink:0}
+.ckpi{background:var(--card);border:1px solid var(--border);border-radius:10px;
+      padding:8px 12px;text-align:center;min-width:54px}
+.ckpi-val{font-size:22px;font-weight:700;color:var(--gold);line-height:1}
+.ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.ckpi.ckpi-green .ckpi-val{color:var(--green)}
+.ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
+.ckpi.ckpi-warns{transition:border-color .15s}
+.ckpi.ckpi-warns:hover{border-color:var(--gold)}
+.cockpit-actions{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.cockpit-primary{justify-content:center;padding:14px 10px;font-size:14px;letter-spacing:.2px}
+.cockpit-secondary{background:var(--card);border:1.5px solid var(--border);color:var(--text);
+                   border-radius:11px;font-weight:600;cursor:pointer;padding:13px 10px;
+                   font-size:12px;display:flex;align-items:center;justify-content:center;
+                   gap:6px;transition:all .2s}
+.cockpit-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.cockpit-danger{background:transparent;border:1.5px solid rgba(231,76,60,.28);color:var(--red);
+                border-radius:11px;font-weight:600;cursor:pointer;padding:13px 10px;
+                font-size:12px;display:flex;align-items:center;justify-content:center;
+                gap:6px;transition:all .2s}
+.cockpit-danger:hover{background:rgba(231,76,60,.07);border-color:var(--red)}
+.cockpit-solved{background:var(--card);border:1px solid var(--border);border-radius:12px;
+                padding:14px 16px;margin-bottom:12px}
+.cockpit-solved-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+                    color:var(--dim);margin-bottom:8px}
+.cockpit-solved-body{display:flex;flex-direction:column;gap:4px}
+.cockpit-solved-item{font-size:12px;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.cockpit-solved-item .csi-ico{flex-shrink:0;font-size:11px;margin-top:1px}
+.cockpit-solved-item.csi-warn .csi-ico{color:var(--orange)}
+.cockpit-solved-item.csi-ok .csi-ico{color:var(--green)}
+.cockpit-print-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;
+                   background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.cockpit-print-lbl{font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap;margin-right:2px}
+.cockpit-print-btn{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                   padding:6px 14px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+.cockpit-print-btn:hover{border-color:var(--gold);color:var(--gold)}
+.meal-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0 2px;margin-bottom:4px}
+.meal-filter-lbl{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;
+                 letter-spacing:.5px;white-space:nowrap}
+.meal-filter-hint{font-size:10px;color:var(--dim);flex:1;min-width:120px;line-height:1.4}
 .meal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
            padding:28px 16px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
 .meal-card:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
@@ -738,9 +785,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .file-grid{grid-template-columns:1fr 1fr}
   .map-grid{grid-template-columns:1fr}
   .dash-controls{grid-template-columns:1fr}
-  .dash-stats{grid-template-columns:1fr 1fr}
   .dash-actions{grid-template-columns:1fr 1fr}
   .meal-actions{grid-template-columns:1fr}
+  .cockpit-actions{grid-template-columns:1fr 1fr}
+  .cockpit-kpis{flex-wrap:wrap}
+  .cockpit-hero{flex-direction:column;align-items:flex-start}
+  .meal-filter-hint{display:none}
   .qu-grid{grid-template-columns:1fr 1fr}
   .qu-result-actions{flex-wrap:wrap}
   .fp-zone-col{min-width:130px;flex-basis:130px}
@@ -812,13 +862,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <input type="text" id="dash-hotel-name" placeholder="Hotelname eingeben"
           oninput="syncHotelName(this.value)">
         <input type="date" id="dash-date" onchange="updateDashboard()">
-        <select id="dash-meal" onchange="updateDashboard();updateMealCards()">
+        <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
           <option value="fruehstueck">🌅 Frühstück</option>
           <option value="mittag">☀️ Mittagessen</option>
           <option value="abend" selected>🌙 Abendessen</option>
         </select>
       </div>
-      <p class="dash-tagline">Tischpläne für Frühstück, Mittagessen und Abendessen —<br>mit Drucklisten für Rezeption, Service und Küche.</p>
       <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
 
@@ -855,61 +904,83 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
     </div>
 
-    <!-- Result state: shown after plan is calculated -->
+    <!-- Cockpit result state: shown after plan is calculated -->
     <div id="dash-result" style="display:none">
-      <div class="qu-done-banner">
-        <div class="qu-done-ico">✓</div>
-        <div class="qu-done-body">
-          <div class="qu-done-tit">Tischplan fertig</div>
-          <div class="qu-done-sub" id="qu-done-sub">Gäste verteilt</div>
-        </div>
-      </div>
-      <div class="qu-result-actions">
-        <button class="btn btn-gold" onclick="goStep(3)">Tischplan anzeigen →</button>
-        <button class="btn btn-outline" onclick="goTab(2)">Drucklisten</button>
-        <button class="btn btn-outline btn-danger" onclick="clearState()">Neuer Tag</button>
-      </div>
-      <div class="meal-strip">
-        <span class="meal-strip-lbl">Mahlzeit:</span>
-        <div class="meal-pills">
-          <button class="meal-pill" id="mp-fruehstueck" onclick="startMeal('fruehstueck')">🌅 Frühstück</button>
-          <button class="meal-pill" id="mp-mittag" onclick="startMeal('mittag')">☀️ Mittag</button>
-          <button class="meal-pill" id="mp-abend" onclick="startMeal('abend')">🌙 Abend</button>
-        </div>
-      </div>
-    </div>
 
-    <div class="dash-stats">
-      <div class="dstat ds-green">
-        <div class="dv" id="ds-gaeste">—</div>
-        <div class="dk">Gäste heute</div>
-        <div class="dsub" id="ds-gaeste-sub">Demo starten oder PMS-Export laden</div>
+      <!-- Status banner + KPI strip -->
+      <div class="cockpit-hero">
+        <div class="cockpit-status">
+          <div class="cockpit-status-ico">✓</div>
+          <div class="cockpit-status-body">
+            <div class="cockpit-status-tit">Tischplan fertig</div>
+            <div class="cockpit-status-sub" id="qu-done-sub">Gäste verteilt</div>
+          </div>
+        </div>
+        <div class="cockpit-kpis">
+          <div class="ckpi ckpi-green">
+            <div class="ckpi-val" id="ds-gaeste">—</div>
+            <div class="ckpi-lbl">Gäste</div>
+          </div>
+          <div class="ckpi ckpi-blue">
+            <div class="ckpi-val" id="ds-ankuenfte">—</div>
+            <div class="ckpi-lbl">Ankünfte</div>
+          </div>
+          <div class="ckpi">
+            <div class="ckpi-val" id="ds-tische">—</div>
+            <div class="ckpi-lbl">Frei</div>
+          </div>
+          <div class="ckpi ckpi-warns" onclick="goStep(4)" style="cursor:pointer" title="Hinweise anzeigen">
+            <div class="ckpi-val" id="ds-warns">—</div>
+            <div class="ckpi-lbl">Hinweise</div>
+          </div>
+        </div>
       </div>
-      <div class="dstat ds-blue">
-        <div class="dv" id="ds-ankuenfte">—</div>
-        <div class="dk">Ankünfte heute</div>
-        <div class="dsub" id="ds-ankuenfte-sub">Erscheint nach Datenladen</div>
+
+      <!-- 3 main action buttons -->
+      <div class="cockpit-actions">
+        <button class="btn btn-gold cockpit-primary" onclick="goStep(3)">⊞ Tischplan anzeigen</button>
+        <button class="btn cockpit-secondary" onclick="goTab(2)">🖨 Drucklisten</button>
+        <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag</button>
       </div>
-      <div class="dstat">
-        <div class="dv" id="ds-tische">—</div>
-        <div class="dk">Tische</div>
-        <div class="dsub" id="ds-tische-sub">Restaurantplan nach Laden</div>
+
+      <!-- Was wurde gelöst? -->
+      <div class="cockpit-solved">
+        <div class="cockpit-solved-hdr">Was wurde gelöst?</div>
+        <div id="cockpit-solved-list" class="cockpit-solved-body"></div>
       </div>
-      <div class="dstat ds-red">
-        <div class="dv" id="ds-warns">—</div>
-        <div class="dk">Hinweise</div>
-        <div class="dsub" id="ds-warns-sub">Automatisch nach Prüfung</div>
+
+      <!-- Druckmappe quick access -->
+      <div class="cockpit-print-row">
+        <span class="cockpit-print-lbl">📄 Druckmappe</span>
+        <button class="cockpit-print-btn" onclick="goTab(2)">Rezeptionsliste</button>
+        <button class="cockpit-print-btn" onclick="goTab(2)">Serviceplan</button>
+        <button class="cockpit-print-btn" onclick="goTab(2)">Sonderhinweise</button>
+        <button class="cockpit-print-btn" onclick="exportExcel()">↓ Excel</button>
       </div>
-      <div class="dstat" id="da-plan" style="cursor:pointer" onclick="calcDone?goStep(3):loadDemoAndCalc()">
-        <div class="dv" style="font-size:13px;letter-spacing:.5px" id="ds-plan-val">Kein Plan</div>
-        <div class="dk">Tischplan</div>
-        <div class="dsub" id="ds-plan-sub">Demo starten →</div>
+
+      <!-- Mahlzeit als Filter (de-emphasized) -->
+      <div class="meal-filter-row">
+        <span class="meal-filter-lbl">Ansicht:</span>
+        <div class="meal-pills">
+          <button class="meal-pill mp-act" id="mp-alle" onclick="setMealFilter('alle')">Alle</button>
+          <button class="meal-pill" id="mp-fruehstueck" onclick="setMealFilter('fruehstueck')">🌅 Frühstück</button>
+          <button class="meal-pill" id="mp-mittag" onclick="setMealFilter('mittag')">☀️ Mittag</button>
+          <button class="meal-pill" id="mp-abend" onclick="setMealFilter('abend')">🌙 Abend</button>
+        </div>
+        <span class="meal-filter-hint">Tisch bleibt für alle Mahlzeiten reserviert — Mahlzeit dient nur zur Ansicht und für Drucklisten.</span>
       </div>
-      <div class="dstat" id="da-export" style="cursor:pointer" onclick="calcDone?goStep(5):loadDemoAndCalc()">
-        <div class="dv" style="font-size:13px;letter-spacing:.5px" id="ds-export-val">Nicht bereit</div>
-        <div class="dk">Druckmappe</div>
-        <div class="dsub" id="ds-export-sub">Nach Planung verfügbar</div>
-      </div>
+
+      <!-- Backward-compat stubs (used by updateDashboard, never visible) -->
+      <span id="ds-gaeste-sub" style="display:none"></span>
+      <span id="ds-ankuenfte-sub" style="display:none"></span>
+      <span id="ds-tische-sub" style="display:none"></span>
+      <span id="ds-warns-sub" style="display:none"></span>
+      <span id="ds-plan-val" style="display:none"></span>
+      <span id="ds-plan-sub" style="display:none"></span>
+      <span id="ds-export-val" style="display:none"></span>
+      <span id="ds-export-sub" style="display:none"></span>
+      <div id="da-plan" style="display:none"></div>
+      <div id="da-export" style="display:none"></div>
     </div>
     <div id="restore-banner" class="restore-banner" style="display:none"></div>
     <div id="next-action-bar" class="next-action-bar">
@@ -2997,6 +3068,7 @@ function runCalc(){
   renderWarnings();
   // Sync Start tab stats immediately after every calculation
   updateDashboard();
+  updateCockpitSolved();
   saveState();
 }
 
@@ -4139,20 +4211,56 @@ function startMeal(meal){
     setTimeout(()=>{runCalc();goStep(3);},200);
   }
 }
-function updateMealCards(){
-  const meal=el('dash-meal').value;
-  ['fruehstueck','mittag','abend'].forEach(m=>{
+function setMealFilter(meal){
+  if(meal!=='alle'){
+    el('dash-meal').value=meal;
+    if(el('slot-sel')) el('slot-sel').value=meal;
+    updateDashboard();
+  }
+  ['alle','fruehstueck','mittag','abend'].forEach(m=>{
     const c=el('mp-'+m);
     if(c) c.classList.toggle('mp-act',m===meal);
   });
   updateMealContext();
 }
+function updateMealCards(){
+  const meal=el('dash-meal').value;
+  // Only mark meal-specific pill; do not override 'alle' if it was explicitly chosen
+  const alPill=el('mp-alle');
+  const alActive=alPill?.classList.contains('mp-act');
+  if(!alActive){
+    ['fruehstueck','mittag','abend'].forEach(m=>{
+      const c=el('mp-'+m);
+      if(c) c.classList.toggle('mp-act',m===meal);
+    });
+  }
+  updateMealContext();
+}
 function updateMealContext(){
-  const meal=el('dash-meal')?.value||'abend';
-  const labels={fruehstueck:'🌅 Frühstück',mittag:'☀️ Mittag',abend:'🌙 Abend'};
-  const lbl=labels[meal]||meal;
+  const alActive=el('mp-alle')?.classList.contains('mp-act');
+  const meal=alActive?'alle':(el('dash-meal')?.value||'abend');
+  const labels={alle:'Alle Mahlzeiten',fruehstueck:'🌅 Frühstück',mittag:'☀️ Mittag',abend:'🌙 Abend'};
   const ctx=el('fp-meal-ctx');
-  if(ctx) ctx.textContent=lbl;
+  if(ctx) ctx.textContent=labels[meal]||meal;
+}
+function updateCockpitSolved(){
+  const sl=el('cockpit-solved-list');
+  if(!sl||!calcDone) return;
+  const gaeste=assignedGuests?.length||0;
+  const redCount=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+  const items=[
+    {ok:true, text:`${gaeste} Gäste wurden auf Tische verteilt.`},
+    {ok:redCount===0, text:redCount===0
+      ?'Alle kritischen Hinweise sind geklärt.'
+      :`${redCount} offener Hinweis${redCount===1?'':'e'} — bitte vor dem Drucken prüfen.`},
+    {ok:true, text:'Drucklisten für Rezeption, Service und Küche sind bereit.'},
+    {ok:true, text:'Der Tischplan kann jetzt weitergegeben werden.'},
+  ];
+  sl.innerHTML=items.map(({ok,text})=>
+    `<div class="cockpit-solved-item ${ok?'csi-ok':'csi-warn'}">
+      <span class="csi-ico">${ok?'✓':'⚠'}</span><span>${text}</span>
+    </div>`
+  ).join('');
 }
 
 // ── QUICK UPLOAD ──
@@ -4255,6 +4363,7 @@ function updateDashboard(){
   syncHotelName();
   updateQuickUploadCards();
   updateDrucklistenState();
+  updateCockpitSolved();
 }
 
 function toggleOptFiles(btn){
@@ -4543,7 +4652,7 @@ updateMealCards();
 updateStepUI(0);
 updateTabBar(0);
 restoreState();
-if(calcDone) updateDashboard();
+if(calcDone){updateDashboard();updateCockpitSolved();}
 
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
