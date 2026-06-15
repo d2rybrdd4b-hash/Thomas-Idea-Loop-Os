@@ -976,27 +976,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div id="cockpit-solved-list" class="cockpit-solved-body"></div>
       </div>
 
-      <!-- Druckmappe quick access -->
-      <div class="cockpit-print-row">
-        <span class="cockpit-print-lbl">📄 Druckmappe</span>
-        <button class="cockpit-print-btn" onclick="goTab(2)">Rezeptionsliste</button>
-        <button class="cockpit-print-btn" onclick="goTab(2)">Serviceplan</button>
-        <button class="cockpit-print-btn" onclick="goTab(2)">Sonderhinweise</button>
-        <button class="cockpit-print-btn" onclick="exportExcel()">↓ Excel</button>
-      </div>
-
-      <!-- Mahlzeit als Filter (de-emphasized) -->
-      <div class="meal-filter-row">
-        <span class="meal-filter-lbl">Ansicht:</span>
-        <div class="meal-pills">
-          <button class="meal-pill mp-act" id="mp-alle" onclick="setMealFilter('alle')">Alle</button>
-          <button class="meal-pill" id="mp-fruehstueck" onclick="setMealFilter('fruehstueck')">🌅 Frühstück</button>
-          <button class="meal-pill" id="mp-mittag" onclick="setMealFilter('mittag')">☀️ Mittag</button>
-          <button class="meal-pill" id="mp-abend" onclick="setMealFilter('abend')">🌙 Abend</button>
-        </div>
-        <span class="meal-filter-hint">Tisch bleibt für alle Mahlzeiten reserviert — Mahlzeit dient nur zur Ansicht und für Drucklisten.</span>
-      </div>
-
       <!-- Backward-compat stubs (used by updateDashboard, never visible) -->
       <span id="ds-gaeste-sub" style="display:none"></span>
       <span id="ds-ankuenfte-sub" style="display:none"></span>
