@@ -11,14 +11,14 @@
   --bg:#0D1925;--panel:#111E2C;--card:#172433;--border:#1E3045;
   --gold:#C8A84B;--gold-glow:rgba(200,168,75,.12);
   --green:#2ECC71;--red:#E55555;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
-  --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;
+  --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;--zp:#3BB8A0;--zn:#C89060;--zx:#8A8A8A;
   --hdr:#090F17;--r:10px;
 }
 [data-theme="day"]{
   --bg:#F5F0E8;--panel:#F8F4EE;--card:#FFFFFF;--border:#DDD8CE;
   --gold:#9B6B1A;--gold-glow:rgba(155,107,26,.1);
   --green:#1F7A45;--red:#B5342A;--orange:#C05C10;--text:#1A1A2E;--dim:#8A7E6A;
-  --za:#9B6B1A;--zb:#1F7A45;--zc:#3A5070;--zf:#1A5F8A;--zq:#5A3A8A;
+  --za:#9B6B1A;--zb:#1F7A45;--zc:#3A5070;--zf:#1A5F8A;--zq:#5A3A8A;--zp:#2A7A5A;--zn:#7A4A2A;--zx:#606060;
   --hdr:#1E2B4A;
 }
 html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
@@ -594,6 +594,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .fp-conflict-dot{width:15px;height:15px;border-radius:50%;display:inline-flex;
                  align-items:center;justify-content:center;font-size:8px;font-weight:900;
                  color:#fff;background:#C0302A;flex-shrink:0}
+.fp-room-row{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap}
+.fp-room-num{font-size:9px;color:var(--dim);font-weight:600;white-space:nowrap}
 .fp-legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 12px 4px;
            border-top:1px solid var(--border);margin-top:4px}
 .fp-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-sub);white-space:nowrap}
@@ -2795,7 +2797,7 @@ function renderPlanTable(guests,filter=''){
     const q=filter.toLowerCase();
     rows=rows.filter(g=>(g.zimmer+'').includes(q)||g.nachname.toLowerCase().includes(q)||g.vorname.toLowerCase().includes(q));
   }
-  const zoneColor={'A':'var(--za)','B':'var(--zb)','C':'var(--zc)','F':'var(--zf)','Q':'var(--zq)'};
+  const zoneColor={'A':'var(--za)','B':'var(--zb)','C':'var(--zc)','F':'var(--zf)','Q':'var(--zq)','P':'var(--zp)','N':'var(--zn)','X':'var(--zx)'};
   const statusBadge=s=>{
     if(!s||s==='BL') return'';
     const disp={'AN·AB':'AN/AB'}[s]||s;
@@ -2830,7 +2832,7 @@ function filterPlan(val){planFilterVal=val;renderPlanTable(assignedGuests,val);}
 function zoneColors(){
   const s=getComputedStyle(document.documentElement);
   const g=p=>s.getPropertyValue(p).trim();
-  return{A:g('--za'),B:g('--zb'),C:g('--zc'),F:g('--zf'),Q:g('--zq'),
+  return{A:g('--za'),B:g('--zb'),C:g('--zc'),F:g('--zf'),Q:g('--zq'),P:g('--zp'),N:g('--zn'),X:g('--zx'),
          bg:g('--bg'),card:g('--card'),border:g('--border'),dim:g('--dim'),
          red:g('--red'),green:g('--green')};
 }
@@ -3059,6 +3061,25 @@ function renderFP(tables,guests){
 
       const badgeRow=badges?`<div class="fp-card-tags">${badges}</div>`:'';
 
+      // Room number + status chip row (only for real data)
+      const statusColors={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A',BL:'',PROGNOSE:'#1A5F8A'};
+      let roomRow='';
+      if(occupied&&!isDemoMode){
+        const rooms=gs.map(g=>g.zimmer).filter(Boolean);
+        const uniqueRooms=[...new Set(rooms)];
+        const zimmerStr=uniqueRooms.slice(0,3).join(', ')+(uniqueRooms.length>3?'…':'');
+        const statuses=gs.map(g=>g.status).filter(s=>s&&s!=='BL');
+        const uniqueStatuses=[...new Set(statuses)];
+        const statusChips=uniqueStatuses.map(s=>{
+          const sc=statusColors[s]||'#888';
+          return`<span style="font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;background:${sc}20;color:${sc};border:1px solid ${sc}44">${s}</span>`;
+        }).join('');
+        roomRow=`<div class="fp-room-row">
+          <span class="fp-room-num">Zi.${zimmerStr}</span>
+          ${statusChips}
+        </div>`;
+      }
+
       return`<div class="fp-tcard" onclick="showTableDetail('${t.tisch_id}')"
                style="background:${bg};border:${bw} solid ${border};${bdash}">
         <div class="fp-card-row">
@@ -3070,7 +3091,7 @@ function renderFP(tables,guests){
           ${vipChip}${kidChip}${demoChip}
           <span class="fp-card-name" style="color:${occupied?'#1A1820':'#B0A898'}">${guestMain}</span>
         </div>
-        ${extra}${futureTxt}
+        ${extra}${futureTxt}${roomRow}
         <div class="fp-bar-wrap"><div class="fp-bar-fill" style="width:${fillPct}%;background:${fillCol}"></div></div>
         ${badgeRow}
       </div>`;
@@ -3564,17 +3585,20 @@ function renderPrintView(type){
 
   el('print-content').innerHTML=hdr+fpSection+body;
 }
+function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'');}
 function renderBadgesHtml(g){
-  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).map(d=>
+  const txt=gAllText(g);
+  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(txt)).map(d=>
     `<span class="pb-badge pb-allg">${d.label}</span>`);
-  const sb=SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).map(d=>
+  const sb=SPECIAL_DEFS.filter(d=>d.test.test(txt)).map(d=>
     `<span class="pb-badge" style="background:${d.col}">${d.label}</span>`);
   return ab.concat(sb).join('')||'—';
 }
 function renderSpecialBadgesForCard(g){
-  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')).map(d=>
+  const txt=gAllText(g);
+  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(txt)).map(d=>
     `<span class="sc-tag allergy">${d.label}</span>`);
-  const sb=SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')).map(d=>
+  const sb=SPECIAL_DEFS.filter(d=>d.test.test(txt)).map(d=>
     `<span class="sc-tag" style="background:${d.col}20;color:${d.col};border-color:${d.col}55">${d.label}</span>`);
   return ab.concat(sb).join('');
 }
@@ -3585,10 +3609,9 @@ function renderServiceList(){
     byTable[g.zugewiesener_tisch].push(g);
   });
   const zc=zoneColors();
-  const zoneColor={A:zc.A,B:zc.B,C:zc.C,F:zc.F,Q:zc.Q};
   return Object.keys(byTable).sort().map(tid=>{
     const zone=tid[0];
-    const col=zoneColor[zone]||zc.dim;
+    const col=zc[zone]||zc.dim;
     const rows=byTable[tid].map(g=>`<tr>
       <td>${g.zimmer}</td>
       <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
