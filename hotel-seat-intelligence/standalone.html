@@ -2351,10 +2351,11 @@ function calcStatus(g,ref){
   if(isAN) return'AN';
   if(isAB) return'AB';
   if(g.check_in&&g.check_in>ref) return'PROGNOSE';
-  // Fallback for Panorama PMS: GastTyp field holds Anreise/Abreise/Bleibegast
-  const gt=String(g.gast_typ||'');
-  if(/anreise|ankunft|arrival/i.test(gt)) return'AN';
-  if(/abreise|abfahrt|departure|checkout/i.test(gt)) return'AB';
+  // Fallback for Panorama PMS: GastTyp may be abbreviation (AN/AB/BL) or full word
+  const gt=String(g.gast_typ||'').trim();
+  if(/^(AN|ANK|AN\/AB)$/i.test(gt)||/anreise|ankunft|arrival/i.test(gt)) return'AN';
+  if(/^(AB|ABR)$/i.test(gt)||/abreise|abfahrt|departure|checkout/i.test(gt)) return'AB';
+  if(/^(AN.?AB|AN\/AB)$/i.test(gt)) return'AN·AB';
   return'BL';
 }
 
@@ -3616,16 +3617,22 @@ function renderServiceList(){
   return Object.keys(byTable).sort().map(tid=>{
     const zone=tid[0];
     const col=zc[zone]||zc.dim;
+    const statusBadge=s=>{
+      if(!s||s==='BL') return'';
+      const c={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'}[s]||'#888';
+      return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${s}</span>`;
+    };
     const rows=byTable[tid].map(g=>`<tr>
       <td>${g.zimmer}</td>
       <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+      <td>${statusBadge(g.status)}</td>
       <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
       <td>${renderBadgesHtml(g)}</td>
       <td>${g.essen_zeit||'—'}</td>
       <td>${g.bemerkung||'—'}</td>
     </tr>`).join('');
     return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}</div>
-    <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
+    <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   }).join('');
 }
@@ -3645,21 +3652,34 @@ function renderReceptionList(){
   </tr></thead><tbody>${trs}</tbody></table>`;
 }
 function renderSpecialList(){
-  const special=assignedGuests.filter(g=>g.allergie||g.bemerkung||g.vip||g.kinder>0);
+  const isSpecial=g=>g.allergie||g.bemerkung||g.vip||g.kinder>0
+    ||g.status==='AN'||g.status==='AB'||g.status==='AN·AB';
+  const special=assignedGuests.filter(isSpecial);
   if(!special.length) return'<p style="color:var(--dim);text-align:center;padding:40px">Keine Sonderhinweise vorhanden.</p>';
-  return special.sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0)).map(g=>`
-    <div class="sonder-card">
+  const statusColors2={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'};
+  return special.sort((a,b)=>{
+    // Sort order: AN first, then AN·AB, then AB, then rest by room
+    const ord={AN:0,'AN·AB':1,AB:2};
+    const oa=ord[a.status]??3, ob=ord[b.status]??3;
+    if(oa!==ob) return oa-ob;
+    return(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0);
+  }).map(g=>{
+    const sc=statusColors2[g.status];
+    const statusTag=sc?`<span class="sc-tag" style="background:${sc}20;color:${sc};border-color:${sc}55;font-weight:800">${g.status}</span>`:'';
+    return`<div class="sonder-card">
       <div class="sc-zimmer">${g.zimmer}</div>
       <div class="sc-body">
         <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
         <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
         <div class="sc-tags">
+          ${statusTag}
           ${renderSpecialBadgesForCard(g)}
           ${g.vip?'<span class="sc-tag vip">VIP</span>':''}
           ${g.kinder>0?`<span class="sc-tag kids">${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
