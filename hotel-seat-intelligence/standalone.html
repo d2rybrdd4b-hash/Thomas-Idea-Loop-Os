@@ -954,9 +954,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag</button>
       </div>
 
-      <!-- Was wurde gelöst? -->
+      <!-- Was wurde erkannt? -->
       <div class="cockpit-solved">
-        <div class="cockpit-solved-hdr">Was wurde gelöst?</div>
+        <div class="cockpit-solved-hdr">Was wurde erkannt?</div>
         <div id="cockpit-solved-list" class="cockpit-solved-body"></div>
       </div>
 
@@ -4281,19 +4281,42 @@ function updateMealContext(){
 function updateCockpitSolved(){
   const sl=el('cockpit-solved-list');
   if(!sl||!calcDone) return;
-  const gaeste=assignedGuests?.length||0;
-  const redCount=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
-  const items=[
-    {ok:true, text:`${gaeste} Gäste wurden auf Tische verteilt.`},
-    {ok:redCount===0, text:redCount===0
-      ?'Alle kritischen Hinweise sind geklärt.'
-      :`${redCount} offener Hinweis${redCount===1?'':'e'} — bitte vor dem Drucken prüfen.`},
-    {ok:true, text:'Drucklisten für Rezeption, Service und Küche sind bereit.'},
-    {ok:true, text:'Der Tischplan kann jetzt weitergegeben werden.'},
+  const gs=assignedGuests||[];
+
+  // Derive status with gast_typ fallback (same logic as renderFP)
+  const dst=g=>{
+    if(g.status&&g.status!=='BL') return g.status;
+    const gt=String(g.gast_typ||'').trim();
+    if(/^(AN\/AB|AN·AB)$/i.test(gt)) return'AN·AB';
+    if(/^(AN|ANK)$/i.test(gt)||/anreise|ankunft|arrival/i.test(gt)) return'AN';
+    if(/^(AB|ABR)$/i.test(gt)||/abreise|abfahrt|departure/i.test(gt)) return'AB';
+    return'BL';
+  };
+
+  const bleibe=gs.filter(g=>dst(g)==='BL').length;
+  const gruppen=gs.filter(g=>(g.pax||1)>=4).length;
+  const sonder=gs.filter(g=>{
+    const txt=gAllText(g);
+    return ALLERGIE_DEFS.some(d=>d.test.test(txt))||SPECIAL_DEFS.some(d=>d.test.test(txt));
+  }).length;
+  const frei=(lastTables||[]).filter(t=>(!t.belegtPax||t.belegtPax===0)&&t.aktiv&&!t.blocked_for).length;
+  const offen=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+
+  const rows=[
+    {ico:'→', cls:'',        val:bleibe,  lbl:`Bleibegast${bleibe===1?'':'gäste'}`},
+    {ico:'→', cls:'',        val:gruppen, lbl:`Gruppe${gruppen===1?'':'n'} (≥ 4 PAX)`},
+    {ico: sonder>0?'⚠':'✓', cls:sonder>0?'csi-warn':'csi-ok', val:sonder,
+      lbl:`Sonderhinweis${sonder===1?'':'e'}${sonder===0?' — alles klar':''}` },
+    {ico: frei>0?'✓':'→',   cls:frei>0?'csi-ok':'', val:frei,
+      lbl:`freie${frei===1?' Tisch':' Tische'}${frei===0?' — alle belegt':''}`},
+    {ico: offen>0?'⚠':'✓',  cls:offen>0?'csi-warn':'csi-ok', val:offen,
+      lbl:`offene Entscheidung${offen===1?'':'en'}${offen===0?' — nichts offen':' — bitte prüfen'}`},
   ];
-  sl.innerHTML=items.map(({ok,text})=>
-    `<div class="cockpit-solved-item ${ok?'csi-ok':'csi-warn'}">
-      <span class="csi-ico">${ok?'✓':'⚠'}</span><span>${text}</span>
+
+  sl.innerHTML=rows.map(({ico,cls,val,lbl})=>
+    `<div class="cockpit-solved-item ${cls}">
+      <span class="csi-ico">${ico}</span>
+      <span><strong>${val}</strong> ${lbl}</span>
     </div>`
   ).join('');
 }
