@@ -376,73 +376,86 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .mt-8{margin-top:8px}
 
 /* ── STEP 0 DASHBOARD ── */
-#s0{padding:24px 20px}
-.dash-wrap{max-width:760px;margin:0 auto}
-.dash-hotel{text-align:center;margin-bottom:20px}
-.dash-hotel h2{font-size:30px;font-weight:200;letter-spacing:3px;color:var(--gold);margin-bottom:4px}
+#s0{padding:20px 18px}
+.dash-wrap{max-width:700px;margin:0 auto}
+.dash-hotel{text-align:center;margin-bottom:24px}
+.dash-hotel h2{font-size:36px;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:12px;line-height:1.1}
 .dash-tagline{font-size:13px;color:var(--dim);margin:8px 0 20px;line-height:1.6}
-.dash-meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:4px}
-.dash-meta input,.dash-meta select{background:var(--card);color:var(--text);border:1px solid var(--border);
-  border-radius:8px;padding:6px 10px;font-size:11px;transition:border-color .2s}
+.dash-meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+.dash-meta input,.dash-meta select{background:rgba(255,255,255,.06);color:var(--text);
+  border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:7px 14px;font-size:11px;transition:border-color .2s}
+[data-theme="day"] .dash-meta input,[data-theme="day"] .dash-meta select{background:var(--card);border-color:var(--border)}
 .dash-meta input:focus,.dash-meta select:focus{outline:none;border-color:var(--gold)}
-.dash-meta input{width:130px}.dash-meta select{width:150px}
+.dash-meta input{width:150px}.dash-meta select{width:150px}
 .meal-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .meal-strip{display:flex;align-items:center;gap:10px;padding:10px 0 4px;flex-wrap:wrap}
 .meal-strip-lbl{font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 .meal-pills{display:flex;gap:6px;flex-wrap:wrap}
-.meal-pill{background:var(--card);border:1.5px solid var(--border);border-radius:20px;
-           padding:6px 14px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .18s}
+.meal-pill{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);
+           border-radius:20px;padding:7px 16px;font-size:12px;font-weight:600;
+           color:var(--dim);cursor:pointer;transition:all .18s}
+[data-theme="day"] .meal-pill{background:var(--card);border-color:var(--border)}
 .meal-pill:hover{border-color:var(--gold);color:var(--gold)}
 .meal-pill.mp-act{background:var(--gold-glow);border-color:var(--gold);color:var(--gold);font-weight:700}
 .fp-meal-ctx{font-size:11px;font-weight:700;color:var(--dim);padding:3px 10px;
              background:var(--card);border:1px solid var(--border);border-radius:20px;white-space:nowrap}
 /* ── COCKPIT START TAB ── */
-.cockpit-hero{display:flex;align-items:center;gap:12px;background:rgba(46,204,113,.08);
-              border:1.5px solid rgba(46,204,113,.25);border-radius:14px;padding:14px 16px;margin-bottom:12px;flex-wrap:wrap}
-.cockpit-status{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.cockpit-status-ico{font-size:26px;color:var(--green);font-weight:700;flex-shrink:0;line-height:1}
-.cockpit-status-tit{font-size:15px;font-weight:700;color:var(--green);margin-bottom:2px}
-.cockpit-status-sub{font-size:11px;color:var(--dim)}
-.cockpit-kpis{display:flex;gap:6px;flex-shrink:0}
-.ckpi{background:var(--card);border:1px solid var(--border);border-radius:10px;
-      padding:8px 12px;text-align:center;min-width:54px}
-.ckpi-val{font-size:22px;font-weight:700;color:var(--gold);line-height:1}
-.ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.cockpit-hero{display:flex;flex-direction:column;background:rgba(46,204,113,.09);
+  border:1.5px solid rgba(46,204,113,.28);border-radius:18px;margin-bottom:14px;
+  overflow:hidden;box-shadow:0 4px 28px rgba(46,204,113,.1)}
+.cockpit-status{display:flex;align-items:center;gap:16px;padding:20px 22px 18px}
+.cockpit-status-ico{width:50px;height:50px;border-radius:50%;background:var(--green);
+  color:#040E06;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;flex-shrink:0;box-shadow:0 0 18px rgba(46,204,113,.4)}
+.cockpit-status-body{flex:1;min-width:0}
+.cockpit-status-tit{font-size:19px;font-weight:700;color:var(--green);margin-bottom:3px;letter-spacing:-.2px}
+.cockpit-status-sub{font-size:12px;color:var(--dim);line-height:1.4}
+.cockpit-kpis{display:flex;border-top:1px solid rgba(46,204,113,.18)}
+.ckpi{flex:1;text-align:center;padding:13px 8px 11px;
+  border-right:1px solid rgba(46,204,113,.12);background:transparent;border-radius:0;cursor:default}
+.ckpi:last-child{border-right:none}
+.ckpi-val{font-size:26px;font-weight:800;color:var(--gold);line-height:1}
+.ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
 .ckpi.ckpi-green .ckpi-val{color:var(--green)}
 .ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
-.ckpi.ckpi-warns{transition:border-color .15s}
-.ckpi.ckpi-warns:hover{border-color:var(--gold)}
-.cockpit-actions{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:12px}
-.cockpit-primary{justify-content:center;padding:14px 10px;font-size:14px;letter-spacing:.2px}
+.ckpi.ckpi-warns{cursor:pointer;transition:background .15s}
+.ckpi.ckpi-warns:hover{background:rgba(46,204,113,.06)}
+/* Action buttons */
+.cockpit-actions{display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:8px}
+.cockpit-actions-row2{margin-bottom:14px}
+.cockpit-primary{justify-content:center;padding:17px 10px;font-size:15px;letter-spacing:.2px;border-radius:14px}
 .cockpit-secondary{background:var(--card);border:1.5px solid var(--border);color:var(--text);
-                   border-radius:11px;font-weight:600;cursor:pointer;padding:13px 10px;
-                   font-size:12px;display:flex;align-items:center;justify-content:center;
-                   gap:6px;transition:all .2s}
+  border-radius:14px;font-weight:600;cursor:pointer;padding:16px 10px;
+  font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
 .cockpit-secondary:hover{border-color:var(--gold);color:var(--gold)}
-.cockpit-danger{background:transparent;border:1.5px solid rgba(231,76,60,.28);color:var(--red);
-                border-radius:11px;font-weight:600;cursor:pointer;padding:13px 10px;
-                font-size:12px;display:flex;align-items:center;justify-content:center;
-                gap:6px;transition:all .2s}
-.cockpit-danger:hover{background:rgba(231,76,60,.07);border-color:var(--red)}
-.cockpit-solved{background:var(--card);border:1px solid var(--border);border-radius:12px;
-                padding:14px 16px;margin-bottom:12px}
-.cockpit-solved-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
-                    color:var(--dim);margin-bottom:8px}
-.cockpit-solved-body{display:flex;flex-direction:column;gap:4px}
-.cockpit-solved-item{font-size:12px;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
-.cockpit-solved-item .csi-ico{flex-shrink:0;font-size:11px;margin-top:1px}
+.cockpit-danger{background:transparent;border:1px solid var(--border);color:var(--dim);
+  border-radius:12px;font-weight:500;cursor:pointer;padding:10px;font-size:12px;
+  width:100%;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.cockpit-danger:hover{border-color:rgba(231,76,60,.4);color:var(--red)}
+/* Was wurde erkannt? */
+.cockpit-solved{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:16px 18px;margin-bottom:12px}
+.cockpit-solved-hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--dim);margin-bottom:10px}
+.cockpit-solved-body{display:flex;flex-direction:column;gap:5px}
+.cockpit-solved-item{font-size:13px;color:var(--text);display:flex;align-items:flex-start;
+  gap:10px;line-height:1.4;padding:3px 0}
+.cockpit-solved-item .csi-ico{flex-shrink:0;font-size:12px;margin-top:2px;width:16px;text-align:center}
 .cockpit-solved-item.csi-warn .csi-ico{color:var(--orange)}
 .cockpit-solved-item.csi-ok .csi-ico{color:var(--green)}
-.cockpit-print-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;
-                   background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
-.cockpit-print-lbl{font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap;margin-right:2px}
-.cockpit-print-btn{background:var(--bg);border:1px solid var(--border);border-radius:8px;
-                   padding:6px 14px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+/* Druckmappe */
+.cockpit-print-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+  padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:16px}
+.cockpit-print-lbl{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;
+  margin-right:4px;display:flex;align-items:center;gap:6px}
+.cockpit-print-btn{background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:7px 14px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
 .cockpit-print-btn:hover{border-color:var(--gold);color:var(--gold)}
-.meal-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0 2px;margin-bottom:4px}
-.meal-filter-lbl{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;
-                 letter-spacing:.5px;white-space:nowrap}
-.meal-filter-hint{font-size:10px;color:var(--dim);flex:1;min-width:120px;line-height:1.4}
+/* Ansicht / Meal filter */
+.meal-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0 2px;margin-bottom:6px}
+.meal-filter-lbl{font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.8px;white-space:nowrap}
+.meal-filter-hint{font-size:10px;color:var(--dim);flex:1;min-width:100px;line-height:1.4}
 .meal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
            padding:28px 16px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
 .meal-card:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
@@ -799,8 +812,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   .dash-actions{grid-template-columns:1fr 1fr}
   .meal-actions{grid-template-columns:1fr}
   .cockpit-actions{grid-template-columns:1fr 1fr}
-  .cockpit-kpis{flex-wrap:wrap}
-  .cockpit-hero{flex-direction:column;align-items:flex-start}
+  .cockpit-kpis{overflow-x:auto}
+  .ckpi{min-width:64px}
+  .dash-hotel h2{font-size:28px}
   .meal-filter-hint{display:none}
   .qu-grid{grid-template-columns:1fr 1fr}
   .qu-result-actions{flex-wrap:wrap}
@@ -947,11 +961,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </div>
       </div>
 
-      <!-- 3 main action buttons -->
+      <!-- 2 main action buttons + Neuer Tag -->
       <div class="cockpit-actions">
         <button class="btn btn-gold cockpit-primary" onclick="goStep(3)">⊞ Tischplan anzeigen</button>
         <button class="btn cockpit-secondary" onclick="goTab(2)">🖨 Drucklisten</button>
-        <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag</button>
+      </div>
+      <div class="cockpit-actions-row2">
+        <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag starten</button>
       </div>
 
       <!-- Was wurde erkannt? -->
