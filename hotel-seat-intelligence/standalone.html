@@ -710,6 +710,29 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .fp-threshold-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;opacity:.55}
 .tcfg-section-hdr{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.5px;
   padding:10px 0 6px;text-transform:uppercase}
+/* Tisch-Detail */
+.tcfg-id{cursor:pointer;transition:color .15s}
+.tcfg-id:hover{color:var(--text)}
+.tcfg-detail{display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;padding:11px 12px;margin:2px 0 8px;font-size:11px}
+.tcfg-detail-label{font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
+.tcfg-detail-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tcfg-dtag{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;padding:2px 9px;font-size:10px;color:var(--text)}
+.tcfg-dscore-row{display:flex;align-items:center;gap:6px;padding:3px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.tcfg-dscore-row:last-child{border-bottom:none}
+.tcfg-dscore-lbl{flex:1;color:var(--text)}
+.tcfg-dscore-pts{font-weight:800;color:var(--gold);min-width:44px;text-align:right}
+.tcfg-dscore-chk{font-size:9px;min-width:60px;text-align:right}
+.tcfg-dhint{font-size:10px;color:var(--dim);margin-top:8px;font-style:italic;line-height:1.4}
+/* Weights modal sections */
+.sw-section-hdr{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:10px 0 6px;border-top:1px solid var(--border);margin-top:8px;color:var(--dim)}
+.sw-section-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
+.sw-match-row{display:flex;align-items:center;padding:5px 0;opacity:.65}
+.sw-match-lbl{flex:1;font-size:12px;color:var(--text)}
+.sw-match-note{font-size:10px;color:var(--dim);font-style:italic}
 .fp-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px 8px;
            border-top:2px solid var(--border);margin-top:6px;background:var(--panel);border-radius:0 0 10px 10px}
 .fp-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
@@ -1664,7 +1687,7 @@ let isDemoMode=false;
 let activeMapping={};  // fieldName -> columnName mapping
 
 const DEFAULT_SW={
-  vip:20,langzeit:15,fruehbucher:8,familie:12,allergie:10,stammgast:15,anreisetag:8,abreisetag:5,gruppe:6
+  vip:20,stammgast:15,langzeit:15,fruehbucher:8,gruppe:6
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -1960,8 +1983,8 @@ function enrichFromBemerkung(g){
   const babyM=bem.match(/(\d+)\s*baby|babybett/i);
   if(babyM&&!g.kinder) g.kinder=1;
 
-  // STAMM → VIP
-  if(/\bstamm\b/i.test(bem)) g.vip=true;
+  // STAMM → Stammgast (eigene Kategorie, kein automatischer VIP)
+  if(/\bstamm\b/i.test(bem)) g.stammgast=true;
 
   return g;
 }
@@ -2432,55 +2455,94 @@ function renderTableConfigPanel(){
   const list=el('tisch-config-list');
   if(!list) return;
   const tables=getTablesForConfig();
-  list.innerHTML=`<div style="display:grid;grid-template-columns:40px 1fr auto;gap:0;font-size:10px;font-weight:700;
+  list.innerHTML=`<div style="display:flex;gap:0;font-size:10px;font-weight:700;
     color:var(--dim);padding:4px 0 6px;border-bottom:1px solid var(--border);letter-spacing:.4px">
-    <span>TISCH</span><span>TAGS</span><span>MIN.SCORE</span>
+    <span style="min-width:44px">TISCH</span><span style="flex:1">TAGS</span><span style="min-width:90px;text-align:right">MIN.SCORE</span>
   </div>`+tables.map(t=>{
     const cfg=tableConfig[t.tisch_id]||{};
     const tags=cfg.tags||[];
-    const bonus=cfg.bonus||0;
     const minScore=cfg.minScore||0;
     const isPremium=minScore>0;
-    return`<div class="tcfg-row" style="${isPremium?'background:var(--gold-glow);border-radius:6px;padding:6px 4px;':''}" data-tid="${t.tisch_id}">
-      <div class="tcfg-id">${t.tisch_id}${isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${minScore}</div>`:''}</div>
-      <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
-        <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
-        ${td.icon} ${td.label}</label>`).join('')}</div>
-      <div class="tcfg-minscore" title="Nur Gäste mit ≥ diesem Score bekommen diesen Tisch in Runde 1. Bleibt er leer, füllt Runde 2 auf.">
-        <span style="font-size:10px;color:var(--dim)">≥</span>
-        <input type="number" min="0" max="100" step="5" value="${minScore}" class="tcfg-minscore-inp"
-               onchange="onMinScoreChange(this,'${t.tisch_id}')">
-        <span style="font-size:10px;color:var(--dim)">Pkt</span>
+    return`<div class="tcfg-row-wrap">
+      <div class="tcfg-row" style="${isPremium?'background:var(--gold-glow);border-radius:6px 6px 0 0;padding:6px 4px;':''}" data-tid="${t.tisch_id}">
+        <div class="tcfg-id" onclick="toggleTischDetail('${t.tisch_id}')" title="Tisch-Details anzeigen">
+          ${t.tisch_id}${isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${minScore}</div>`:''}
+          <div style="font-size:8px;color:var(--dim);font-weight:400;margin-top:1px">▾</div>
+        </div>
+        <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
+          <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
+          ${td.icon} ${td.label}</label>`).join('')}</div>
+        <div class="tcfg-minscore" title="Nur Gäste mit ≥ diesem Score bekommen diesen Tisch in Runde 1. Bleibt er leer, füllt Runde 2 auf.">
+          <span style="font-size:10px;color:var(--dim)">≥</span>
+          <input type="number" min="0" max="100" step="5" value="${minScore}" class="tcfg-minscore-inp"
+                 onchange="onMinScoreChange(this,'${t.tisch_id}')">
+          <span style="font-size:10px;color:var(--dim)">Pkt</span>
+        </div>
       </div>
+      <div class="tcfg-detail" id="tcfg-detail-${t.tisch_id}"></div>
     </div>`;
   }).join('');
 }
 function renderScoreLegend(){
   const box=el('score-legend');
   if(!box) return;
-  const labels={
-    vip:'VIP-Gast',langzeit:'Langzeit (>7 Tg.)',fruehbucher:'Frühbucher',
-    familie:'Familie (Kinder)',allergie:'Allergie/Diät',stammgast:'Stammgast',
-    anreisetag:'Anreisetag',abreisetag:'Abreisetag',gruppe:'Gruppe'
-  };
+  const labels={vip:'VIP-Gast',stammgast:'Stammgast',langzeit:'Langzeit (>7 Tg.)',
+    fruehbucher:'Frühbucher (>30 Tage)',gruppe:'Gruppe'};
   const sw=scoreGewichte||DEFAULT_SW;
-  const sorted=Object.entries(sw).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  const items=sorted.map(([k,v])=>
-    `<div class="score-leg-item"><span>${labels[k]||k}</span><span class="score-leg-pts">+${v} Pkt</span></div>`
+  const prio=['vip','stammgast','langzeit','fruehbucher','gruppe'];
+  const sorted=prio.filter(k=>(sw[k]||0)>0).sort((a,b)=>(sw[b]||0)-(sw[a]||0));
+  const items=sorted.map(k=>
+    `<div class="score-leg-item"><span>${labels[k]||k}</span><span class="score-leg-pts">+${sw[k]} Pkt</span></div>`
   ).join('');
-  // Example: who reaches which level
-  const vip=sw.vip||0, stamm=sw.stammgast||0, fam=sw.familie||0, an=sw.anreisetag||0;
-  const ex1=vip; const ex2=stamm+an; const ex3=fam;
+  const vip=sw.vip||0, stamm=sw.stammgast||0, lang=sw.langzeit||0;
   box.innerHTML=`
     <div class="score-leg-title">Wer bekommt den besten Platz?</div>
     <div class="score-leg-grid">${items}</div>
     <div class="score-leg-hint">
-      Beispiele: VIP-Gast = <strong>${ex1} Pkt</strong> &nbsp;·&nbsp;
-      Stammgast + Anreisetag = <strong>${ex2} Pkt</strong> &nbsp;·&nbsp;
-      Familie = <strong>${ex3} Pkt</strong><br>
-      Setze MIN.SCORE auf einen Tisch, damit nur Gäste ab dieser Punktzahl ihn in Runde 1 bekommen.
-      Bleibt er leer, wird er in Runde 2 automatisch aufgefüllt.
+      Beispiele: VIP-Gast = <strong>${vip} Pkt</strong> &nbsp;·&nbsp;
+      VIP + Stammgast = <strong>${vip+stamm} Pkt</strong> &nbsp;·&nbsp;
+      Stammgast + Langzeit = <strong>${stamm+lang} Pkt</strong><br>
+      Allergie, Familie, Anreise/Abreise werden erkannt — fließen aber nicht in die Priorität ein.<br>
+      Setze MIN.SCORE auf einem Tisch, damit nur Gäste ab dieser Punktzahl ihn in Runde 1 bekommen.
     </div>`;
+}
+function toggleTischDetail(tid){
+  const det=el('tcfg-detail-'+tid);
+  if(!det) return;
+  if(det.style.display==='block'){det.style.display='none';return;}
+  det.innerHTML=buildTischDetailHtml(tid);
+  det.style.display='block';
+}
+function buildTischDetailHtml(tid){
+  const cfg=tableConfig[tid]||{};
+  const tags=cfg.tags||[];
+  const minScore=cfg.minScore||0;
+  const sw=scoreGewichte||DEFAULT_SW;
+  const tagHtml=tags.length>0
+    ?tags.map(k=>{const td=TABLE_TAGS.find(t=>t.key===k);return td?`<span class="tcfg-dtag">${td.icon} ${td.label}</span>`:''}).join('')
+    :'<span style="color:var(--dim);font-size:11px">Keine Tags — alle Gäste kommen in Frage</span>';
+  const vipPts=sw.vip||0, stammPts=sw.stammgast||0;
+  const exBase=[
+    {lbl:'VIP-Gast',pts:vipPts,ico:'⭐'},
+    {lbl:'Stammgast',pts:stammPts,ico:'🔁'},
+    {lbl:'Langzeit-Gast',pts:sw.langzeit||0,ico:'📅'},
+    {lbl:'Frühbucher',pts:sw.fruehbucher||0,ico:'⏰'},
+    {lbl:'Gruppe',pts:sw.gruppe||0,ico:'👥'},
+  ].filter(e=>e.pts>0);
+  if(vipPts>0&&stammPts>0) exBase.push({lbl:'VIP + Stammgast',pts:vipPts+stammPts,ico:'⭐'});
+  exBase.sort((a,b)=>b.pts-a.pts);
+  const scoreHtml=exBase.slice(0,5).map(e=>{
+    const chk=minScore>0?`<span class="tcfg-dscore-chk" style="color:${e.pts>=minScore?'var(--green)':'var(--red)'}">${e.pts>=minScore?'✓ Runde 1':'✗ Runde 2'}</span>`:'';
+    return`<div class="tcfg-dscore-row"><span class="tcfg-dscore-lbl">${e.ico} ${e.lbl}</span><span class="tcfg-dscore-pts">${e.pts} Pkt</span>${chk}</div>`;
+  }).join('');
+  const hint=minScore===0
+    ?'Kein MIN.SCORE gesetzt — alle Gäste kommen für diesen Tisch in Frage (Runde 2).'
+    :`MIN.SCORE ≥${minScore} Pkt: Nur Gäste mit mindestens ${minScore} Punkten bekommen diesen Tisch in Runde 1.`;
+  return`<div class="tcfg-detail-label">Aktive Tags</div>
+    <div class="tcfg-detail-tags">${tagHtml}</div>
+    <div class="tcfg-detail-label" style="margin-top:8px">Score-Beispiele${minScore>0?' — Runde-1 / Runde-2 Zuweisung':''}</div>
+    ${scoreHtml}
+    <div class="tcfg-dhint">${hint}</div>`;
 }
 function onTagChange(inp,tid){
   initCfg(tid);
@@ -2495,13 +2557,15 @@ function onBonusChange(inp,tid){
 function onMinScoreChange(inp,tid){
   initCfg(tid);
   tableConfig[tid].minScore=Math.min(100,Math.max(0,parseInt(inp.value)||0));
-  // Live-update: highlight premium rows
   const row=inp.closest('.tcfg-row');
   const isPremium=tableConfig[tid].minScore>0;
-  if(row) row.style.cssText=isPremium?'background:var(--gold-glow);border-radius:6px;padding:6px 4px;':'';
-  const tid2=row?.dataset?.tid||tid;
+  if(row) row.style.cssText=isPremium?'background:var(--gold-glow);border-radius:6px 6px 0 0;padding:6px 4px;':'';
   const idEl=row?.querySelector('.tcfg-id');
-  if(idEl) idEl.innerHTML=tid2+(isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${tableConfig[tid].minScore}</div>`:'');
+  if(idEl) idEl.innerHTML=tid+(isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${tableConfig[tid].minScore}</div>`:'')
+    +`<div style="font-size:8px;color:var(--dim);font-weight:400;margin-top:1px">▾</div>`;
+  // Refresh open detail panel if visible
+  const det=el('tcfg-detail-'+tid);
+  if(det&&det.style.display==='block') det.innerHTML=buildTischDetailHtml(tid);
 }
 function saveTischConfig(){
   localStorage.setItem('hsi_table_config',JSON.stringify(tableConfig));
@@ -2536,25 +2600,46 @@ function findBestTableWithTag(ts,tag,pax,nights,checkIn,checkOut,cal){
 function loadWeights(){
   try{
     const saved=JSON.parse(localStorage.getItem('hsi_weights')||'{}');
-    scoreGewichte={...DEFAULT_SW,...saved};
+    const prio=Object.fromEntries(Object.entries(saved).filter(([k])=>k in DEFAULT_SW));
+    scoreGewichte={...DEFAULT_SW,...prio};
   }catch(e){scoreGewichte={...DEFAULT_SW}}
 }
 function showWeightsModal(){
-  const labels={vip:'VIP-Gast',langzeit:'Langzeit (>7 Tage)',fruehbucher:'Frühbucher (>30 Tage)',
-    familie:'Familie mit Kindern',allergie:'Allergie/Diät',stammgast:'Stammgast',
-    anreisetag:'Anreisetag',abreisetag:'Abreisetag',gruppe:'Gruppenreservierung'};
-  el('weights-list').innerHTML=Object.entries(scoreGewichte).map(([k,v])=>`
+  const prioKeys=[
+    {k:'vip',     lbl:'VIP-Gast'},
+    {k:'stammgast',lbl:'Stammgast'},
+    {k:'langzeit', lbl:'Langzeit (>7 Tage)'},
+    {k:'fruehbucher',lbl:'Frühbucher (>30 Tage)'},
+    {k:'gruppe',  lbl:'Gruppenreservierung'},
+  ];
+  const matchInfo=[
+    {lbl:'Allergie / Diät',         note:'Wird erkannt & als Badge angezeigt'},
+    {lbl:'Familie mit Kindern',      note:'Wird erkannt, Tisch-Tag "Familie" greift'},
+    {lbl:'Anreisetag',               note:'Wird erkannt & in Statistik gezählt'},
+    {lbl:'Abreisetag',               note:'Wird erkannt & in Statistik gezählt'},
+  ];
+  const sw=scoreGewichte||DEFAULT_SW;
+  const prioHtml=prioKeys.map(({k,lbl})=>`
     <div class="mrow" style="align-items:center">
-      <div class="mfield">${labels[k]||k}</div>
-      <input type="number" min="0" max="50" value="${v}" id="sw-${k}"
+      <div class="mfield">${lbl}</div>
+      <input type="number" min="0" max="50" value="${sw[k]||0}" id="sw-${k}"
         style="width:70px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px">
       <span style="font-size:9px;color:var(--dim)">Pkt.</span>
-    </div>
-  `).join('');
+    </div>`).join('');
+  const matchHtml=matchInfo.map(({lbl,note})=>`
+    <div class="sw-match-row">
+      <span class="sw-match-lbl">${lbl}</span>
+      <span class="sw-match-note">${note}</span>
+    </div>`).join('');
+  el('weights-list').innerHTML=`
+    <div class="sw-section-hdr">Priorität — Wer bekommt den besten Platz?</div>
+    ${prioHtml}
+    <div class="sw-section-hdr">Erkannt, aber nicht in Score bewertet</div>
+    ${matchHtml}`;
   openModal('weights-modal');
 }
 function saveWeights(){
-  Object.keys(scoreGewichte).forEach(k=>{
+  ['vip','stammgast','langzeit','fruehbucher','gruppe'].forEach(k=>{
     const input=el('sw-'+k);
     if(input) scoreGewichte[k]=parseInt(input.value)||0;
   });
@@ -2591,7 +2676,8 @@ function parseGuests(rows){
     const vip=String(getField(r,'VIP')).toLowerCase();
     const gt=String(getField(r,'GastTyp')||'');
     const isVip=vip==='1'||vip==='true'||vip==='ja'||vip==='yes'||vip==='vip'
-      ||/^(vip|stamm|stammgast)/i.test(gt);
+      ||/^vip/i.test(gt);
+    const isStammgast=/^(stamm|stammgast)/i.test(gt);
     const kinder=parseInt(getField(r,'KinderUnter12'))||0;
     const vt=getField(r,'VorherigerTisch')||'';
     const g={
@@ -2605,6 +2691,7 @@ function parseGuests(rows){
       vorheriger_tisch:vt,
       gast_typ:getField(r,'GastTyp')||'',
       vip:isVip,
+      stammgast:isStammgast,
       kinder,
       zimmer_kat:getField(r,'Zimmerkategorie')||'',
       allergie:getField(r,'Allergie')||'',
@@ -2646,11 +2733,8 @@ function isActiveGuest(g,ref){
 function scoreGuest(g,ref){
   let s=0;
   if(g.vip) s+=scoreGewichte.vip||0;
-  if(g.kinder>0) s+=scoreGewichte.familie||0;
-  if(g.allergie) s+=scoreGewichte.allergie||0;
-  if(g.status==='AN') s+=scoreGewichte.anreisetag||0;
-  if(g.status==='AB') s+=scoreGewichte.abreisetag||0;
-  if(g.status==='AN·AB'){s+=scoreGewichte.anreisetag||0;s+=scoreGewichte.abreisetag||0;}
+  if(g.stammgast) s+=scoreGewichte.stammgast||0;
+  if((g.pax||1)>=4) s+=scoreGewichte.gruppe||0;
   if(g.check_in&&g.check_out){
     const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
     if(nights>=7) s+=scoreGewichte.langzeit||0;
@@ -3958,11 +4042,15 @@ function renderPrintView(type){
 function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')+' '+(g.gast_typ||'');}
 function buildScoreBreakdown(g){
   const p=[];
-  if(g.vip) p.push('VIP +'+( scoreGewichte.vip||0));
-  if(g.kinder>0) p.push('Familie +'+(scoreGewichte.familie||0));
-  if(g.allergie) p.push('Allergie +'+(scoreGewichte.allergie||0));
-  if(g.status==='AN'||g.status==='AN·AB') p.push('Anreise +'+(scoreGewichte.anreisetag||0));
-  if(g.status==='AB'||g.status==='AN·AB') p.push('Abreise +'+(scoreGewichte.abreisetag||0));
+  if(g.vip) p.push('VIP +'+(scoreGewichte.vip||0));
+  if(g.stammgast) p.push('Stammgast +'+(scoreGewichte.stammgast||0));
+  if((g.pax||1)>=4) p.push('Gruppe +'+(scoreGewichte.gruppe||0));
+  if(g.check_in&&g.check_out){
+    const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
+    if(nights>=7) p.push('Langzeit +'+(scoreGewichte.langzeit||0));
+    const leadDays=Math.round((new Date(g.check_in)-new Date())/86400000);
+    if(leadDays>30) p.push('Frühbucher +'+(scoreGewichte.fruehbucher||0));
+  }
   const kat=(g.zimmer_kat||'').toLowerCase();
   if(kat.includes('suite')||kat.includes('premium')) p.push('Zimmer-Kat +10');
   return p.length?(g.prioritaet_score+' Pkt: '+p.join(' · ')):'Standard (0 Pkt)';
