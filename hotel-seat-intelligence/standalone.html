@@ -1842,10 +1842,25 @@ function readFileText(file,cb){
 //  FILE HANDLING
 // ══════════════════════════════════════════════════════════════
 let parsedFiles={};  // key -> {headers,rows}
+let demoFileKeys=new Set(); // tracks which parsedFiles came from demo (to clear on real upload)
 
 function handleFile(key,input){
   if(!input.files[0]) return;
   const file=input.files[0];
+  // When real data is uploaded, clear any demo-sourced files first
+  if(demoFileKeys.size>0){
+    demoFileKeys.forEach(k=>{
+      delete parsedFiles[k];
+      fileStatus[k]=false;
+      const c=el('fc-'+k);if(c) c.classList.remove('ok');
+      const fb=el('fb-'+k);if(fb) fb.textContent='';
+      const fn=el('fn-'+k);if(fn) fn.textContent='';
+    });
+    demoFileKeys.clear();
+    isDemoMode=false;
+    const db=el('demo-banner');if(db) db.style.display='none';
+    updateQuickUploadCards();
+  }
   setStatus('Lade '+file.name+'…','spin');
   el('fn-'+key).textContent=file.name;
   const ext=file.name.split('.').pop().toLowerCase();
@@ -1868,8 +1883,32 @@ function handleFile(key,input){
             const tc=el('fc-tische');if(tc) tc.classList.add('ok');
             const tb=el('fb-tische');if(tb) tb.textContent='✓ Auto — '+parsedFiles.tische.rows.length+' Tische aus Vortag';
           }
+          // Convert Vortag guest rows to inhaus guest list if no real inhaus loaded
+          if(!fileStatus.inhaus){
+            const inhausRows=panorama.rows
+              .filter(r=>{
+                const z=String(r.Zimmernummer||'').trim();
+                return r.Nachname&&z&&!/^zu\s/i.test(z)&&z!=='';
+              })
+              .map(r=>({
+                Nachname:String(r.Nachname||'').trim(),
+                Zimmernummer:String(r.Zimmernummer||'').trim(),
+                AnzahlPersonen:r.AnzahlPersonen||'2',
+                Bemerkung:r.Extras||'',
+                VorherigerTisch:r.Tisch||'',
+                GastTyp:r.Status||''
+              }));
+            if(inhausRows.length>0){
+              parsedFiles.inhaus={headers:['Nachname','Zimmernummer','AnzahlPersonen','Bemerkung','VorherigerTisch','GastTyp'],rows:inhausRows};
+              fileStatus.inhaus=true;
+              const ic=el('fc-inhaus');if(ic) ic.classList.add('ok');
+              const ib=el('fb-inhaus');if(ib) ib.textContent='✓ Auto — '+inhausRows.length+' Hausgäste aus Vortag';
+              const qi=el('qu-inhaus');if(qi) qi.classList.add('qu-ok');
+              const qb=el('qb-inhaus');if(qb) qb.textContent='✓ Auto aus Vortag';
+            }
+          }
           const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+panorama.rows.length+' Einträge (Panorama)';
-          setStatus(file.name+' geladen — '+panorama.rows.length+' Tischeinträge, '+parsedFiles.tische.rows.length+' Tische erkannt','go');
+          setStatus(file.name+' geladen — '+panorama.rows.length+' Tischeinträge, '+parsedFiles.tische.rows.length+' Tische, '+parsedFiles.inhaus.rows.length+' Hausgäste erkannt','go');
           checkS1Ready();return;
         }
         // Fall back to generic sheet→CSV
@@ -1955,6 +1994,7 @@ function loadDemo(){
   parsedFiles.inhaus=gParsed;
   parsedFiles.tische=tParsed;
   fileStatus.vortag=fileStatus.ankuenfte=fileStatus.inhaus=true;
+  demoFileKeys=new Set(['vortag','ankuenfte','inhaus','tische']);
 
   ['vortag','ankuenfte','inhaus','tische'].forEach(k=>{
     const card=el('fc-'+k);
@@ -2027,7 +2067,7 @@ function getMappedRows(){
   // Dedupe
   const seen=new Set();
   return allRows.filter(r=>{
-    const key=(r.GastID||'')+'|'+(r.Zimmernummer||r.Zimmernummer||'')+'|'+(r.Nachname||'');
+    const key=(r.GastID||'')+'|'+(r.Zimmernummer||'')+'|'+(r.Nachname||'');
     if(seen.has(key)) return false;
     seen.add(key);return true;
   });
@@ -4079,6 +4119,10 @@ function clearState(){
   localStorage.removeItem('hsi_state');
   assignedGuests=[];lastTables=[];warnings=[];resolvedWarnings=new Set();
   calcDone=false;isDemoMode=false;
+  parsedFiles={};demoFileKeys=new Set();
+  Object.keys(fileStatus).forEach(k=>fileStatus[k]=false);
+  document.querySelectorAll('.fcard.ok').forEach(c=>c.classList.remove('ok'));
+  document.querySelectorAll('[id^="fb-"],[id^="fn-"]').forEach(e=>{if(e.tagName!=='INPUT')e.textContent='';});
   applyCalcStepsVisibility();
   const rb=el('restore-banner');if(rb) rb.style.display='none';
   updateDashboard();updateStepUI(0);
