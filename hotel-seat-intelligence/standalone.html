@@ -2351,6 +2351,10 @@ function calcStatus(g,ref){
   if(isAN) return'AN';
   if(isAB) return'AB';
   if(g.check_in&&g.check_in>ref) return'PROGNOSE';
+  // Fallback for Panorama PMS: GastTyp field holds Anreise/Abreise/Bleibegast
+  const gt=String(g.gast_typ||'');
+  if(/anreise|ankunft|arrival/i.test(gt)) return'AN';
+  if(/abreise|abfahrt|departure|checkout/i.test(gt)) return'AB';
   return'BL';
 }
 
