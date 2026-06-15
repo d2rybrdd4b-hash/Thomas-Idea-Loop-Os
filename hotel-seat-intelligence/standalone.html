@@ -4207,19 +4207,20 @@ function updateNextActionBar(){
   if(calcDone){
     const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
     if(reds>0){
+      bar.style.display='flex';
       bar.className='next-action-bar na-red';
       bar.innerHTML=`<span class="na-txt">Plan bereit — ${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
         <button class="na-btn" onclick="goStep(4)">Hinweise prüfen</button>`;
     } else {
-      bar.className='next-action-bar';
-      bar.innerHTML=`<span class="na-txt">Tischplan bereit — Drucklisten für Rezeption und Service stehen bereit</span>
-        <button class="na-btn" onclick="goStep(5)">Druckmappe öffnen</button>`;
+      bar.style.display='none';
     }
   } else if(typeof fileStatus!=='undefined'&&(fileStatus.ankuenfte||fileStatus.inhaus)){
+    bar.style.display='flex';
     bar.className='next-action-bar';
     bar.innerHTML=`<span class="na-txt">Dateien geladen — Tischplan noch nicht berechnet</span>
       <button class="na-btn" onclick="goStep(3)">Tischplan berechnen</button>`;
   } else {
+    bar.style.display='flex';
     bar.className='next-action-bar';
     bar.innerHTML=`<span class="na-txt">Noch keine Daten — schnell loslegen mit Demo</span>
       <button class="na-btn" onclick="loadDemoAndCalc()">Demo starten</button>`;
