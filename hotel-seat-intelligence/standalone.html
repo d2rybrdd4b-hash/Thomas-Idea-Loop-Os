@@ -387,6 +387,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .dash-meta input:focus,.dash-meta select:focus{outline:none;border-color:var(--gold)}
 .dash-meta input{width:130px}.dash-meta select{width:150px}
 .meal-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.meal-strip{display:flex;align-items:center;gap:10px;padding:10px 0 4px;flex-wrap:wrap}
+.meal-strip-lbl{font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.meal-pills{display:flex;gap:6px;flex-wrap:wrap}
+.meal-pill{background:var(--card);border:1.5px solid var(--border);border-radius:20px;
+           padding:6px 14px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .18s}
+.meal-pill:hover{border-color:var(--gold);color:var(--gold)}
+.meal-pill.mp-act{background:var(--gold-glow);border-color:var(--gold);color:var(--gold);font-weight:700}
+.fp-meal-ctx{font-size:11px;font-weight:700;color:var(--dim);padding:3px 10px;
+             background:var(--card);border:1px solid var(--border);border-radius:20px;white-space:nowrap}
 .meal-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
            padding:28px 16px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
 .meal-card:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
@@ -860,22 +869,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <button class="btn btn-outline" onclick="goTab(2)">Drucklisten</button>
         <button class="btn btn-outline btn-danger" onclick="clearState()">Neuer Tag</button>
       </div>
-      <div class="dash-main-q">Mahlzeit wechseln:</div>
-      <div class="meal-actions">
-        <div class="meal-card" id="mc-fruehstueck" onclick="startMeal('fruehstueck')">
-          <div class="meal-ico">🌅</div>
-          <div class="meal-tit">Frühstücksplan</div>
-          <div class="meal-sub">Gäste platzieren, Serviceplan drucken.</div>
-        </div>
-        <div class="meal-card" id="mc-mittag" onclick="startMeal('mittag')">
-          <div class="meal-ico">☀️</div>
-          <div class="meal-tit">Mittagessen</div>
-          <div class="meal-sub">Tische und Zeiten vorbereiten.</div>
-        </div>
-        <div class="meal-card sel" id="mc-abend" onclick="startMeal('abend')">
-          <div class="meal-ico">🌙</div>
-          <div class="meal-tit">Abendessen</div>
-          <div class="meal-sub">Zeitfenster und Sonderwünsche.</div>
+      <div class="meal-strip">
+        <span class="meal-strip-lbl">Mahlzeit:</span>
+        <div class="meal-pills">
+          <button class="meal-pill" id="mp-fruehstueck" onclick="startMeal('fruehstueck')">🌅 Frühstück</button>
+          <button class="meal-pill" id="mp-mittag" onclick="startMeal('mittag')">☀️ Mittag</button>
+          <button class="meal-pill" id="mp-abend" onclick="startMeal('abend')">🌙 Abend</button>
         </div>
       </div>
     </div>
@@ -1218,7 +1217,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
               Gästeliste
             </button>
           </div>
-          <div style="display:flex;gap:6px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="fp-meal-ctx" id="fp-meal-ctx"></span>
             <button class="fp-fs-open" onclick="goTab(2)" title="Drucklisten öffnen">🖨 Drucken</button>
             <button class="fp-fs-open" id="fp-fs-btn" onclick="openFPFullscreen()" title="Vollbild">⤢ Vollbild</button>
           </div>
@@ -1638,6 +1638,7 @@ const SPECIAL_DEFS=[
   {key:'HM' ,label:'HM' ,col:'#C45882',test:/(honeymoon|flitterwochen|jubiläum)/i},
   {key:'HP' ,label:'HP' ,col:'#4A8E5F',test:/(halbpension|half.?board)/i},
   {key:'VP' ,label:'VP' ,col:'#2A6B42',test:/(vollpension|full.?board)/i},
+  {key:'EXT',label:'EXT',col:'#7A5CA0',test:/(day.?spa|tagungsgast|tagung|extern|externe[rns]?\b|tagesgast)/i},
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -3299,7 +3300,7 @@ function renderFP(tables,guests){
           ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')||d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')).forEach(d=>{
             if(!seenA.has(d.key)){seenA.add(d.key);badges+=`<span class="fp-tag" style="background:#C04030">${d.label}</span>`;}
           });
-          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')).forEach(d=>{
+          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')||d.test.test(g.gast_typ||'')).forEach(d=>{
             if(!seenS.has(d.key)){seenS.add(d.key);badges+=`<span class="fp-tag" style="background:${d.col}">${d.label}</span>`;}
           });
         });
@@ -3852,7 +3853,7 @@ function renderPrintView(type){
 
   el('print-content').innerHTML=hdr+fpSection+body;
 }
-function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'');}
+function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')+' '+(g.gast_typ||'');}
 function buildScoreBreakdown(g){
   const p=[];
   if(g.vip) p.push('VIP +'+( scoreGewichte.vip||0));
@@ -4141,9 +4142,17 @@ function startMeal(meal){
 function updateMealCards(){
   const meal=el('dash-meal').value;
   ['fruehstueck','mittag','abend'].forEach(m=>{
-    const c=el('mc-'+m);
-    if(c) c.classList.toggle('sel',m===meal);
+    const c=el('mp-'+m);
+    if(c) c.classList.toggle('mp-act',m===meal);
   });
+  updateMealContext();
+}
+function updateMealContext(){
+  const meal=el('dash-meal')?.value||'abend';
+  const labels={fruehstueck:'🌅 Frühstück',mittag:'☀️ Mittag',abend:'🌙 Abend'};
+  const lbl=labels[meal]||meal;
+  const ctx=el('fp-meal-ctx');
+  if(ctx) ctx.textContent=lbl;
 }
 
 // ── QUICK UPLOAD ──
@@ -4530,6 +4539,7 @@ document.title='Hotel Seat Intelligence — '+new Date().toLocaleDateString('de-
 setStatus('Bereit','');
 setupDragDrop();
 updateDashboard();
+updateMealCards();
 updateStepUI(0);
 updateTabBar(0);
 restoreState();
