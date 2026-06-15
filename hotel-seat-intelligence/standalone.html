@@ -596,11 +596,11 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                  color:#fff;background:#C0302A;flex-shrink:0}
 .fp-room-row{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap}
 .fp-room-num{font-size:9px;color:var(--dim);font-weight:600;white-space:nowrap}
-.fp-legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 12px 4px;
-           border-top:1px solid var(--border);margin-top:4px}
-.fp-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-sub);white-space:nowrap}
+.fp-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 14px 8px;
+           border-top:2px solid var(--border);margin-top:6px;background:var(--panel);border-radius:0 0 10px 10px}
+.fp-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
 .fp-leg-dot{display:inline-flex;align-items:center;justify-content:center;
-            width:16px;height:16px;border-radius:4px;font-size:9px;font-weight:800;flex-shrink:0}
+            width:20px;height:20px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0}
 /* Print: floor plan HTML section */
 .fp-print-section .fp-zones-wrap{overflow:visible}
 .fp-print-section .fp-zone-col{min-width:130px;page-break-inside:avoid}
@@ -3068,21 +3068,32 @@ function renderFP(tables,guests){
 
       // Room number + status chip row (only for real data)
       const statusColors={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A',BL:'',PROGNOSE:'#1A5F8A'};
+      // Derive display status from gast_typ directly (works even on cached state where g.status may still be 'BL')
+      const deriveStatus=g=>{
+        if(g.status&&g.status!=='BL') return g.status;
+        const gt=String(g.gast_typ||'').trim();
+        if(/^(AN\/AB|AN·AB)$/i.test(gt)) return'AN·AB';
+        if(/^(AN|ANK)$/i.test(gt)||/anreise|ankunft|arrival/i.test(gt)) return'AN';
+        if(/^(AB|ABR)$/i.test(gt)||/abreise|abfahrt|departure|checkout/i.test(gt)) return'AB';
+        return'BL';
+      };
       let roomRow='';
       if(occupied&&!isDemoMode){
         const rooms=gs.map(g=>g.zimmer).filter(Boolean);
         const uniqueRooms=[...new Set(rooms)];
         const zimmerStr=uniqueRooms.slice(0,3).join(', ')+(uniqueRooms.length>3?'…':'');
-        const statuses=gs.map(g=>g.status).filter(s=>s&&s!=='BL');
+        const statuses=gs.map(deriveStatus).filter(s=>s&&s!=='BL');
         const uniqueStatuses=[...new Set(statuses)];
         const statusChips=uniqueStatuses.map(s=>{
           const sc=statusColors[s]||'#888';
-          return`<span style="font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;background:${sc}20;color:${sc};border:1px solid ${sc}44">${s}</span>`;
+          return`<span style="font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:${sc}25;color:${sc};border:1px solid ${sc}66">${s}</span>`;
         }).join('');
-        roomRow=`<div class="fp-room-row">
-          <span class="fp-room-num">Zi.${zimmerStr}</span>
-          ${statusChips}
-        </div>`;
+        if(zimmerStr||statusChips){
+          roomRow=`<div class="fp-room-row">
+            <span class="fp-room-num">Zi.${zimmerStr}</span>
+            ${statusChips}
+          </div>`;
+        }
       }
 
       return`<div class="fp-tcard" onclick="showTableDetail('${t.tisch_id}')"
@@ -3113,14 +3124,16 @@ function renderFP(tables,guests){
   }).join('');
 
   const legendItems=[
-    {col:FC,  label:'VIP-Gast',   icon:'⭐'},
-    {col:'#1A628A',label:'Kind unter 12',icon:'K'},
-    {col:'#C04030',label:'Allergie/Diät',icon:'⚠'},
-    {col:'#C0302A',label:'Konflikt/Überb.',icon:'!'},
+    {col:'#1F7A45', label:'Anreise (AN)',     icon:'AN'},
+    {col:'#C05C10', label:'Abreise (AB)',     icon:'AB'},
+    {col:FC,        label:'VIP',              icon:'⭐'},
+    {col:'#1A628A', label:'Kind',             icon:'K'},
+    {col:'#C04030', label:'Allergie/Diät',   icon:'⚠'},
+    {col:'#C0302A', label:'Konflikt',         icon:'!'},
   ];
   const legendHtml=isDemoMode
-    ?`<div class="fp-legend"><span class="fp-legend-item" style="color:#888"><span class="fp-leg-dot" style="background:#88808030;border:1px solid #aaa">D</span>Demo-Daten — keine echten Gäste</span></div>`
-    :`<div class="fp-legend">${legendItems.map(l=>`<span class="fp-legend-item"><span class="fp-leg-dot" style="background:${l.col}20;color:${l.col};border:1px solid ${l.col}55">${l.icon}</span>${l.label}</span>`).join('')}</div>`;
+    ?`<div class="fp-legend"><span class="fp-legend-item" style="color:#888;font-size:12px"><span class="fp-leg-dot" style="background:#88808030;border:1px solid #aaa;font-size:9px">D</span>Demo-Daten — keine echten Gäste</span></div>`
+    :`<div class="fp-legend">${legendItems.map(l=>`<span class="fp-legend-item"><span class="fp-leg-dot" style="background:${l.col}22;color:${l.col};border:1.5px solid ${l.col}66;font-weight:800;font-size:9px">${l.icon}</span>${l.label}</span>`).join('')}</div>`;
 
   container.innerHTML=`<div class="fp-zones-wrap">${zonesHtml}</div>${legendHtml}`;
 }
