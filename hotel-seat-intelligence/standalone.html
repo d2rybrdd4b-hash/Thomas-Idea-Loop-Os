@@ -1241,19 +1241,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div id="s3-warn-strip" class="warn-strip" style="display:none"></div>
 
-      <div id="s3-fp-container" style="display:none">
-        <div id="fp-render" style="display:none"></div>
-        <div id="fp-guestlist" style="display:none"></div>
-        <div id="fp-detail" style="display:none"></div>
-        <span id="fp-fs-hotel" style="display:none"></span>
-        <span id="fp-meal-ctx" style="display:none"></span>
-        <button id="fp-fs-btn" style="display:none"></button>
-        <button id="vt-grundriss" style="display:none"></button>
-        <button id="vt-liste" style="display:none"></button>
-        <div id="fp-popup" class="hidden">
-          <div class="fpp-card" id="fpp-card"></div>
-        </div>
-      </div>
+      <span id="fp-fs-hotel" style="display:none"></span>
+      <span id="fp-meal-ctx" style="display:none"></span>
 
       <textarea id="geburtstage-input" style="display:none"></textarea>
 
@@ -1387,8 +1376,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </div>
 
 <div class="modal-bg hidden" id="pms-save-modal" style="display:none!important"><input id="pms-profile-name" style="display:none"></div>
-
-<div class="modal-bg hidden" id="move-guest-modal" style="display:none!important"><div id="move-guest-info" style="display:none"></div><div id="move-table-list" style="display:none"></div></div>
 
 <script>
 'use strict';
@@ -3044,7 +3031,7 @@ function runCalc(){
 
   // Render results
   renderResults(assignedGuests,ts,warns);
-  renderFP(ts,assignedGuests);
+  renderFP(ts);
 
   el('s3-results').style.display='block';
   el('btn-s3-next').disabled=false;
@@ -3139,7 +3126,6 @@ function toggleTheme(){
   const isNight=html.getAttribute('data-theme')==='night';
   html.setAttribute('data-theme',isNight?'day':'night');
   localStorage.setItem('hsi_theme',isNight?'day':'night');
-  if(calcDone) renderFP(lastTables,assignedGuests);
 }
 function printAsPDF(){
   const incFP=el('exp-include-fp')?.checked!==false;
@@ -3162,303 +3148,11 @@ function exportFPasPNG(dateStr){
 const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
 let lastTables=[];
 
-// ── VIEW TOGGLE ──
-function switchView(v){
-  const grundriss=el('fp-render');
-  const liste=el('fp-guestlist');
-  const fsBtn=el('fp-fs-btn');
-  const btnG=el('vt-grundriss');
-  const btnL=el('vt-liste');
-  if(v==='liste'){
-    if(grundriss) grundriss.style.display='none';
-    if(liste){liste.style.display='block';renderGuestList();}
-    if(fsBtn) fsBtn.style.display='none';
-    if(btnG) btnG.classList.remove('vt-act');
-    if(btnL) btnL.classList.add('vt-act');
-  } else {
-    if(grundriss) grundriss.style.display='block';
-    if(liste) liste.style.display='none';
-    if(fsBtn) fsBtn.style.display='';
-    if(btnG) btnG.classList.add('vt-act');
-    if(btnL) btnL.classList.remove('vt-act');
-  }
-}
-function getAssignReason(g){
-  const b=g.begruendung||'';
-  if(b.includes('Bleibegast')||b.includes('Stammtisch'))
-    return{cls:'g-stamm',lbl:'Stammgast'};
-  if(b.includes('Gruppe')||b.includes('Familie'))
-    return{cls:'g-gruppe',lbl:'Gruppe'};
-  if(g.vip)
-    return{cls:'g-vip',lbl:'VIP'};
-  if(g.status==='AN'||g.status==='AN·AB')
-    return{cls:'g-ankunft',lbl:'Ankunft'};
-  return{cls:'g-ankunft',lbl:'Inhaus'};
-}
-function renderGuestList(){
-  const container=el('fp-guestlist');
-  if(!container) return;
-  if(!assignedGuests.length){
-    container.innerHTML='<div class="gl-no-data">Noch kein Tischplan berechnet.</div>';
-    return;
-  }
-  // Group by table, sort numerically
-  const byTable={};
-  assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
-    const t=g.zugewiesener_tisch;
-    if(!byTable[t]) byTable[t]=[];
-    byTable[t].push(g);
-  });
-  const sortedTables=Object.keys(byTable).sort((a,b)=>{
-    const na=parseInt(a)||0,nb=parseInt(b)||0;
-    return na!==nb?na-nb:a.localeCompare(b);
-  });
-  let html='<div class="glist-wrap">'
-    +'<div class="glist-hdr"><div>Tisch</div><div>Gast</div><div>PAX</div><div>Grund</div></div>';
-  sortedTables.forEach(tId=>{
-    const gs=byTable[tId];
-    gs.forEach((g,i)=>{
-      const name=(g.vorname?g.vorname[0]+'. ':'')+g.nachname;
-      const extras=[];
-      if(g.allergie) extras.push('⚠ '+g.allergie);
-      if(g.kinder>0) extras.push(g.kinder+'K');
-      if(g.zimmer) extras.push('Zi.'+g.zimmer);
-      const reason=getAssignReason(g);
-      const isNew=g.status==='AN'||g.status==='AN·AB';
-      html+=`<div class="glist-row${isNew?' gl-new':''}" onclick="showTableDetail('${tId}')">
-        <div class="gl-tisch">${i===0?tId:''}</div>
-        <div class="gl-name">${name}${extras.length?`<em>${extras.join(' · ')}</em>`:''}</div>
-        <div class="gl-pax">${g.pax}</div>
-        <div><span class="gl-grund ${reason.cls}">${reason.lbl}</span></div>
-      </div>`;
-    });
-  });
-  // Unassigned guests
-  const unassigned=assignedGuests.filter(g=>!g.zugewiesener_tisch);
-  if(unassigned.length){
-    html+=`<div class="glist-row" style="background:rgba(231,76,60,.04)">
-      <div class="gl-tisch" style="color:var(--red)">—</div>
-      <div class="gl-name" style="color:var(--dim)">${unassigned.length} Gast${unassigned.length>1?'e':''} ohne Tisch</div>
-      <div class="gl-pax">${unassigned.reduce((s,g)=>s+g.pax,0)}</div>
-      <div><span class="gl-grund" style="background:rgba(231,76,60,.15);color:var(--red)">Offen</span></div>
-    </div>`;
-  }
-  html+='</div>';
-  container.innerHTML=html;
-}
-
-function renderFP(tables,guests){
+// Grundriss-Rendering entfernt — s3 zeigt nur die Gästeliste (renderPlanTable).
+// lastTables bleibt für Cockpit-Statistiken (freie Tische etc.) erhalten.
+function renderFP(tables){
   lastTables=tables;
-  const container=el('fp-render');
-  if(!container) return;
-
-  // Build guest-per-table map
-  const tG={};
-  guests.forEach(g=>{
-    if(!g.zugewiesener_tisch) return;
-    if(!tG[g.zugewiesener_tisch]) tG[g.zugewiesener_tisch]=[];
-    tG[g.zugewiesener_tisch].push(g);
-  });
-
-  const ZC={A:'#9B6B1A',B:'#1A7A42',C:'#3A5878',F:'#1A628A',Q:'#6A3A9A',P:'#2A7A5A',N:'#7A4A2A',X:'#606060'};
-  const ZN={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
-  const CC='#C0302A',FC='#9B6B1A';
-
-  const activeTables=tables.filter(t=>t.aktiv);
-  const byZone={};
-  activeTables.forEach(t=>{
-    if(!byZone[t.zone]) byZone[t.zone]=[];
-    byZone[t.zone].push(t);
-  });
-  const sortedZones=Object.keys(byZone).sort();
-
-  if(!sortedZones.length){
-    container.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:220px;padding:32px;text-align:center;gap:16px">
-  <div style="font-size:32px;opacity:.35">🏨</div>
-  <div style="font-size:15px;font-weight:600;color:#6A6258">Noch kein Restaurantplan geladen</div>
-  <div style="font-size:12px;color:#9A9080;max-width:280px;line-height:1.6">
-    Starte mit der Demo oder lade deine Gästeliste, um den Tischplan zu berechnen.
-  </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-    <button onclick="loadDemoAndCalc()" style="background:#9B6B1A;color:#fff;border:none;
-      border-radius:8px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer">
-      Demo starten
-    </button>
-    <button onclick="goStep(1)" style="background:rgba(155,107,26,.12);color:#9B6B1A;
-      border:1px solid rgba(155,107,26,.3);border-radius:8px;padding:10px 20px;
-      font-size:12px;font-weight:600;cursor:pointer">
-      Gästeliste laden
-    </button>
-  </div>
-</div>`;
-    return;
-  }
-
-  const zonesHtml=sortedZones.map(zone=>{
-    const zt=byZone[zone];
-    const col=ZC[zone]||'#7A7060';
-    const name=ZN[zone]||('Zone '+zone);
-
-    // 2 columns per zone if 3+ tables, 1 column otherwise
-    const nCols=1;
-
-    const cardsHtml=zt.map(t=>{
-      const gs=tG[t.tisch_id]||[];
-      const usedPax=gs.reduce((s,g)=>s+g.pax,0);
-      const overloaded=usedPax>t.kapazitaet;
-      const hasConflikt=!!t.konflikt;
-      const occupied=gs.length>0;
-      const zukunft=!!t.zukunft_belegt&&!occupied;
-
-      // Card colours
-      let bg='#FFFFFF',border='#C8BFA8',bw='1.5px',bdash='';
-      if(occupied){
-        if(overloaded||hasConflikt){bg='#FFF0EF';border=CC;bw='2px';}
-        else{bg=col+'14';border=col;}
-      } else if(zukunft){bg='#FDF8F0';border=FC;bdash='border-style:dashed';}
-
-      // Fill bar
-      const fillPct=t.kapazitaet>0?(Math.min(1,usedPax/t.kapazitaet)*100).toFixed(0):0;
-      const fillCol=overloaded||hasConflikt?CC:col;
-
-      // Guest text
-      const g0=gs[0];
-      const maxC=10;
-      const lname=g0?(g0.nachname.length>maxC?g0.nachname.slice(0,maxC-1)+'…':g0.nachname):'';
-      const init=g0&&g0.vorname?g0.vorname.charAt(0)+'. ':'';
-      const guestMain=g0?(init+lname):(zukunft?'reserviert':'frei');
-      const extra=gs.length>1?`<div class="fp-card-sub" style="color:${col}">+${gs.length-1} weitere</div>`:'';
-      const futureTxt=zukunft?`<div class="fp-card-sub" style="color:${FC}">ab ${(t.zukunft_info&&t.zukunft_info.check_in?t.zukunft_info.check_in:'').slice(5)}</div>`:'';
-
-      // Table tags + threshold badge (only when smart assign enabled)
-      const tCfg=smartAssignEnabled?(tableConfig[t.tisch_id]||{}):null;
-      const tTags=tCfg?.tags||[];
-      const tMin=tCfg?.minScore||0;
-      const tTagIcons=TABLE_TAGS.filter(td=>tTags.includes(td.key)).map(td=>td.icon).join('');
-      const tTagRow=tTagIcons?`<div class="fp-ttag-row" title="${TABLE_TAGS.filter(td=>tTags.includes(td.key)).map(td=>td.label).join(', ')}">${tTagIcons}</div>`:'';
-      const thresholdBadge=tMin>0&&!occupied?`<span class="fp-threshold-badge" style="background:${col}18;color:${col};border:1px solid ${col}44">≥${tMin}</span>`:'';
-      // Guest score badge (only for real data with smart assign)
-      const guestScoreBadge=occupied&&!isDemoMode&&smartAssignEnabled&&gs[0]?.prioritaet_score>0
-        ?`<span class="fp-score-badge">${gs[0].prioritaet_score}Pkt</span>`:'';
-
-
-      // VIP / KID als Mini-Chips inline mit Gastnamen
-      const hasVip=gs.some(g=>g.vip);
-      const totalKids=gs.reduce((s,g)=>s+(g.kinder||0),0);
-      const hasKids=totalKids>0;
-      const conflictDot=(overloaded||hasConflikt)?`<span class="fp-conflict-dot">!</span>`:'';
-      const vipChip=hasVip&&!isDemoMode
-        ?`<span class="fp-mini-chip" style="background:${FC}22;color:${FC};border:1px solid ${FC}55;font-size:10px">⭐</span>`:'';
-      const kidChip=hasKids&&!isDemoMode
-        ?`<span class="fp-mini-chip" style="background:#1A628A18;color:#1A628A;border:1px solid #1A628A44">K${totalKids>1?totalKids:''}</span>`:'';
-      const demoChip=isDemoMode&&occupied
-        ?`<span class="fp-mini-chip" style="background:#88808018;color:#888;border:1px solid #88808055;font-size:9px">DEMO</span>`:'';
-
-      // Allergen + special badges (only from real data, not demo)
-      const seenA=new Set(),seenS=new Set();
-      let badges='';
-      if(occupied&&!isDemoMode){
-        gs.forEach(g=>{
-          ALLERGIE_DEFS.filter(d=>d.test.test(g.allergie||'')||d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')).forEach(d=>{
-            if(!seenA.has(d.key)){seenA.add(d.key);badges+=`<span class="fp-tag" style="background:#C04030">${d.label}</span>`;}
-          });
-          SPECIAL_DEFS.filter(d=>d.test.test(g.bemerkung||'')||d.test.test(g.extras||'')||d.test.test(g.gast_typ||'')).forEach(d=>{
-            if(!seenS.has(d.key)){seenS.add(d.key);badges+=`<span class="fp-tag" style="background:${d.col}">${d.label}</span>`;}
-          });
-        });
-      }
-
-      const badgeRow=badges?`<div class="fp-card-tags">${badges}</div>`:'';
-
-      // Room number + status chip row (only for real data)
-      const statusColors={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A',BL:'',PROGNOSE:'#1A5F8A'};
-      // Derive display status from gast_typ directly (works even on cached state where g.status may still be 'BL')
-      const deriveStatus=g=>{
-        if(g.status&&g.status!=='BL') return g.status;
-        const gt=String(g.gast_typ||'').trim();
-        if(/^(AN\/AB|AN·AB)$/i.test(gt)) return'AN·AB';
-        if(/^(AN|ANK)$/i.test(gt)||/anreise|ankunft|arrival/i.test(gt)) return'AN';
-        if(/^(AB|ABR)$/i.test(gt)||/abreise|abfahrt|departure|checkout/i.test(gt)) return'AB';
-        return'BL';
-      };
-      let roomRow='';
-      if(occupied&&!isDemoMode){
-        const rooms=gs.map(g=>g.zimmer).filter(Boolean);
-        const uniqueRooms=[...new Set(rooms)];
-        const zimmerStr=uniqueRooms.slice(0,3).join(', ')+(uniqueRooms.length>3?'…':'');
-        const statuses=gs.map(deriveStatus).filter(s=>s&&s!=='BL');
-        const uniqueStatuses=[...new Set(statuses)];
-        const statusChips=uniqueStatuses.map(s=>{
-          const sc=statusColors[s]||'#888';
-          return`<span style="font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;background:${sc}25;color:${sc};border:1px solid ${sc}66">${s}</span>`;
-        }).join('');
-        if(zimmerStr||statusChips){
-          roomRow=`<div class="fp-room-row">
-            <span class="fp-room-num">Zi.${zimmerStr}</span>
-            ${statusChips}
-          </div>`;
-        }
-      }
-
-      return`<div class="fp-tcard" onclick="showTableDetail('${t.tisch_id}')"
-               style="background:${bg};border:${bw} solid ${border};${bdash}">
-        <div class="fp-card-row">
-          <span class="fp-card-id">${t.tisch_id}</span>
-          ${tTagRow}${thresholdBadge}
-          <span class="fp-card-pax" style="color:${overloaded?CC:occupied?col:'#9A9080'}">${usedPax||0}/${t.kapazitaet}</span>
-          ${conflictDot}
-        </div>
-        ${guestScoreBadge?`<div style="margin-bottom:2px">${guestScoreBadge}</div>`:''}
-        <div class="fp-name-row">
-          ${vipChip}${kidChip}${demoChip}
-          <span class="fp-card-name" style="color:${occupied?'#1A1820':'#B0A898'}">${guestMain}</span>
-        </div>
-        ${extra}${futureTxt}${roomRow}
-        <div class="fp-bar-wrap"><div class="fp-bar-fill" style="width:${fillPct}%;background:${fillCol}"></div></div>
-        ${badgeRow}
-      </div>`;
-    }).join('');
-
-    return`<div class="fp-zone-col" style="background:${col}08;border-left:3px solid ${col}40">
-      <div class="fp-zone-hdr" style="color:${col};border-bottom-color:${col}60;background:${col}14">
-        ${name}
-      </div>
-      <div class="fp-zone-grid" style="grid-template-columns:${'1fr '.repeat(nCols).trim()}">
-        ${cardsHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  const legendItems=[
-    {col:'#1F7A45', label:'Anreise (AN)',     icon:'AN'},
-    {col:'#C05C10', label:'Abreise (AB)',     icon:'AB'},
-    {col:FC,        label:'VIP',              icon:'⭐'},
-    {col:'#1A628A', label:'Kind',             icon:'K'},
-    {col:'#C04030', label:'Allergie/Diät',   icon:'⚠'},
-    {col:'#C0302A', label:'Konflikt',         icon:'!'},
-  ];
-  const legendHtml=isDemoMode
-    ?`<div class="fp-legend"><span class="fp-legend-item" style="color:#888;font-size:12px"><span class="fp-leg-dot" style="background:#88808030;border:1px solid #aaa;font-size:9px">D</span>Demo-Daten — keine echten Gäste</span></div>`
-    :`<div class="fp-legend">${legendItems.map(l=>`<span class="fp-legend-item"><span class="fp-leg-dot" style="background:${l.col}22;color:${l.col};border:1.5px solid ${l.col}66;font-weight:800;font-size:9px">${l.icon}</span>${l.label}</span>`).join('')}</div>`;
-
-  container.innerHTML=`<div class="fp-zones-wrap">${zonesHtml}</div>${legendHtml}`;
 }
-
-function openFPFullscreen(){
-  const c=el('s3-fp-container');
-  c.classList.add('fp-fs');
-  const hotel=getHotelName()||'Hotel Seat Intelligence';
-  el('fp-fs-hotel').textContent=hotel;
-  document.addEventListener('keydown',fpEscHandler);
-  document.body.style.overflow='hidden';
-}
-function closeFPFullscreen(){
-  el('s3-fp-container').classList.remove('fp-fs');
-  document.removeEventListener('keydown',fpEscHandler);
-  document.body.style.overflow='';
-}
-function fpEscHandler(e){if(e.key==='Escape') closeFPFullscreen();}
 
 // ══════════════════════════════════════════════════════════════
 //  AUTO-FIX HELPERS
@@ -4728,154 +4422,7 @@ function updateWarnStrip(){
   }
 }
 
-function openMoveGuestModal(guestId){
-  const g=assignedGuests.find(g=>g.id===guestId);
-  if(!g) return;
-  const info=el('move-guest-info');
-  const list=el('move-table-list');
-  if(!info||!list) return;
-  info.innerHTML=`<b>Zi.${g.zimmer} — ${g.vorname?g.vorname+' ':''}${g.nachname}</b><br><span style="color:var(--dim)">${g.pax} PAX · aktuell Tisch <b>${g.zugewiesener_tisch||'—'}</b></span>`;
-  const avail=lastTables.filter(t=>t.aktiv&&t.tisch_id!==g.zugewiesener_tisch&&t.kapazitaet-t.belegtPax>=g.pax);
-  if(avail.length===0){
-    list.innerHTML='<p style="color:var(--dim);font-size:11px">Kein freier Tisch mit ausreichend Kapazität.</p>';
-  } else {
-    list.innerHTML=avail.map(t=>{
-      const zn=ZONE_NAMES[t.zone]||t.zone;
-      const frei=t.kapazitaet-t.belegtPax;
-      return`<div class="move-tisch-row" onclick="moveGuest('${guestId}','${t.tisch_id}')">
-        <div style="font-size:18px;font-weight:800;color:var(--gold);min-width:40px">${t.tisch_id}</div>
-        <div style="flex:1"><div style="font-size:12px;font-weight:600">${zn}</div><div style="font-size:10px;color:var(--dim)">${frei} von ${t.kapazitaet} PAX frei</div></div>
-        <div style="font-size:14px;color:var(--gold)">→</div>
-      </div>`;
-    }).join('');
-  }
-  openModal('move-guest-modal');
-}
-
-function moveGuest(guestId, newTischId){
-  const g=assignedGuests.find(g=>g.id===guestId);
-  if(!g) return;
-  const oldId=g.zugewiesener_tisch;
-  if(oldId){
-    const ot=lastTables.find(t=>t.tisch_id===oldId);
-    if(ot){
-      ot.belegtPax=Math.max(0,(ot.belegtPax||0)-g.pax);
-      if(ot.belegtPax===0){ot.belegt=false;ot.gast_id=null;}
-    }
-  }
-  const nt=lastTables.find(t=>t.tisch_id===newTischId);
-  if(!nt) return;
-  nt.belegtPax=(nt.belegtPax||0)+g.pax;
-  if(nt.belegtPax>=nt.kapazitaet) nt.belegt=true;
-  if(!nt.gast_id) nt.gast_id=g.id;
-  g.zugewiesener_tisch=newTischId;
-  g.begruendung='Manuell verschoben → Tisch '+newTischId;
-  closeModal('move-guest-modal');
-  renderFP(lastTables,assignedGuests);
-  updateWarnStrip();
-  updateDashboard();
-  closeFPPopup();
-  showTableDetail(newTischId);
-}
-
-function freeTable(tischId){
-  const t=lastTables.find(t=>t.tisch_id===tischId);
-  if(!t) return;
-  const gs=assignedGuests.filter(g=>g.zugewiesener_tisch===tischId);
-  gs.forEach(g=>{
-    g.zugewiesener_tisch=null;
-    g.begruendung='Tisch '+tischId+' manuell freigegeben';
-    if(!warnings.find(w=>w.msg.includes('Zi.'+g.zimmer))){
-      warnings.push({level:'red',msg:'Zi.'+g.zimmer+' ('+g.pax+' PAX) — kein Tisch nach Freigabe von '+tischId});
-    }
-  });
-  t.belegt=false;
-  t.belegtPax=0;
-  t.gast_id=null;
-  closeFPPopup();
-  renderFP(lastTables,assignedGuests);
-  updateWarnStrip();
-  updateDashboard();
-}
-
-function closeFPPopup(){
-  const p=el('fp-popup');
-  if(p){p.classList.add('hidden');p._openId='';}
-}
-
-function showTableDetail(tischId){
-  const popup=el('fp-popup');const card=el('fpp-card');
-  if(!popup||!card) return;
-  if(popup._openId===tischId){closeFPPopup();return;}
-  popup._openId=tischId;
-
-  const t=lastTables.find(t=>t.tisch_id===tischId);
-  if(!t){closeFPPopup();return;}
-  const gs=assignedGuests.filter(g=>g.zugewiesener_tisch===tischId);
-  const zoneName=ZONE_NAMES[t.zone]||t.zone;
-  const usedPax=gs.reduce((s,g)=>s+g.pax,0);
-
-  const guestBlocks=gs.map(g=>{
-    const chips=[];
-    if(g.vip) chips.push(`<span class="fpp-chip fpp-chip-vip">VIP</span>`);
-    if(g.kinder>0) chips.push(`<span class="fpp-chip fpp-chip-kid">Kind ×${g.kinder}</span>`);
-    const allergene=(g.allergie||'').split(/[,;]+/).map(a=>a.trim()).filter(Boolean);
-    allergene.forEach(a=>chips.push(`<span class="fpp-chip fpp-chip-allg">⚠ ${a}</span>`));
-    return`<div class="fpp-guest">
-      <div class="fpp-guest-row">
-        <span class="fpp-room">Zi.${g.zimmer}</span>
-        <span class="fpp-name">${g.vorname?g.vorname+' ':''}${g.nachname}</span>
-        <span class="fpp-pax-ct">${g.pax} PAX${g.essen_zeit?' · '+g.essen_zeit:''}</span>
-      </div>
-      ${chips.length?`<div class="fpp-chips">${chips.join('')}</div>`:''}
-      ${g.begruendung?`<div class="fpp-remark">${g.begruendung}</div>`:''}
-      <div class="fpp-actions">
-        <button class="fpp-move-btn" onclick="openMoveGuestModal('${g.id}')">→ Verschieben</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  let body='';
-  if(gs.length===0&&t.zukunft_info){
-    body=`<div class="fpp-future">
-      <div class="fpp-future-lbl">⏳ ZUKUNFTS-RESERVIERUNG</div>
-      <div class="fpp-future-info">Ab <b>${t.zukunft_info.check_in}</b> — <b>${t.zukunft_info.name}</b>${t.zukunft_info.vip?' ⭐':''} · Zi.${t.zukunft_info.zimmer} · ${t.zukunft_info.pax} PAX</div>
-      <button class="fpp-override-btn" onclick="overrideFutureTable('${tischId}')">Trotzdem verwenden — neu berechnen</button>
-    </div>`;
-  } else if(gs.length===0){
-    body=`<div class="fpp-empty">Tisch ist frei.</div>`;
-  } else {
-    body=guestBlocks;
-    body+=`<div class="fpp-actions" style="margin-top:16px">
-      <button class="fpp-free-btn" onclick="freeTable('${tischId}')">Tisch freigeben</button>
-    </div>`;
-  }
-
-  card.innerHTML=`
-    <div class="fpp-hdr">
-      <div class="fpp-tid">${tischId}</div>
-      <div class="fpp-zone">${zoneName}</div>
-      ${t.kategorie?`<span class="fpp-chip fpp-chip-vip" style="margin-left:4px">Kat.${t.kategorie}</span>`:''}
-      <div class="fpp-pax">${usedPax}/${t.kapazitaet} PAX</div>
-      <button class="fpp-close" onclick="closeFPPopup()">✕</button>
-    </div>
-    <div class="fpp-body">${body}</div>`;
-
-  popup.classList.remove('hidden');
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape') closeFPPopup();});
-
-function overrideFutureTable(tischId){
-  tableOverrides.add(tischId);
-  closeFPPopup();
-  setStatus('Tisch '+tischId+' freigegeben — wird neu berechnet…','spin');
-  setTimeout(()=>runCalc(),100);
-}
-
-function resetAndCalc(){
-  tableOverrides.clear();
-  runCalc();
-}
+// Tisch-Verschieben/Freigeben-Popup entfernt (war nur über den Grundriss erreichbar).
 
 function loadDemoAndStart(){
   loadDemo();
@@ -4958,8 +4505,6 @@ function restoreState(){
       rb.innerHTML=`<span class="rb-txt">${stale?'⚠️ Plan vom Vortag ('+savedDate+')':'✓ Plan wiederhergestellt'+( when?' — gespeichert '+when:'')+(isDemoMode?' · Demo':'')} </span><button class="rb-btn" onclick="clearState()">Neu starten</button>`;
       rb.className='restore-banner'+(stale?' rb-stale':'');
     }
-    // Rebuild floor plan from saved tables/guests
-    renderFP(lastTables,assignedGuests);
     renderWarnings();
     return true;
   }catch(e){return false;}
