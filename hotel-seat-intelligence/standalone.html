@@ -960,14 +960,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <button class="btn btn-gold" style="min-width:220px;margin-bottom:16px" onclick="el('fi-tgst-vorlage').click()">
             Tischplan-Vorlage hochladen
           </button>
-          <div class="tgst-or">oder ohne Vorlage</div>
-          <div class="dash-demo-card" onclick="loadDemoAndCalc()">
-            <span class="ddc-arrow">▶</span>
-            <div class="ddc-body">
-              <div class="ddc-title">Demo mit Beispielhotel starten</div>
-              <div class="ddc-sub">Sofort testen — kein Upload nötig</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1004,14 +996,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           Tischplan berechnen &amp; herunterladen →
         </button>
 
-        <div class="tgst-or">oder</div>
-        <div class="dash-demo-card" onclick="loadDemoAndCalc()">
-          <span class="ddc-arrow">▶</span>
-          <div class="ddc-body">
-            <div class="ddc-title">Demo mit Beispielhotel starten</div>
-            <div class="ddc-sub">Sofort testen — kein Upload nötig</div>
-          </div>
-        </div>
       </div>
 
     </div>
@@ -1057,11 +1041,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div class="cockpit-dl-hint" id="cockpit-dl-hint">Befüllt deine Tischplan-Vorlage und lädt sie herunter</div>
       </div>
 
-      <!-- 2 Sekundär-Aktionen + Neuer Tag -->
-      <div class="cockpit-actions">
-        <button class="btn btn-gold cockpit-primary" id="cockpit-btn-view" onclick="goStep(3)">⊞ Tischplan anzeigen</button>
-        <button class="btn cockpit-secondary" onclick="goTab(2)">🖨 Drucklisten</button>
-      </div>
+      <!-- Neuer Tag -->
+      <div id="cockpit-btn-view" style="display:none"></div>
       <div class="cockpit-actions-row2">
         <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag starten</button>
       </div>
@@ -1085,228 +1066,115 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="da-export" style="display:none"></div>
     </div>
     <div id="restore-banner" class="restore-banner" style="display:none"></div>
-    <div id="next-action-bar" class="next-action-bar">
-      <span class="na-txt">Noch keine Daten — schnell loslegen mit Demo</span>
-      <button class="na-btn" onclick="loadDemoAndCalc()">Demo starten</button>
-    </div>
+    <div id="next-action-bar" style="display:none"></div>
     <div id="ds-conflict-bar" class="ds-conflict-bar" onclick="goStep(4)"></div>
   </div>
 </div>
 
-<!-- ─── SCHRITT 1: Dateien laden ─── -->
-<div class="page act" id="s1">
+<!-- ─── EINSTELLUNGEN ─── -->
+<div class="page" id="s1">
   <div class="page-hdr">
-    <h1>Einstellungen &amp; Daten laden</h1>
-    <p>Lade den Tagesexport aus deinem Hotelprogramm hoch — oder starte direkt mit der Demo.</p>
-    <p style="margin-top:8px;font-size:11px;color:var(--dim);background:var(--card);
-              border:1px solid var(--border);border-radius:8px;padding:9px 14px;line-height:1.6">
-      Für den Schnellstart reicht eine PMS-Datei oder die Demo.
-      Zusätzliche Dateien (Abreisen, Forecast, Tischkonfiguration) verbessern die Genauigkeit.
-    </p>
+    <h1>Einstellungen</h1>
+    <p>Grundeinstellungen für den Tischplan.</p>
   </div>
+  <div style="padding:0 0 120px">
 
-  <div class="s1-demo-hero" onclick="loadDemoAndCalc()">
-    <div class="s1-demo-ico" style="font-size:20px;font-weight:300;letter-spacing:2px;color:var(--gold)">Demo</div>
-    <div class="s1-demo-txt">
-      <h3>Demo starten — sofort loslegen</h3>
-      <p>Zum Testen mit Beispielhotel starten. Keine eigenen Daten nötig.</p>
-    </div>
-    <div class="s1-demo-arrow">›</div>
-  </div>
-
-  <div class="file-grid">
-    <div class="fcard" id="fc-vortag" onclick="el('fi-vortag').click()">
-      <input type="file" id="fi-vortag" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('vortag',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
-      <div class="ftit">Tischplan von gestern</div>
-      <div class="fsub">Welcher Gast saß gestern wo?<br>Nötig für Stammgäste.</div>
-      <div class="fbadge" id="fb-vortag">Pflicht</div>
-      <div class="fname" id="fn-vortag"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-
-    <div class="fcard" id="fc-ankuenfte" onclick="el('fi-ankuenfte').click()">
-      <input type="file" id="fi-ankuenfte" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('ankuenfte',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      <div class="ftit">Anreisen</div>
-      <div class="fsub">Gäste die heute ankommen.<br>Export aus Ihrem PMS.</div>
-      <div class="fbadge" id="fb-ankuenfte">Pflicht</div>
-      <div class="fname" id="fn-ankuenfte"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-
-    <div class="fcard" id="fc-inhaus" onclick="el('fi-inhaus').click()">
-      <input type="file" id="fi-inhaus" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('inhaus',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg></div>
-      <div class="ftit">Inhaus-Gäste</div>
-      <div class="fsub">Alle aktuell belegten Zimmer.<br>Stammgäste & Bleibegäste.</div>
-      <div class="fbadge" id="fb-inhaus">Pflicht</div>
-      <div class="fname" id="fn-inhaus"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-
-    <div class="opt-toggle-bar" onclick="toggleOptFiles(this)" id="opt-toggle">
-      Weitere Dateien (optional — verbessern die Genauigkeit)
-      <span>▼</span>
-    </div>
-
-    <div id="opt-files">
-    <div class="fcard opt" id="fc-abreisen" onclick="el('fi-abreisen').click()">
-      <input type="file" id="fi-abreisen" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('abreisen',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><path d="M5 12h14M19 12l-7-7M19 12l-7 7"/></svg></div>
-      <div class="ftit">Abreisen</div>
-      <div class="fsub">Gäste die heute abreisen.<br>Verbessert die Prognose.</div>
-      <div class="fbadge" id="fb-abreisen">Optional</div>
-      <div class="fname" id="fn-abreisen"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-
-    <div class="fcard opt" id="fc-forecast" onclick="el('fi-forecast').click()">
-      <input type="file" id="fi-forecast" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('forecast',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-      <div class="ftit">Nächste 3 Tage</div>
-      <div class="fsub">Ankünfte der nächsten 3 Tage<br>für Tisch-Reservierungen.</div>
-      <div class="fbadge" id="fb-forecast">Optional</div>
-      <div class="fname" id="fn-forecast"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-
-    <div class="fcard opt" id="fc-tische" onclick="el('fi-tische').click()">
-      <input type="file" id="fi-tische" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleFile('tische',this)">
-      <div class="fico-svg"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
-      <div class="ftit">Tischkonfiguration</div>
-      <div class="fsub">Welche Tische mit wieviel Plätzen.<br>Standard-Layout wird sonst verwendet.</div>
-      <div class="fbadge" id="fb-tische">Optional</div>
-      <div class="fname" id="fn-tische"></div>
-      <div class="fcard-hint">oder Datei hierher ziehen</div>
-    </div>
-    </div><!-- end opt-files -->
-  </div><!-- end file-grid -->
-
-  <div id="s1-progress">
-    <div class="ptxt" id="s1-ptxt">Dateien werden verarbeitet…</div>
-    <div class="pbar-wrap"><div class="pbar" id="s1-pbar"></div></div>
-  </div>
-
-  <!-- Smart Table Assignment -->
-  <div class="s1-smart-card">
-    <div class="s1-smart-hdr">
-      <div>
-        <div class="s1-smart-title">Intelligente Tischzuweisung</div>
-        <div class="s1-smart-sub">Tags &amp; Bonus-Punkte pro Tisch definieren — optional, für Hotels mit spezifischen Platzierungsregeln.</div>
-      </div>
-      <label class="toggle-sw" title="Intelligente Tischzuweisung ein-/ausschalten">
-        <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
-        <span class="toggle-knob"></span>
-      </label>
-    </div>
-    <div id="smart-assign-panel" style="display:none;margin-top:16px">
-      <!-- Hotelier-Vorlage Upload -->
-      <div class="tcfg-section-hdr">HOTELIER-TISCHPLAN VORLAGE</div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px">
-        <div id="template-status" style="font-size:11px;margin-bottom:8px">
-          <span style="color:var(--dim)">Keine Vorlage geladen</span>
+    <!-- Hotel & Datum -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">HOTEL & DATUM</div>
+      <div style="display:grid;gap:10px">
+        <div class="form-row">
+          <label>HOTELNAME</label>
+          <input type="text" id="hotel-name-input" placeholder="Hotelname eingeben" oninput="syncHotelName(this.value)">
         </div>
-        <input type="file" id="fi-tischplan-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
-        <button class="btn btn-outline btn-sm" onclick="el('fi-tischplan-vorlage').click()">
-          Tischplan-Vorlage hochladen
-        </button>
-        <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.4">
-          Lädt Tischkategorien automatisch ein und aktiviert den Export in das Hotelier-Format.
+        <div class="form-row">
+          <label>DATUM</label>
+          <input type="date" id="ref-date" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%;box-sizing:border-box">
+        </div>
+        <div class="form-row">
+          <label>MAHLZEIT</label>
+          <select id="slot-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
+            <option value="fruehstueck">Frühstück</option>
+            <option value="mittag">Mittagessen</option>
+            <option value="abend">Abendessen</option>
+          </select>
         </div>
       </div>
-      <!-- Score-Legende: zeigt wer wieviel Punkte bekommt -->
-      <div id="score-legend" class="score-legend-box"></div>
-      <div style="margin-bottom:14px">
-        <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte anpassen →</button>
+    </div>
+
+    <!-- Tischplan-Vorlage -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">TISCHPLAN-VORLAGE</div>
+      <div id="template-status" style="font-size:11px;margin-bottom:10px">
+        <span style="color:var(--dim)">Keine Vorlage geladen</span>
       </div>
-      <!-- Tischkonfiguration -->
-      <div class="tcfg-section-hdr">MIN.SCORE pro Tisch</div>
-      <div id="tisch-config-list"></div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        <button class="btn btn-gold btn-sm" onclick="saveTischConfig()">Speichern</button>
-        <button class="btn btn-outline btn-sm" onclick="resetTischConfig()">Zurücksetzen</button>
+      <input type="file" id="fi-tischplan-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="el('fi-tischplan-vorlage').click()">Vorlage hochladen</button>
+        <button class="btn btn-outline btn-sm" onclick="clearTemplate()">Vorlage entfernen</button>
       </div>
     </div>
-  </div>
 
-  <div class="bot">
-    <button class="btn btn-gold" id="btn-s1-next" onclick="goTab(1)" disabled>
-      Planung starten →
-    </button>
+    <!-- Score-Gewichte -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">PRIORITÄT & SCORE</div>
+      <div id="score-legend" class="score-legend-box" style="margin-bottom:10px"></div>
+      <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte anpassen →</button>
+    </div>
+
+    <!-- Intelligente Zuweisung toggle -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div class="s1-smart-hdr">
+        <div>
+          <div class="s1-smart-title">Intelligente Tischzuweisung</div>
+          <div class="s1-smart-sub">Min-Score pro Tisch — wird aus Vorlage automatisch gesetzt.</div>
+        </div>
+        <label class="toggle-sw">
+          <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+      <div id="smart-assign-panel" style="display:none;margin-top:14px">
+        <div class="tcfg-section-hdr">MIN.SCORE pro Tisch</div>
+        <div id="tisch-config-list"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-gold btn-sm" onclick="saveTischConfig()">Speichern</button>
+          <button class="btn btn-outline btn-sm" onclick="resetTischConfig()">Zurücksetzen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden stubs needed by JS -->
+    <span id="fb-vortag" style="display:none"></span>
+    <span id="fn-vortag" style="display:none"></span>
+    <span id="fb-ankuenfte" style="display:none"></span>
+    <span id="fn-ankuenfte" style="display:none"></span>
+    <span id="fb-inhaus" style="display:none"></span>
+    <span id="fn-inhaus" style="display:none"></span>
+    <span id="fb-tische" style="display:none"></span>
+    <span id="fn-tische" style="display:none"></span>
+    <span id="s1-ptxt" style="display:none"></span>
+    <span id="s1-pbar" style="display:none"></span>
+    <div id="fc-vortag" style="display:none"><input type="file" id="fi-vortag" style="display:none" onchange="handleFile('vortag',this)"></div>
+    <div id="fc-ankuenfte" style="display:none"><input type="file" id="fi-ankuenfte" style="display:none" onchange="handleFile('ankuenfte',this)"></div>
+    <div id="fc-inhaus" style="display:none"><input type="file" id="fi-inhaus" style="display:none" onchange="handleFile('inhaus',this)"></div>
+    <div id="fc-tische" style="display:none"><input type="file" id="fi-tische" style="display:none" onchange="handleFile('tische',this)"></div>
+    <div id="btn-s1-next" style="display:none"></div>
+    <div id="s1-progress" style="display:none"></div>
+    <div id="s1-smart-card" style="display:none"></div>
   </div>
 </div>
 
-<!-- ─── SCHRITT 2: Daten prüfen ─── -->
-<div class="page" id="s2">
-  <div class="page-hdr">
-    <h1>Daten kurz prüfen</h1>
-    <p>Felder werden automatisch erkannt. Nur bei Bedarf manuell anpassen.</p>
-  </div>
-  <div class="s2-inner">
-    <!-- Stats -->
-    <div class="s2-stats" id="s2-stats"></div>
-
-    <!-- Column mapping -->
-    <div class="s2-sec" id="map-sec">
-      <h3>PMS-Daten erkannt?</h3>
-      <div id="map-rows"></div>
-      <div class="flex mt-8" style="gap:8px">
-        <button class="btn btn-blue btn-sm" onclick="autoMap()">Auto-Erkennung</button>
-        <button class="btn btn-ghost btn-sm" onclick="savePMSProfile()">PMS-Profil speichern</button>
-        <select id="pms-profile-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:10px" onchange="loadPMSProfile(this.value)">
-          <option value="">— Profil laden —</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Warnings from data check -->
-    <div class="s2-sec">
-      <h3>Fehlende Angaben</h3>
-      <div id="s2-warns"></div>
-    </div>
-
-    <!-- Preview table -->
-    <div class="s2-sec">
-      <h3>Vorschau — erste 8 Datensätze</h3>
-      <div style="overflow-x:auto">
-        <table class="preview-tbl" id="s2-preview"></table>
-      </div>
-    </div>
-
-    <!-- Reference date + settings -->
-    <div class="s2-sec">
-      <h3>Einstellungen</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div>
-          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">DATUM</label>
-          <input type="date" id="ref-date" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
-        </div>
-        <div>
-          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">WAS WIRD GEPLANT?</label>
-          <select id="slot-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
-            <option value="fruehstueck">🌅 Frühstück</option>
-            <option value="mittag">☀️ Mittagessen</option>
-            <option value="abend">🌙 Abendessen</option>
-          </select>
-        </div>
-        <div>
-          <label style="display:block;font-size:10px;color:var(--dim);margin-bottom:4px">AKTIONEN</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-blue btn-sm" onclick="showRulesModal()">Zimmer-Regeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showTischRegelModal()">Tisch-Regeln</button>
-            <button class="btn btn-blue btn-sm" onclick="showWeightsModal()">Priorität</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bot">
-      <button class="btn btn-ghost" onclick="goStep(1)">← Zurück</button>
-      <button class="btn btn-gold" id="btn-s2-next" onclick="goStep(3)">
-        Tischplan berechnen →
-      </button>
-    </div>
+<!-- s2 stubs for JS compatibility -->
+<div class="page" id="s2" style="display:none">
+  <div style="display:none">
+    <div id="s2-stats"></div>
+    <div id="s2-warns"></div>
+    <div id="map-sec"></div>
+    <div id="map-rows"></div>
+    <table id="s2-preview"></table>
+    <div id="btn-s2-next"></div>
+    <select id="pms-profile-sel"></select>
   </div>
 </div>
 
@@ -1317,12 +1185,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <p>Die App schlägt Plätze vor — du kannst alles manuell anpassen.</p>
   </div>
   <div class="s3-inner">
-    <div id="demo-banner" style="display:none">
-      <div class="demo-banner-inner">
-        <span class="demo-banner-txt">Demo-Modus · 60 Testgäste · Keine echten Hoteldaten</span>
-        <button class="demo-banner-btn" onclick="isDemoMode=false;el('demo-banner').style.display='none';goStep(1)">Eigene Daten laden →</button>
-      </div>
-    </div>
+    <div id="demo-banner" style="display:none"></div>
     <div class="calc-steps" id="calc-steps">
       <div class="cstep" id="cs1">
         <div class="cnum">1</div>
@@ -1386,47 +1249,21 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div id="s3-warn-strip" class="warn-strip" style="display:none"></div>
 
-      <div id="s3-fp-container" style="background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
-        <!-- Vollbild-Toolbar (nur im Fullscreen sichtbar) -->
-        <div class="fp-fs-bar">
-          <span style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">GRUNDRISS</span>
-          <span id="fp-fs-hotel" style="font-size:11px;color:var(--gold)"></span>
-          <div style="flex:1"></div>
-          <button class="fp-fs-close" onclick="closeFPFullscreen()">✕ Schließen</button>
-        </div>
-        <div class="fp-header">
-          <div class="view-toggle">
-            <button class="vt-btn vt-act" id="vt-grundriss" onclick="switchView('grundriss')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-              Grundriss
-            </button>
-            <button class="vt-btn" id="vt-liste" onclick="switchView('liste')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
-              Gästeliste
-            </button>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span class="fp-meal-ctx" id="fp-meal-ctx"></span>
-            <button class="fp-fs-open" onclick="goTab(2)" title="Drucklisten öffnen">🖨 Drucken</button>
-            <button class="fp-fs-open" id="fp-fs-btn" onclick="openFPFullscreen()" title="Vollbild">⤢ Vollbild</button>
-          </div>
-        </div>
-        <div id="fp-render"></div>
+      <div id="s3-fp-container" style="display:none">
+        <div id="fp-render" style="display:none"></div>
         <div id="fp-guestlist" style="display:none"></div>
         <div id="fp-detail" style="display:none"></div>
-
-<!-- Tisch-Detail Popup (centered overlay) -->
-<div id="fp-popup" class="hidden" onclick="if(event.target===this)closeFPPopup()">
-  <div class="fpp-card" id="fpp-card"></div>
-</div>
+        <span id="fp-fs-hotel" style="display:none"></span>
+        <span id="fp-meal-ctx" style="display:none"></span>
+        <button id="fp-fs-btn" style="display:none"></button>
+        <button id="vt-grundriss" style="display:none"></button>
+        <button id="vt-liste" style="display:none"></button>
+        <div id="fp-popup" class="hidden">
+          <div class="fpp-card" id="fpp-card"></div>
+        </div>
       </div>
 
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
-        <label style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Geburtstage &amp; Hinweise</label>
-        <textarea id="geburtstage-input" placeholder="z.B. Zimmer 307: Geburtstag — Torte um 20:00 Uhr&#10;Zimmer 205: VIP-Begrüßung durch GM&#10;Day Spa: Buchungen bis 22 Uhr"
-          style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px;resize:vertical;min-height:64px;font-family:inherit;line-height:1.5;box-sizing:border-box"
-          oninput="localStorage.setItem('hsi_geburtstage',this.value)"></textarea>
-      </div>
+      <textarea id="geburtstage-input" style="display:none"></textarea>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <h3 style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">
@@ -1442,7 +1279,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
 
     <div class="bot">
-      <button class="btn btn-ghost" onclick="goStep(2)">← Zurück</button>
+      <button class="btn btn-ghost" onclick="goStep(0)">← Zurück zum Start</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-blue btn-sm" onclick="resetAndCalc()">Neu berechnen</button>
         <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Hinweise</button>
@@ -1473,97 +1310,40 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 </div>
 
-<!-- ─── SCHRITT 5: Exportieren ─── -->
+<!-- ─── DRUCKLISTEN (vereinfacht) ─── -->
 <div class="page" id="s5">
   <div class="page-hdr">
-    <h1>Drucken &amp; Weitergeben</h1>
-    <p>Serviceplan, Rezeptionsliste und Schichtübergabe — bereit zum Drucken oder Exportieren.</p>
-    <p style="font-size:11px;color:var(--dim);margin-top:6px">Diese Listen kannst du direkt an Rezeption, Service oder Küche weitergeben.</p>
+    <h1>Export</h1>
   </div>
   <div class="s5-inner">
-    <div id="s5-locked">
-      <strong>Vor dem Drucken bitte prüfen</strong><br>
-      Es gibt noch offene Hinweise. Bitte kurz prüfen — dann ist die Druckmappe freigegeben.<br>
-      <div class="s5-lock-action">
-        <button class="btn btn-red btn-sm" onclick="goStep(4)">Hinweise ansehen</button>
-      </div>
+    <div id="s5-locked" style="display:none">
+      <strong>Offene Hinweise</strong><br>
+      <button class="btn btn-red btn-sm" onclick="goStep(4)">Hinweise ansehen</button>
     </div>
-
-    <!-- Kein Plan: Hinweis -->
     <div id="dl-no-data" style="display:none">
       <div class="dl-empty">
-        <div class="dl-empty-ico">🖨</div>
         <h3>Noch kein Tischplan berechnet</h3>
-        <p>Dateien hochladen und Tischplan berechnen — dann sind alle Drucklisten bereit.</p>
-        <button class="btn btn-gold" onclick="goTab(1)">Zum Tischplan →</button>
+        <button class="btn btn-gold" onclick="goTab(0)">Zum Start →</button>
       </div>
     </div>
-
-    <!-- Drucklisten-Karten -->
-    <div id="dl-cards" class="dl-grid" style="display:none">
-      <div class="dl-card" onclick="openPrint('service')">
-        <div class="dl-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
-        <h4>Tischplan</h4>
-        <p>Alle Gäste nach Tisch sortiert — für den Service</p>
-        <div class="dl-cta">Öffnen &amp; Drucken →</div>
-      </div>
-      <div class="dl-card" onclick="openPrint('reception')">
-        <div class="dl-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/></svg></div>
-        <h4>Nach Zimmer</h4>
-        <p>Gleiche Daten nach Zimmernummer — für die Rezeption</p>
-        <div class="dl-cta">Öffnen &amp; Drucken →</div>
-      </div>
-      <div class="dl-card" onclick="openPrint('special')">
-        <div class="dl-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-        <h4>Sonderhinweise</h4>
-        <p>Allergien, VIPs, Geburtstage — für Service &amp; Übergabe</p>
-        <div class="dl-cta">Öffnen &amp; Drucken →</div>
-      </div>
-    </div>
-
-    <div class="export-main" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-gold big-btn" id="btn-export" onclick="exportExcel()">
-        Als Excel herunterladen
-      </button>
-      <button class="btn btn-ghost big-btn" id="btn-pdf" onclick="printAsPDF()">
-        Als PDF drucken
-      </button>
-    </div>
-
-    <!-- Hotelier-Vorlage Export — nur sichtbar wenn Vorlage geladen -->
+    <div id="dl-cards" style="display:none"></div>
     <div id="export-vorlage-section" style="display:none;margin-top:12px;background:rgba(46,204,113,.08);border:1.5px solid rgba(46,204,113,.25);border-radius:12px;padding:14px 16px;text-align:center">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--green);margin-bottom:8px">HOTELIER-VORLAGE BEREIT</div>
       <button class="btn btn-gold big-btn" id="btn-export-vorlage" onclick="exportToTischplanTemplate()">
-        In Hotelier-Tischplan exportieren
+        ⬇ Tischplan herunterladen
       </button>
-      <div style="font-size:10px;color:var(--dim);margin-top:6px" id="vorlage-export-hint">Befüllt die hochgeladene Excel-Vorlage mit den zugewiesenen Gästen</div>
     </div>
-
-    <div id="s5-done">
-      ✅ Datei heruntergeladen — viel Erfolg beim Service!
+    <div id="s5-done" style="display:none">✅ Datei heruntergeladen</div>
+    <!-- Hidden stubs -->
+    <div style="display:none">
+      <input id="export-name">
+      <input id="export-hotel">
+      <input id="exp-include-fp">
+      <div id="vorlage-export-hint"></div>
+      <button id="btn-export" onclick="exportExcel()"></button>
+      <button id="btn-pdf" onclick="printAsPDF()"></button>
     </div>
-
-    <div style="background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);margin-top:16px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">EXPORT-EINSTELLUNGEN</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-row">
-          <label>DATEINAME</label>
-          <input type="text" id="export-name" value="" placeholder="Tischplan_2026-06-12">
-        </div>
-        <div class="form-row">
-          <label>HOTEL-NAME (Kopfzeile)</label>
-          <input type="text" id="export-hotel" placeholder="Hotel Name" oninput="syncHotelName(this.value)">
-        </div>
-      </div>
-      <div style="margin-top:8px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;cursor:pointer">
-          <input type="checkbox" id="exp-include-fp" checked> Grundriss als Bild einfügen (wenn möglich)
-        </label>
-      </div>
-    </div>
-
     <div class="bot">
-      <button class="btn btn-ghost" onclick="goStep(4)">← Zurück</button>
+      <button class="btn btn-ghost" onclick="goTab(0)">← Zurück zum Start</button>
     </div>
   </div>
 </div>
@@ -1576,79 +1356,26 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></span>
     <span class="tab-lbl">Start</span>
   </button>
-  <button class="tab-item" id="tab-1" onclick="goTab(1)">
-    <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span>
-    <span class="tab-lbl">Planung</span>
-  </button>
-  <button class="tab-item" id="tab-2" onclick="goTab(2)">
-    <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
-    <span class="tab-lbl">Drucklisten</span>
-  </button>
   <button class="tab-item" id="tab-3" onclick="goTab(3)">
     <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
     <span class="tab-lbl">Einstellungen</span>
   </button>
+  <!-- Hidden stubs for JS tab references -->
+  <button id="tab-1" style="display:none"></button>
+  <button id="tab-2" style="display:none"></button>
 </div>
 
-<!-- ══════════════════════ PRINT OVERLAY ══════════════════════ -->
-<div id="print-overlay">
-  <div id="print-toolbar">
-    <button class="ptool-btn" onclick="closePrint()" style="margin-right:8px">← Zurück</button>
-    <button class="ptool-btn active" data-view="service" onclick="switchPrint('service')">Tischplan</button>
-    <button class="ptool-btn" data-view="reception" onclick="switchPrint('reception')">Nach Zimmer</button>
-    <button class="ptool-btn" data-view="special" onclick="switchPrint('special')">Sonderhinweise</button>
-    <div style="flex:1"></div>
-    <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;white-space:nowrap">
-      <input type="checkbox" id="chk-fp-print" style="accent-color:var(--gold)">Grundriss
-    </label>
-    <button class="ptool-btn" onclick="window.print()" style="margin-left:8px">🖨 Drucken</button>
-  </div>
+<!-- PRINT OVERLAY (stubs for JS) -->
+<div id="print-overlay" style="display:none">
+  <div id="print-toolbar" style="display:none"></div>
   <div id="print-content"></div>
 </div>
 
 <!-- ══════════════════════ MODALS ══════════════════════ -->
 
-<!-- Rules modal -->
-<div class="modal-bg hidden" id="rules-modal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>📏 Zimmer-Sonderregeln</h3>
-      <button class="close" onclick="closeModal('rules-modal')">×</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:10px;color:var(--dim);margin-bottom:14px">
-        Definieren Sie feste Zuweisungen: Zimmer X → immer Tisch Y, oder Zone Z.
-      </p>
-      <div id="rules-list"></div>
-      <button class="btn btn-blue btn-sm mt-8" onclick="addRuleRow()">+ Neue Regel</button>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('rules-modal')">Abbrechen</button>
-      <button class="btn btn-gold btn-sm" onclick="saveRules()">Speichern</button>
-    </div>
-  </div>
-</div>
+<div class="modal-bg hidden" id="rules-modal" style="display:none!important"><div id="rules-list" style="display:none"></div></div>
 
-<!-- Tisch-Sonderregeln modal -->
-<div class="modal-bg hidden" id="tisch-rules-modal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>🪑 Tisch-Sonderregeln</h3>
-      <button class="close" onclick="closeModal('tisch-rules-modal')">×</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:10px;color:var(--dim);margin-bottom:14px">
-        Tisch-spezifische Einschränkungen: maximale PAX, Bevorzugung für bestimmte Gruppengrößen.
-      </p>
-      <div id="tisch-rules-list"></div>
-      <button class="btn btn-blue btn-sm mt-8" onclick="addTischRuleRow()">+ Neue Tisch-Regel</button>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('tisch-rules-modal')">Abbrechen</button>
-      <button class="btn btn-gold btn-sm" onclick="saveTischRegeln()">Speichern</button>
-    </div>
-  </div>
-</div>
+<div class="modal-bg hidden" id="tisch-rules-modal" style="display:none!important"><div id="tisch-rules-list" style="display:none"></div></div>
 
 <!-- Weights modal -->
 <div class="modal-bg hidden" id="weights-modal">
@@ -1670,43 +1397,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </div>
 </div>
 
-<!-- PMS Profile save modal -->
-<div class="modal-bg hidden" id="pms-save-modal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-hdr">
-      <h3>💾 PMS-Profil speichern</h3>
-      <button class="close" onclick="closeModal('pms-save-modal')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label>PROFIL-NAME</label>
-        <input type="text" id="pms-profile-name" placeholder="z.B. Opera Cloud, Fidelio, Protel">
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('pms-save-modal')">Abbrechen</button>
-      <button class="btn btn-gold btn-sm" onclick="confirmSavePMS()">Speichern</button>
-    </div>
-  </div>
-</div>
+<div class="modal-bg hidden" id="pms-save-modal" style="display:none!important"><input id="pms-profile-name" style="display:none"></div>
 
-<!-- Move guest modal -->
-<div class="modal-bg hidden" id="move-guest-modal">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-hdr">
-      <h3>↔ Gast verschieben</h3>
-      <button class="close" onclick="closeModal('move-guest-modal')">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="move-guest-info" style="margin-bottom:14px;font-size:12px;padding:10px;background:var(--bg);border-radius:8px"></div>
-      <p style="font-size:10px;color:var(--dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Freie Tische</p>
-      <div id="move-table-list"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('move-guest-modal')">Abbrechen</button>
-    </div>
-  </div>
-</div>
+<div class="modal-bg hidden" id="move-guest-modal" style="display:none!important"><div id="move-guest-info" style="display:none"></div><div id="move-table-list" style="display:none"></div></div>
 
 <script>
 'use strict';
