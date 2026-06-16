@@ -4310,13 +4310,15 @@ function exportToTischplanTemplate(){
       const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
         +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
       const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
+      const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
       tplCell(ws,r,base,  String(g.zimmer||''));
-      tplCell(ws,r,base+1,name);
-      tplCell(ws,r,base+2,g.pax||1,'n');
-      tplCell(ws,r,base+3,extras);
+      tplCell(ws,r,base+1,statusStr);
+      tplCell(ws,r,base+2,name);
+      tplCell(ws,r,base+3,g.pax||1,'n');
+      tplCell(ws,r,base+4,extras);
     } else {
       // Clear cells for empty/free tables
-      [0,1,2,3].forEach(d=>{
+      [0,1,2,3,4].forEach(d=>{
         const addr=XLSX.utils.encode_cell({r,c:base+d});
         if(ws[addr]) ws[addr].v='';
       });
