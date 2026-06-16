@@ -705,6 +705,31 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   border:1px solid rgba(200,168,75,.3);border-radius:4px;padding:1px 6px;font-size:10px;white-space:nowrap}
 .score-leg-hint{font-size:10px;color:var(--dim);line-height:1.5;border-top:1px solid var(--border);
   padding-top:7px;margin-top:4px}
+/* ── TAGESSTART ── */
+.tgst-setup{background:var(--card);border:2px dashed var(--border);border-radius:16px;padding:28px 22px;text-align:center}
+.tgst-setup-ico{font-size:38px;margin-bottom:10px}
+.tgst-setup-tit{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px}
+.tgst-setup-sub{font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5}
+.tgst-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(46,204,113,.1);
+  border:1px solid rgba(46,204,113,.3);border-radius:20px;padding:5px 12px;
+  font-size:11px;color:var(--green);font-weight:600;margin-bottom:14px}
+.tgst-badge-clear{background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;margin-left:4px}
+.tgst-dropzone{background:var(--card);border:2px dashed var(--border);border-radius:14px;
+  padding:30px 20px;text-align:center;cursor:pointer;transition:border-color .18s,background .18s;margin-bottom:10px}
+.tgst-dropzone:hover,.tgst-dropzone.drag-over{border-color:var(--gold);background:var(--gold-glow)}
+.tgst-drop-ico{font-size:30px;margin-bottom:8px}
+.tgst-drop-tit{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.tgst-drop-sub{font-size:11px;color:var(--dim)}
+.tgst-file-loaded{display:flex;align-items:center;gap:10px;background:rgba(46,204,113,.07);
+  border:1px solid rgba(46,204,113,.25);border-radius:10px;padding:10px 14px;margin-bottom:10px}
+.tgst-file-ico{font-size:20px}
+.tgst-file-name{flex:1;font-size:12px;font-weight:600;color:var(--green)}
+.tgst-file-clear{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:2px 6px}
+.tgst-or{text-align:center;font-size:11px;color:var(--dim);margin:10px 0}
+/* Cockpit download highlight */
+.cockpit-dl{background:rgba(46,204,113,.07);border:1.5px solid rgba(46,204,113,.25);
+  border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.cockpit-dl-hint{font-size:10px;color:var(--dim);text-align:center;margin-top:5px}
 .fp-score-badge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;
   background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold)55}
 .fp-threshold-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;opacity:.55}
@@ -921,35 +946,74 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Upload state: shown when no plan calculated yet -->
     <div id="dash-upload">
-      <div class="qu-label">Dateien hochladen — Tischplan wird automatisch erstellt</div>
-      <div class="qu-grid">
-        <div class="qu-card" id="qu-vortag" onclick="el('fi-vortag').click()">
-          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
-          <div class="qu-tit">Vortags-Tischplan</div>
-          <div class="qu-sub">Wer saß gestern wo</div>
-          <div class="qu-badge" id="qb-vortag">Hochladen</div>
-        </div>
-        <div class="qu-card" id="qu-ankuenfte" onclick="el('fi-ankuenfte').click()">
-          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-          <div class="qu-tit">Anreisen</div>
-          <div class="qu-sub">Heutige Ankünfte aus PMS</div>
-          <div class="qu-badge" id="qb-ankuenfte">Hochladen</div>
-        </div>
-        <div class="qu-card qu-opt" id="qu-inhaus" onclick="el('fi-inhaus').click()">
-          <div class="qu-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M4 21V7l8-4 8 4v14"/><path d="M9 21v-6h6v6"/></svg></div>
-          <div class="qu-tit">Inhaus-Gäste</div>
-          <div class="qu-sub">Alle Hausgäste (optional)</div>
-          <div class="qu-badge" id="qb-inhaus">Optional</div>
-        </div>
-      </div>
-      <button class="btn btn-gold qu-calc-btn" id="btn-quick-calc" onclick="quickCalc()" disabled>Tischplan berechnen →</button>
-      <div class="dash-demo-card" onclick="loadDemoAndCalc()" style="margin-top:10px">
-        <span class="ddc-arrow">▶</span>
-        <div class="ddc-body">
-          <div class="ddc-title">Demo mit Beispielhotel starten</div>
-          <div class="ddc-sub">Sofort testen mit 60 Gästen — kein Upload nötig.</div>
+
+      <!-- Phase A: Vorlage noch nicht geladen (einmalige Einrichtung) -->
+      <div id="tgst-setup" style="display:none">
+        <div class="tgst-setup">
+          <div class="tgst-setup-ico">📋</div>
+          <div class="tgst-setup-tit">Einmalig einrichten</div>
+          <div class="tgst-setup-sub">
+            Lade deine Tischplan-Vorlage hoch — einmalig, dann dauerhaft gespeichert.<br>
+            Danach: täglich eine Datei rein, fertiger Tischplan raus.
+          </div>
+          <input type="file" id="fi-tgst-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
+          <button class="btn btn-gold" style="min-width:220px;margin-bottom:16px" onclick="el('fi-tgst-vorlage').click()">
+            Tischplan-Vorlage hochladen
+          </button>
+          <div class="tgst-or">oder ohne Vorlage</div>
+          <div class="dash-demo-card" onclick="loadDemoAndCalc()">
+            <span class="ddc-arrow">▶</span>
+            <div class="ddc-body">
+              <div class="ddc-title">Demo mit Beispielhotel starten</div>
+              <div class="ddc-sub">Sofort testen — kein Upload nötig</div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- Phase B+C: Vorlage geladen — täglicher Workflow -->
+      <div id="tgst-daily" style="display:none">
+        <div class="tgst-badge">
+          ✓ Vorlage bereit
+          <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
+        </div>
+
+        <!-- Dropzone (Phase B: noch keine Datei) -->
+        <div id="tgst-dropzone" class="tgst-dropzone"
+          ondrop="handleQuickDrop(event)"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          onclick="el('fi-quick-guest').click()">
+          <div class="tgst-drop-ico">📥</div>
+          <div class="tgst-drop-tit">Gästedatei hier ablegen</div>
+          <div class="tgst-drop-sub">PMS-Export (Excel oder CSV) — oder klicken zum Auswählen</div>
+        </div>
+        <input type="file" id="fi-quick-guest" accept=".csv,.xlsx,.xls" style="display:none"
+          onchange="quickLoadFile(this.files[0]);this.value=''">
+
+        <!-- Datei geladen (Phase C) -->
+        <div id="tgst-file-loaded" class="tgst-file-loaded" style="display:none">
+          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-name" id="tgst-fname">—</span>
+          <button class="tgst-file-clear" onclick="clearQuickFile()" title="Entfernen">✕</button>
+        </div>
+
+        <!-- Berechnen-Button (Phase C) -->
+        <button class="btn btn-gold qu-calc-btn" id="btn-tgst-calc" style="display:none;width:100%"
+          onclick="quickCalcAndExport()">
+          Tischplan berechnen &amp; herunterladen →
+        </button>
+
+        <div class="tgst-or">oder</div>
+        <div class="dash-demo-card" onclick="loadDemoAndCalc()">
+          <span class="ddc-arrow">▶</span>
+          <div class="ddc-body">
+            <div class="ddc-title">Demo mit Beispielhotel starten</div>
+            <div class="ddc-sub">Sofort testen — kein Upload nötig</div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Cockpit result state: shown after plan is calculated -->
@@ -984,9 +1048,18 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </div>
       </div>
 
-      <!-- 2 main action buttons + Neuer Tag -->
+      <!-- Primärer Download-Button — nur wenn Vorlage geladen -->
+      <div id="cockpit-dl-section" class="cockpit-dl" style="display:none">
+        <button class="btn btn-gold cockpit-primary" style="width:100%;font-size:15px;padding:17px"
+          onclick="exportToTischplanTemplate()">
+          ⬇ Tischplan herunterladen
+        </button>
+        <div class="cockpit-dl-hint" id="cockpit-dl-hint">Befüllt deine Tischplan-Vorlage und lädt sie herunter</div>
+      </div>
+
+      <!-- 2 Sekundär-Aktionen + Neuer Tag -->
       <div class="cockpit-actions">
-        <button class="btn btn-gold cockpit-primary" onclick="goStep(3)">⊞ Tischplan anzeigen</button>
+        <button class="btn btn-gold cockpit-primary" id="cockpit-btn-view" onclick="goStep(3)">⊞ Tischplan anzeigen</button>
         <button class="btn cockpit-secondary" onclick="goTab(2)">🖨 Drucklisten</button>
       </div>
       <div class="cockpit-actions-row2">
@@ -3873,12 +3946,142 @@ function unmarkResolved(encodedMsg){
 //  STEP 5 — EXCEL EXPORT
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
-//  HOTELIER-TISCHPLAN VORLAGE
+//  HOTELIER-TISCHPLAN VORLAGE — TAGESSTART
 // ══════════════════════════════════════════════════════════════
 let tischplanTemplate=null;  // ArrayBuffer of uploaded template
 let tischplanMap={};         // tableID → {r, side:'left'|'right'}
 let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
+let quickGuestFileName='';   // filename of quick-loaded guest file
+let quickGuestLoaded=false;  // guest file loaded via quick mode
+
+// ── Template Persistence ──────────────────────────────────────
+function saveTemplateToStorage(buf){
+  try{
+    const bytes=new Uint8Array(buf);
+    let bin='';
+    for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    localStorage.setItem('hsi_tischplan_template_b64',btoa(bin));
+  }catch(e){/* localStorage full */}
+}
+function restoreTemplateFromStorage(){
+  try{
+    const b64=localStorage.getItem('hsi_tischplan_template_b64');
+    if(!b64) return;
+    const bin=atob(b64);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    tischplanTemplate=bytes.buffer;
+    parseTischplanTemplate(tischplanTemplate);
+  }catch(e){/* ignore corrupted */}
+}
+
+// ── Quick File Load (Tagesstart) ──────────────────────────────
+function quickLoadFile(file){
+  if(!file) return;
+  quickGuestFileName=file.name;
+  quickGuestLoaded=false;
+  setStatus('Lese Gästedatei…','spin');
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  if(ext==='xlsx'||ext==='xls'){
+    reader.readAsArrayBuffer(file);
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        processQuickGuestCSV(XLSX.utils.sheet_to_csv(ws));
+      }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
+    };
+  }else{
+    reader.readAsText(file,'UTF-8');
+    reader.onload=e=>processQuickGuestCSV(e.target.result);
+  }
+}
+function processQuickGuestCSV(csv){
+  const parsed=parseCSV(csv);
+  if(!parsed||!parsed.rows.length){setStatus('Keine Gästedaten gefunden','err');return;}
+  parsedFiles['inhaus']=parsed;
+  fileStatus.inhaus=true;
+  demoFileKeys.delete('inhaus');
+  quickGuestLoaded=true;
+  autoMap();
+  setStatus(parsed.rows.length+' Gäste eingelesen — bereit zur Berechnung','go');
+  updateStartPhase();
+}
+function handleQuickDrop(e){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f) quickLoadFile(f);
+}
+function clearQuickFile(){
+  quickGuestLoaded=false;quickGuestFileName='';
+  delete parsedFiles['inhaus'];
+  fileStatus.inhaus=false;
+  updateStartPhase();
+  setStatus('Datei entfernt','');
+}
+function clearTemplate(){
+  tischplanTemplate=null;tischplanMap={};tischplanKat={};tischplanKombi=[];
+  localStorage.removeItem('hsi_tischplan_template_b64');
+  const sec=el('export-vorlage-section');if(sec) sec.style.display='none';
+  updateTemplateStatus();
+  updateStartPhase();
+  setStatus('Vorlage entfernt','');
+}
+
+// ── quickCalcAndExport ─────────────────────────────────────────
+function quickCalcAndExport(){
+  if(!quickGuestLoaded&&!fileStatus.ankuenfte&&!fileStatus.inhaus) return;
+  autoMap();
+  setStatus('Berechne Tischplan…','spin');
+  currentStep=2;
+  setTimeout(()=>{
+    runCalc();
+    if(tischplanTemplate){
+      setTimeout(()=>exportToTischplanTemplate(),400);
+    }
+  },200);
+}
+
+// ── updateStartPhase ──────────────────────────────────────────
+function updateStartPhase(){
+  const hasTemplate=!!tischplanTemplate;
+  const hasFile=quickGuestLoaded||fileStatus.ankuenfte||fileStatus.inhaus;
+  const setup=el('tgst-setup');
+  const daily=el('tgst-daily');
+  const dropzone=el('tgst-dropzone');
+  const fileLoaded=el('tgst-file-loaded');
+  const calcBtn=el('btn-tgst-calc');
+  const fname=el('tgst-fname');
+  const dashUp=el('dash-upload');
+  // Hide whole upload area when calcDone
+  if(dashUp) dashUp.style.display=calcDone?'none':'block';
+  if(calcDone){
+    // Cockpit download button
+    const dl=el('cockpit-dl-section');
+    if(dl) dl.style.display=hasTemplate?'block':'none';
+    // Make "view" button secondary when download is primary
+    const vb=el('cockpit-btn-view');
+    if(vb){
+      if(hasTemplate){vb.classList.remove('btn-gold');vb.classList.add('btn-outline');}
+      else{vb.classList.add('btn-gold');vb.classList.remove('btn-outline');}
+    }
+    return;
+  }
+  if(!hasTemplate){
+    if(setup) setup.style.display='block';
+    if(daily) daily.style.display='none';
+  }else{
+    if(setup) setup.style.display='none';
+    if(daily) daily.style.display='block';
+    if(dropzone) dropzone.style.display=hasFile?'none':'block';
+    if(fileLoaded) fileLoaded.style.display=hasFile?'flex':'none';
+    if(fname) fname.textContent=quickGuestFileName||'Gästedatei geladen';
+    if(calcBtn) calcBtn.style.display=hasFile?'block':'none';
+  }
+}
 
 function loadTischplanVorlage(input){
   const file=input.files[0];
@@ -3937,7 +4140,9 @@ function parseTischplanTemplate(buf){
       tischplanMap[String(parseInt(rv))]={r,side:'right'};
   }
   autoConfigFromTemplate();
+  saveTemplateToStorage(buf);
   updateTemplateStatus();
+  updateStartPhase();
 }
 
 function autoConfigFromTemplate(){
@@ -4588,8 +4793,7 @@ function updateQuickUploadCards(){
   });
   const canCalc=fileStatus.vortag&&(fileStatus.ankuenfte||fileStatus.inhaus);
   const btn=el('btn-quick-calc');if(btn) btn.disabled=!canCalc;
-  const upl=el('dash-upload');const res=el('dash-result');
-  if(upl) upl.style.display=calcDone?'none':'block';
+  const res=el('dash-result');
   if(res) res.style.display=calcDone?'block':'none';
   if(calcDone){
     const sub=el('qu-done-sub');
@@ -4600,6 +4804,7 @@ function updateQuickUploadCards(){
       sub.textContent=`${gc} Gäste verteilt · ${tc} Tische · ${wc>0?wc+' Hinweis'+(wc>1?'e':''):'Keine Warnungen'}`;
     }
   }
+  updateStartPhase();
 }
 function quickCalc(){
   if(!fileStatus.vortag||((!fileStatus.ankuenfte)&&!fileStatus.inhaus)) return;
@@ -4967,7 +5172,9 @@ updateMealCards();
 updateStepUI(0);
 updateTabBar(0);
 restoreState();
+restoreTemplateFromStorage();
 if(calcDone){updateDashboard();updateCockpitSolved();}
+updateStartPhase();
 
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
