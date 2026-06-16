@@ -1075,93 +1075,85 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <div class="page" id="s1">
   <div class="page-hdr">
     <h1>Einstellungen</h1>
-    <p>Grundeinstellungen für den Tischplan.</p>
+    <p>Alle Angaben auf einen Blick — einmal einrichten, täglich bereit.</p>
   </div>
   <div style="padding:0 0 120px">
 
-    <!-- Hotel & Datum -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">HOTEL & DATUM</div>
-      <div style="display:grid;gap:10px">
-        <div class="form-row">
-          <label>HOTELNAME</label>
-          <input type="text" id="hotel-name-input" placeholder="Hotelname eingeben" oninput="syncHotelName(this.value)">
-        </div>
-        <div class="form-row">
-          <label>DATUM</label>
-          <input type="date" id="ref-date" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%;box-sizing:border-box">
-        </div>
-        <div class="form-row">
-          <label>MAHLZEIT</label>
-          <select id="slot-sel" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;width:100%">
-            <option value="fruehstueck">Frühstück</option>
-            <option value="mittag">Mittagessen</option>
-            <option value="abend">Abendessen</option>
-          </select>
-        </div>
-      </div>
+    <!-- Bereit-Banner -->
+    <div id="cfg-ready-banner" style="display:none;background:rgba(46,204,113,.1);border:1.5px solid rgba(46,204,113,.3);border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="color:var(--green);font-size:13px;font-weight:700">✓ Alles eingerichtet</div>
+      <button class="btn btn-gold btn-sm" onclick="goTab(0)">Zum Start →</button>
+    </div>
+    <div id="cfg-missing-banner" style="background:rgba(231,76,60,.07);border:1.5px solid rgba(231,76,60,.2);border-radius:12px;padding:11px 16px;margin-bottom:14px;font-size:12px;color:var(--red)">
+      Bitte Tischplan-Vorlage hochladen, um loszulegen.
     </div>
 
-    <!-- Tischplan-Vorlage -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:12px">TISCHPLAN-VORLAGE</div>
-      <div id="template-status" style="font-size:11px;margin-bottom:10px">
-        <span style="color:var(--dim)">Keine Vorlage geladen</span>
-      </div>
-      <input type="file" id="fi-tischplan-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-gold btn-sm" onclick="el('fi-tischplan-vorlage').click()">Vorlage hochladen</button>
-        <button class="btn btn-outline btn-sm" onclick="clearTemplate()">Vorlage entfernen</button>
-      </div>
-    </div>
+    <!-- Einstellungs-Checkliste -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
 
-    <!-- Score-Gewichte -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">PRIORITÄT & SCORE</div>
-      <div id="score-legend" class="score-legend-box" style="margin-bottom:10px"></div>
-      <button class="btn btn-outline btn-sm" onclick="showWeightsModal()">Score-Gewichte anpassen →</button>
-    </div>
+      <!-- Hotelname -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:18px;color:var(--green);font-size:15px;font-weight:700;flex-shrink:0">✓</div>
+        <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Hotelname</div>
+        <input type="text" id="hotel-name-input" placeholder="z.B. Grand Hotel Vienna"
+          oninput="syncHotelName(this.value)"
+          style="flex:1;background:transparent;color:var(--text);border:none;border-bottom:1px solid var(--border);padding:3px 0;font-size:13px;outline:none;min-width:0">
+      </div>
 
-    <!-- Intelligente Zuweisung toggle -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
-      <div class="s1-smart-hdr">
-        <div>
-          <div class="s1-smart-title">Intelligente Tischzuweisung</div>
-          <div class="s1-smart-sub">Min-Score pro Tisch — wird aus Vorlage automatisch gesetzt.</div>
-        </div>
-        <label class="toggle-sw">
-          <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
-          <span class="toggle-knob"></span>
-        </label>
+      <!-- Datum -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:18px;color:var(--green);font-size:15px;font-weight:700;flex-shrink:0">✓</div>
+        <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Datum</div>
+        <input type="date" id="ref-date"
+          style="flex:1;background:transparent;color:var(--text);border:none;border-bottom:1px solid var(--border);padding:3px 0;font-size:13px;outline:none;min-width:0">
       </div>
-      <div id="smart-assign-panel" style="display:none;margin-top:14px">
-        <div class="tcfg-section-hdr">MIN.SCORE pro Tisch</div>
-        <div id="tisch-config-list"></div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-gold btn-sm" onclick="saveTischConfig()">Speichern</button>
-          <button class="btn btn-outline btn-sm" onclick="resetTischConfig()">Zurücksetzen</button>
+
+      <!-- Mahlzeit -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:18px;color:var(--green);font-size:15px;font-weight:700;flex-shrink:0">✓</div>
+        <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Mahlzeit</div>
+        <select id="slot-sel"
+          style="flex:1;background:transparent;color:var(--text);border:none;border-bottom:1px solid var(--border);padding:3px 0;font-size:13px;outline:none;min-width:0">
+          <option value="fruehstueck">Frühstück</option>
+          <option value="mittag">Mittagessen</option>
+          <option value="abend">Abendessen</option>
+        </select>
+      </div>
+
+      <!-- Tischvorlage (dynamisch) -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+        <div id="cfg-ico-vorlage" style="width:18px;font-size:15px;font-weight:700;flex-shrink:0;color:var(--dim)">✗</div>
+        <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Tischvorlage</div>
+        <div style="flex:1;font-size:12px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="cfg-val-vorlage">nicht geladen</div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <input type="file" id="fi-tischplan-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
+          <button class="btn btn-gold btn-sm" id="cfg-btn-upload-vorlage" onclick="el('fi-tischplan-vorlage').click()">Hochladen</button>
+          <button class="btn btn-outline btn-sm" id="cfg-btn-clear-vorlage" style="display:none" onclick="clearTemplate()">Entfernen</button>
         </div>
       </div>
+
     </div>
 
     <!-- Hidden stubs needed by JS -->
-    <span id="fb-vortag" style="display:none"></span>
-    <span id="fn-vortag" style="display:none"></span>
-    <span id="fb-ankuenfte" style="display:none"></span>
-    <span id="fn-ankuenfte" style="display:none"></span>
-    <span id="fb-inhaus" style="display:none"></span>
-    <span id="fn-inhaus" style="display:none"></span>
-    <span id="fb-tische" style="display:none"></span>
-    <span id="fn-tische" style="display:none"></span>
-    <span id="s1-ptxt" style="display:none"></span>
-    <span id="s1-pbar" style="display:none"></span>
-    <div id="fc-vortag" style="display:none"><input type="file" id="fi-vortag" style="display:none" onchange="handleFile('vortag',this)"></div>
-    <div id="fc-ankuenfte" style="display:none"><input type="file" id="fi-ankuenfte" style="display:none" onchange="handleFile('ankuenfte',this)"></div>
-    <div id="fc-inhaus" style="display:none"><input type="file" id="fi-inhaus" style="display:none" onchange="handleFile('inhaus',this)"></div>
-    <div id="fc-tische" style="display:none"><input type="file" id="fi-tische" style="display:none" onchange="handleFile('tische',this)"></div>
-    <div id="btn-s1-next" style="display:none"></div>
-    <div id="s1-progress" style="display:none"></div>
-    <div id="s1-smart-card" style="display:none"></div>
+    <div style="display:none">
+      <div id="template-status"></div>
+      <div id="score-legend"></div>
+      <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
+      <div id="smart-assign-panel"></div>
+      <div id="tisch-config-list"></div>
+      <span id="fb-vortag"></span><span id="fn-vortag"></span>
+      <span id="fb-ankuenfte"></span><span id="fn-ankuenfte"></span>
+      <span id="fb-inhaus"></span><span id="fn-inhaus"></span>
+      <span id="fb-tische"></span><span id="fn-tische"></span>
+      <span id="s1-ptxt"></span><div id="s1-pbar"></div><div id="s1-progress"></div>
+      <div id="fc-vortag"><input type="file" id="fi-vortag" onchange="handleFile('vortag',this)"></div>
+      <div id="fc-ankuenfte"><input type="file" id="fi-ankuenfte" onchange="handleFile('ankuenfte',this)"></div>
+      <div id="fc-inhaus"><input type="file" id="fi-inhaus" onchange="handleFile('inhaus',this)"></div>
+      <div id="fc-tische"><input type="file" id="fi-tische" onchange="handleFile('tische',this)"></div>
+      <button id="btn-s1-next"></button>
+      <div id="demo-banner"></div>
+      <div id="s1-smart-card"></div>
+    </div>
   </div>
 </div>
 
@@ -3960,23 +3952,43 @@ function autoConfigFromTemplate(){
   renderTableConfigPanel();
 }
 
+function updateSettingsStatus(){
+  const hasTemplate=!!tischplanTemplate;
+  const nT=Object.keys(tischplanMap).length;
+  // Vorlage row
+  const ico=el('cfg-ico-vorlage');
+  const val=el('cfg-val-vorlage');
+  const btnUp=el('cfg-btn-upload-vorlage');
+  const btnCl=el('cfg-btn-clear-vorlage');
+  if(ico) ico.style.color=hasTemplate?'var(--green)':'var(--dim)';
+  if(ico) ico.textContent=hasTemplate?'✓':'✗';
+  if(val) val.style.color=hasTemplate?'var(--text)':'var(--dim)';
+  if(val) val.textContent=hasTemplate
+    ?(nT>0?`${nT} Tische geladen`:'Vorlage geladen')
+    :'nicht geladen';
+  if(btnUp) btnUp.textContent=hasTemplate?'Ersetzen':'Hochladen';
+  if(btnCl) btnCl.style.display=hasTemplate?'':'none';
+  // Banner
+  const ready=el('cfg-ready-banner');
+  const missing=el('cfg-missing-banner');
+  if(ready) ready.style.display=hasTemplate?'flex':'none';
+  if(missing) missing.style.display=hasTemplate?'none':'block';
+}
+
 function updateTemplateStatus(){
   const box=el('template-status');
-  if(!box) return;
   const nT=Object.keys(tischplanMap).length;
   const nK=Object.keys(tischplanKat).length;
   const nC=tischplanKombi.length;
-  if(!nT){
-    box.innerHTML='<span style="color:var(--dim)">Keine Vorlage geladen</span>';
-    return;
+  if(box){
+    if(!nT){box.innerHTML='<span style="color:var(--dim)">Keine Vorlage geladen</span>';}
+    else{box.innerHTML=`<div style="color:var(--green);font-weight:700;font-size:11px">✓ Vorlage erkannt — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen</div>`;}
   }
-  box.innerHTML=`<div style="color:var(--green);font-weight:700;font-size:11px">✓ Vorlage erkannt</div>
-    <div style="font-size:10px;color:var(--dim);margin-top:2px">${nT} Tische erkannt &nbsp;·&nbsp; ${nK} kategorisiert &nbsp;·&nbsp; ${nC} Kombinationen</div>
-    <div style="font-size:10px;color:var(--dim);margin-top:1px">Kat-1-Tische: MIN.SCORE=15 automatisch gesetzt</div>`;
   // Show export section in Drucklisten
   const sec=el('export-vorlage-section');
-  if(sec) sec.style.display='block';
-  setStatus(`Tischplan-Vorlage geladen — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen erkannt`,'go');
+  if(sec) sec.style.display=nT>0?'block':'none';
+  if(nT>0) setStatus(`Tischplan-Vorlage geladen — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen erkannt`,'go');
+  updateSettingsStatus();
 }
 
 function exportToTischplanTemplate(){
@@ -4978,6 +4990,7 @@ restoreState();
 restoreTemplateFromStorage();
 if(calcDone){updateDashboard();updateCockpitSolved();}
 updateStartPhase();
+updateSettingsStatus();
 
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
