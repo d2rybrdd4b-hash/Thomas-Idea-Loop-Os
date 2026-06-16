@@ -1128,6 +1128,20 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </label>
     </div>
     <div id="smart-assign-panel" style="display:none;margin-top:16px">
+      <!-- Hotelier-Vorlage Upload -->
+      <div class="tcfg-section-hdr">HOTELIER-TISCHPLAN VORLAGE</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div id="template-status" style="font-size:11px;margin-bottom:8px">
+          <span style="color:var(--dim)">Keine Vorlage geladen</span>
+        </div>
+        <input type="file" id="fi-tischplan-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
+        <button class="btn btn-outline btn-sm" onclick="el('fi-tischplan-vorlage').click()">
+          Tischplan-Vorlage hochladen
+        </button>
+        <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.4">
+          Lädt Tischkategorien automatisch ein und aktiviert den Export in das Hotelier-Format.
+        </div>
+      </div>
       <!-- Score-Legende: zeigt wer wieviel Punkte bekommt -->
       <div id="score-legend" class="score-legend-box"></div>
       <div style="margin-bottom:14px">
@@ -1441,6 +1455,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <button class="btn btn-ghost big-btn" id="btn-pdf" onclick="printAsPDF()">
         Als PDF drucken
       </button>
+    </div>
+
+    <!-- Hotelier-Vorlage Export — nur sichtbar wenn Vorlage geladen -->
+    <div id="export-vorlage-section" style="display:none;margin-top:12px;background:rgba(46,204,113,.08);border:1.5px solid rgba(46,204,113,.25);border-radius:12px;padding:14px 16px;text-align:center">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--green);margin-bottom:8px">HOTELIER-VORLAGE BEREIT</div>
+      <button class="btn btn-gold big-btn" id="btn-export-vorlage" onclick="exportToTischplanTemplate()">
+        In Hotelier-Tischplan exportieren
+      </button>
+      <div style="font-size:10px;color:var(--dim);margin-top:6px" id="vorlage-export-hint">Befüllt die hochgeladene Excel-Vorlage mit den zugewiesenen Gästen</div>
     </div>
 
     <div id="s5-done">
@@ -3849,6 +3872,156 @@ function unmarkResolved(encodedMsg){
 // ══════════════════════════════════════════════════════════════
 //  STEP 5 — EXCEL EXPORT
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  HOTELIER-TISCHPLAN VORLAGE
+// ══════════════════════════════════════════════════════════════
+let tischplanTemplate=null;  // ArrayBuffer of uploaded template
+let tischplanMap={};         // tableID → {r, side:'left'|'right'}
+let tischplanKat={};         // tableID → kategorie (1–8)
+let tischplanKombi=[];       // [{tables,min,max}]
+
+function loadTischplanVorlage(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      tischplanTemplate=e.target.result;
+      parseTischplanTemplate(tischplanTemplate);
+    }catch(ex){setStatus('Fehler beim Lesen der Vorlage: '+ex.message,'err');}
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+
+function parseTischplanTemplate(buf){
+  const wb=XLSX.read(buf,{type:'array',cellStyles:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1:N99');
+  tischplanMap={};tischplanKat={};tischplanKombi=[];
+  let inKat=false,inKombi=false;
+  const cv=(r,c)=>{const cell=ws[XLSX.utils.encode_cell({r,c})];return cell!=null?cell.v:null;};
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const a=String(cv(r,0)||'');
+    const c=String(cv(r,2)||'');
+    // Section detection
+    if(a.includes('Tischkategorien')){inKat=true;inKombi=false;continue;}
+    if(a.includes('Tischkombinationen')){inKombi=true;inKat=false;continue;}
+    if(a.includes('Ausschl')){inKat=false;inKombi=false;}
+    // Kategorien
+    if(inKat&&/^Kat\s*\d/.test(c)){
+      const kat=parseInt(c.replace(/[^0-9]/g,''));
+      // Handle both "741,742,743" strings and 746.749 floats (Excel German locale quirk)
+      String(cv(r,3)||'').split(',').flatMap(seg=>{
+        seg=seg.trim();
+        return(seg.includes('.')&&!/[a-zA-Z]/.test(seg))?seg.split('.'):[ seg];
+      }).map(t=>t.trim()).filter(Boolean)
+        .forEach(t=>{tischplanKat[t]=kat;});
+      continue;
+    }
+    // Kombinationen
+    if(inKombi){
+      const prio=cv(r,0),tische=String(cv(r,2)||''),pers=String(cv(r,3)||'');
+      if(prio&&tische.includes('-')){
+        const tables=tische.split('-').map(t=>t.trim());
+        const m=pers.match(/(\d+)[^\d]*(\d+)?/);
+        tischplanKombi.push({tables,min:m?parseInt(m[1]):4,max:m?(parseInt(m[2])||parseInt(m[1])):6});
+      }
+      continue;
+    }
+    // Table positions (col 0=left, col 7=right)
+    const lv=cv(r,0),rv=cv(r,7);
+    if(lv!=null&&!isNaN(parseFloat(lv))&&String(lv).trim()!=='')
+      tischplanMap[String(parseInt(lv))]={r,side:'left'};
+    if(rv!=null&&!isNaN(parseFloat(rv))&&String(rv).trim()!=='')
+      tischplanMap[String(parseInt(rv))]={r,side:'right'};
+  }
+  autoConfigFromTemplate();
+  updateTemplateStatus();
+}
+
+function autoConfigFromTemplate(){
+  // Kat 1 = beste Tische → MIN.SCORE=15 damit VIP/Stammgast sie bekommen
+  // Kat 2–6 = offen → 0
+  // Kat 7–8 = letzter Ausweg → bleiben auf 0, aber Tags werden geleert
+  const katScore={1:15,2:0,3:0,4:0,5:0,6:0,7:0,8:0};
+  Object.entries(tischplanKat).forEach(([tid,kat])=>{
+    if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0,minScore:0};
+    tableConfig[tid].minScore=katScore[kat]??0;
+    if(kat===1&&tableConfig[tid].tags.length===0) tableConfig[tid].tags=['vip'];
+  });
+  saveTischConfig();
+  renderTableConfigPanel();
+}
+
+function updateTemplateStatus(){
+  const box=el('template-status');
+  if(!box) return;
+  const nT=Object.keys(tischplanMap).length;
+  const nK=Object.keys(tischplanKat).length;
+  const nC=tischplanKombi.length;
+  if(!nT){
+    box.innerHTML='<span style="color:var(--dim)">Keine Vorlage geladen</span>';
+    return;
+  }
+  box.innerHTML=`<div style="color:var(--green);font-weight:700;font-size:11px">✓ Vorlage erkannt</div>
+    <div style="font-size:10px;color:var(--dim);margin-top:2px">${nT} Tische erkannt &nbsp;·&nbsp; ${nK} kategorisiert &nbsp;·&nbsp; ${nC} Kombinationen</div>
+    <div style="font-size:10px;color:var(--dim);margin-top:1px">Kat-1-Tische: MIN.SCORE=15 automatisch gesetzt</div>`;
+  // Show export section in Drucklisten
+  const sec=el('export-vorlage-section');
+  if(sec) sec.style.display='block';
+  setStatus(`Tischplan-Vorlage geladen — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen erkannt`,'go');
+}
+
+function exportToTischplanTemplate(){
+  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
+  if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
+  const wb=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  // Guest lookup by table ID
+  const guestByTable={};
+  (lastTables||[]).forEach(t=>{
+    if(t.gast_id){
+      const g=(assignedGuests||[]).find(g=>g.id===t.gast_id);
+      if(g) guestByTable[String(t.tisch_id)]=g;
+    }
+  });
+  // Write to cells
+  Object.entries(tischplanMap).forEach(([tid,{r,side}])=>{
+    const base=side==='left'?2:9;
+    const g=guestByTable[tid];
+    if(g){
+      const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
+        +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
+      const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
+      tplCell(ws,r,base,  String(g.zimmer||''));
+      tplCell(ws,r,base+1,name);
+      tplCell(ws,r,base+2,g.pax||1,'n');
+      tplCell(ws,r,base+3,extras);
+    } else {
+      // Clear cells for empty/free tables
+      [0,1,2,3].forEach(d=>{
+        const addr=XLSX.utils.encode_cell({r,c:base+d});
+        if(ws[addr]) ws[addr].v='';
+      });
+    }
+  });
+  const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
+    .replace(/[^\w\s-]/g,'').trim();
+  const ds=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`Tischplan_${hotel}_${ds}.xlsx`,{bookSST:false});
+  setStatus('Hotelier-Tischplan exportiert','go');
+  el('s5-done').style.display='block';
+}
+
+function tplCell(ws,r,c,value,type){
+  const addr=XLSX.utils.encode_cell({r,c});
+  if(!ws[addr]) ws[addr]={};
+  ws[addr].v=value;
+  ws[addr].t=type||'s';
+  delete ws[addr].f;
+}
+
 function exportExcel(){
   if(!calcDone){alert('Bitte erst Schritt 3 ausführen.');return;}
   const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg));
