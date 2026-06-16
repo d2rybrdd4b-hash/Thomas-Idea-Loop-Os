@@ -2043,6 +2043,76 @@ function extractTablesFromVortag(rows){
   };
 }
 
+// ── Panorama "reservations_by_arrival" parser ─────────────────
+// Sheet: DynamicListReport_*  |  Row 7 = headers
+// Col B(1)=Zimmer, C(2)=Gastname(n), F(5)=Nächte, H(7)=Personen, I(8)=Bemerk., O(14)=Res.-Status
+function parsePanoramaArrival(wb){
+  const sheetName=wb.SheetNames.find(n=>n.includes('DynamicListReport'));
+  if(!sheetName) return null;
+  const ws=wb.Sheets[sheetName];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+
+  // Parse arrival date from row 4 (index 3): "Vom: 16.06.2026"
+  let arrivalDate=new Date().toISOString().slice(0,10);
+  const row4=aoa[3]||[];
+  for(const cell of row4){
+    if(!cell) continue;
+    const m=String(cell).match(/Vom:\s*(\d{2})\.(\d{2})\.(\d{4})/);
+    if(m){arrivalDate=`${m[3]}-${m[2]}-${m[1]}`;break;}
+  }
+
+  // Verify row 7 (index 6) looks like expected headers
+  const hdr=aoa[6]||[];
+  const hasZimmer=hdr.some(c=>c&&String(c).trim()==='Zimmer');
+  if(!hasZimmer) return null;
+
+  const STOP_WORDS=['summe','gesamt','total'];
+  const rows=[];
+  for(let i=7;i<aoa.length;i++){
+    const row=aoa[i]||[];
+    const zimmerRaw=String(row[1]||'').trim();
+    const nameRaw=String(row[2]||'').trim();
+    if(!zimmerRaw&&!nameRaw) continue;
+    // Stop at totals row
+    if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
+
+    const naechte=parseInt(row[5])||1;
+    const pax=parseInt(row[7])||1;
+    const bemerkung=String(row[8]||'').trim();
+    const resStatus=String(row[14]||'').trim();
+
+    // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
+    const firstPerson=(nameRaw.split(',')[0]||'').trim();
+    const parts=firstPerson.split(/\s+/);
+    const nachname=parts[0]||nameRaw;
+    const vorname=parts.slice(1).join(' ');
+
+    // Compute checkout
+    const cin=new Date(arrivalDate);
+    const cout=new Date(cin);
+    cout.setDate(cout.getDate()+naechte);
+    const checkOut=cout.toISOString().slice(0,10);
+
+    rows.push({
+      Zimmernummer:zimmerRaw,
+      Nachname:nachname,
+      Vorname:vorname,
+      CheckIn:arrivalDate,
+      CheckOut:checkOut,
+      AnzahlPersonen:String(pax),
+      Bemerkung:bemerkung,
+      GastTyp:'AN',
+      ResStatus:resStatus
+    });
+  }
+  if(rows.length===0) return null;
+  return{
+    headers:['Zimmernummer','Nachname','Vorname','CheckIn','CheckOut','AnzahlPersonen','Bemerkung','GastTyp'],
+    rows,
+    _source:'panorama_arrival'
+  };
+}
+
 // ── Allergen- und Kinder-Extraktion aus Bemerkungsfeldern ──
 function enrichFromBemerkung(g){
   const bem=(g.bemerkung||'')+' '+(g.extras||'');
@@ -2202,6 +2272,35 @@ function handleFile(key,input){
       }catch(err){setStatus('Fehler: '+err.message);}
     };
     reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  // Special path: Ankünfte XLSX → try Panorama arrival parser first
+  if(key==='ankuenfte'&&(ext==='xlsx'||ext==='xls')){
+    const reader2=new FileReader();
+    reader2.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const arrival=parsePanoramaArrival(wb);
+        if(arrival){
+          parsedFiles[key]=arrival;
+          fileStatus[key]=true;
+          const card=el('fc-'+key);if(card) card.classList.add('ok');
+          const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+arrival.rows.length+' Anreisen (Panorama)';
+          setStatus(file.name+' geladen — '+arrival.rows.length+' Anreisen erkannt','go');
+          checkS1Ready();return;
+        }
+        // Fall back to generic sheet→CSV
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const csv=XLSX.utils.sheet_to_csv(ws);
+        const parsed=parseCSV(csv);
+        parsedFiles[key]=parsed;fileStatus[key]=true;
+        const card=el('fc-'+key);if(card) card.classList.add('ok');
+        const fb=el('fb-'+key);if(fb) fb.textContent='✓ '+parsed.rows.length+' Zeilen';
+        setStatus(file.name+' geladen','go');checkS1Ready();
+      }catch(err){setStatus('Fehler: '+err.message);}
+    };
+    reader2.readAsArrayBuffer(file);
     return;
   }
 
@@ -3989,6 +4088,18 @@ function quickLoadFile(file){
     reader.onload=e=>{
       try{
         const wb=XLSX.read(e.target.result,{type:'array'});
+        // Try Panorama arrival format (reservations_by_arrival)
+        const arrival=parsePanoramaArrival(wb);
+        if(arrival){
+          parsedFiles['ankuenfte']=arrival;
+          fileStatus.ankuenfte=true;
+          demoFileKeys.delete('ankuenfte');
+          quickGuestLoaded=true;
+          autoMap();
+          setStatus(arrival.rows.length+' Anreisen (Panorama) eingelesen — bereit zur Berechnung','go');
+          updateStartPhase();
+          return;
+        }
         const ws=wb.Sheets[wb.SheetNames[0]];
         processQuickGuestCSV(XLSX.utils.sheet_to_csv(ws));
       }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
