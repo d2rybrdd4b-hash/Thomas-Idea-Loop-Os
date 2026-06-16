@@ -1042,10 +1042,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
 
       <!-- Neuer Tag -->
-      <div id="cockpit-btn-view" style="display:none"></div>
-      <div class="cockpit-actions-row2">
+      <div class="cockpit-actions">
         <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag starten</button>
       </div>
+      <div id="cockpit-btn-view" style="display:none"></div>
 
       <!-- Was wurde erkannt? -->
       <div class="cockpit-solved">
@@ -1280,11 +1280,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <div class="bot">
       <button class="btn btn-ghost" onclick="goStep(0)">← Zurück zum Start</button>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-blue btn-sm" onclick="resetAndCalc()">Neu berechnen</button>
-        <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled>Hinweise</button>
-        <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled>Druckmappe</button>
-      </div>
+      <button class="btn btn-blue btn-sm" id="btn-s3-next" onclick="goStep(4)" disabled style="display:none">Hinweise</button>
+      <button class="btn btn-gold" id="btn-s3-export" onclick="goStep(5)" disabled style="display:none">Druckmappe</button>
     </div>
   </div>
 </div>
