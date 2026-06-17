@@ -3167,16 +3167,6 @@ function stepAnim(n){
 }
 
 function renderResults(guests,tables,warns){
-  // Stats
-  const assigned=guests.filter(g=>g.zugewiesener_tisch).length;
-  const freeT=tables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
-  const redW=warns.filter(w=>w.level==='red').length;
-  el('res-grid').innerHTML=`
-    <div class="rcard"><div class="rv">${guests.length}</div><div class="rk">Gäste aktiv</div></div>
-    <div class="rcard"><div class="rv" style="color:var(--green)">${assigned}</div><div class="rk">Tisch zugewiesen</div></div>
-    <div class="rcard"><div class="rv">${freeT}</div><div class="rk">Tische frei</div></div>
-    <div class="rcard"><div class="rv" style="color:${redW?'var(--red)':'var(--green)'}">${redW}</div><div class="rk">Krit. Warnungen</div></div>
-  `;
   renderPlanTable(guests);
 }
 
