@@ -2618,7 +2618,7 @@ function parseGuests(rows){
       vip:isVip,
       stammgast:isStammgast,
       kinder,
-      zimmer_kat:getField(r,'Zimmerkategorie')||'',
+      zimmer_kat:String(getField(r,'Zimmerkategorie')||''),
       allergie:getField(r,'Allergie')||'',
       bemerkung:getField(r,'Bemerkung')||'',
       extras:getField(r,'Extras')||'',
@@ -2855,6 +2855,7 @@ function ruleRank(g){
   return katRank+(hasActiveOccasion(g)?-0.5:0);
 }
 function runCalc(){
+ try{
   setStatus('Berechne Tischplan…','spin');
   const rows=getMappedRows();
   const tRows=parsedFiles.tische?.rows||[];
@@ -3148,6 +3149,10 @@ function runCalc(){
   updateDashboard();
   updateCockpitSolved();
   saveState();
+ }catch(ex){
+  console.error('runCalc fehlgeschlagen:',ex);
+  setStatus('Fehler bei der Berechnung: '+ex.message,'err');
+ }
 }
 
 function stepAnim(n){
