@@ -970,24 +970,30 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
         </div>
 
-        <!-- Dropzone (Phase B: noch keine Datei) -->
-        <div id="tgst-dropzone" class="tgst-dropzone"
-          ondrop="handleQuickDrop(event)"
-          ondragover="event.preventDefault();this.classList.add('drag-over')"
-          ondragleave="this.classList.remove('drag-over')"
-          onclick="el('fi-quick-guest').click()">
-          <div class="tgst-drop-ico">📥</div>
-          <div class="tgst-drop-tit">Gästedatei hier ablegen</div>
-          <div class="tgst-drop-sub">PMS-Export (Excel oder CSV) — oder klicken zum Auswählen</div>
-        </div>
-        <input type="file" id="fi-quick-guest" accept=".csv,.xlsx,.xls" style="display:none"
-          onchange="quickLoadFile(this.files[0]);this.value=''">
-
-        <!-- Datei geladen (Phase C) -->
-        <div id="tgst-file-loaded" class="tgst-file-loaded" style="display:none">
+        <!-- Anreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
+        <input type="file" id="fi-tgst-ankuenfte" accept=".csv,.xlsx,.xls" style="display:none"
+          onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
+        <button class="btn btn-gold" id="btn-tgst-ankuenfte" style="width:100%;margin-bottom:10px"
+          onclick="el('fi-tgst-ankuenfte').click()">
+          ⬆ Anreisen hochladen
+        </button>
+        <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
           <span class="tgst-file-ico">📄</span>
-          <span class="tgst-file-name" id="tgst-fname">—</span>
-          <button class="tgst-file-clear" onclick="clearQuickFile()" title="Entfernen">✕</button>
+          <span class="tgst-file-name" id="tgst-ankuenfte-fname">—</span>
+          <button class="tgst-file-clear" onclick="clearAnkuenfteFile()" title="Entfernen">✕</button>
+        </div>
+
+        <!-- Abreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
+        <input type="file" id="fi-tgst-abreisen" accept=".csv,.xlsx,.xls" style="display:none"
+          onchange="quickLoadAbreisen(this.files[0]);this.value=''">
+        <button class="btn btn-gold" id="btn-tgst-abreisen" style="width:100%;margin-bottom:10px"
+          onclick="el('fi-tgst-abreisen').click()">
+          ⬆ Abreisen hochladen
+        </button>
+        <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:16px">
+          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-name" id="tgst-abreisen-fname">—</span>
+          <button class="tgst-file-clear" onclick="clearAbreisenFile()" title="Entfernen">✕</button>
         </div>
 
         <!-- Berechnen-Button (Phase C) -->
@@ -2086,8 +2092,8 @@ function renderMapRows(){
 }
 
 function getMappedRows(){
-  // Combine ankuenfte + inhaus, dedupe by GastID or Nachname+Zimmer
-  const sources=['inhaus','ankuenfte'];
+  // Combine inhaus + ankuenfte + abreisen, dedupe by GastID or Nachname+Zimmer
+  const sources=['inhaus','ankuenfte','abreisen'];
   let allRows=[];
   sources.forEach(key=>{
     if(!parsedFiles[key]) return;
@@ -3504,8 +3510,8 @@ let tischplanTemplate=null;  // ArrayBuffer of uploaded template
 let tischplanMap={};         // tableID → {r, side:'left'|'right'}
 let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
-let quickGuestFileName='';   // filename of quick-loaded guest file
-let quickGuestLoaded=false;  // guest file loaded via quick mode
+let quickAnkuenfteFileName=''; // filename of loaded Anreisen file
+let quickAbreisenFileName='';  // filename of loaded Abreisen file
 
 // ── Template Persistence ──────────────────────────────────────
 function saveTemplateToStorage(buf){
@@ -3528,63 +3534,88 @@ function restoreTemplateFromStorage(){
   }catch(e){/* ignore corrupted */}
 }
 
-// ── Quick File Load (Tagesstart) ──────────────────────────────
-function quickLoadFile(file){
+// ── Anreisen Import (Tagesstart) ───────────────────────────────
+function quickLoadAnkuenfte(file){
   if(!file) return;
-  quickGuestFileName=file.name;
-  quickGuestLoaded=false;
-  setStatus('Lese Gästedatei…','spin');
+  quickAnkuenfteFileName=file.name;
+  setStatus('Lese Anreisen…','spin');
   const ext=file.name.split('.').pop().toLowerCase();
   const reader=new FileReader();
+  const apply=parsed=>{
+    if(!parsed||!parsed.rows.length){setStatus('Keine Anreisen-Daten gefunden','err');return;}
+    parsedFiles['ankuenfte']=parsed;
+    fileStatus.ankuenfte=true;
+    demoFileKeys.delete('ankuenfte');
+    autoMap();
+    setStatus(parsed.rows.length+' Anreisen eingelesen — bereit zur Berechnung','go');
+    updateStartPhase();
+  };
   if(ext==='xlsx'||ext==='xls'){
     reader.readAsArrayBuffer(file);
     reader.onload=e=>{
       try{
         const wb=XLSX.read(e.target.result,{type:'array'});
-        // Try Panorama arrival format (reservations_by_arrival)
+        // Try Panorama arrival format (reservations_by_arrival) first
         const arrival=parsePanoramaArrival(wb);
-        if(arrival){
-          parsedFiles['ankuenfte']=arrival;
-          fileStatus.ankuenfte=true;
-          demoFileKeys.delete('ankuenfte');
-          quickGuestLoaded=true;
-          autoMap();
-          setStatus(arrival.rows.length+' Anreisen (Panorama) eingelesen — bereit zur Berechnung','go');
-          updateStartPhase();
-          return;
-        }
+        if(arrival){apply(arrival);return;}
         const ws=wb.Sheets[wb.SheetNames[0]];
-        processQuickGuestCSV(XLSX.utils.sheet_to_csv(ws));
+        apply(parseCSV(XLSX.utils.sheet_to_csv(ws)));
       }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
     };
   }else{
     reader.readAsText(file,'UTF-8');
-    reader.onload=e=>processQuickGuestCSV(e.target.result);
+    reader.onload=e=>apply(parseCSV(e.target.result));
   }
 }
-function processQuickGuestCSV(csv){
-  const parsed=parseCSV(csv);
-  if(!parsed||!parsed.rows.length){setStatus('Keine Gästedaten gefunden','err');return;}
-  parsedFiles['inhaus']=parsed;
-  fileStatus.inhaus=true;
-  demoFileKeys.delete('inhaus');
-  quickGuestLoaded=true;
+function clearAnkuenfteFile(){
+  quickAnkuenfteFileName='';
+  delete parsedFiles['ankuenfte'];
+  fileStatus.ankuenfte=false;
   autoMap();
-  setStatus(parsed.rows.length+' Gäste eingelesen — bereit zur Berechnung','go');
   updateStartPhase();
+  setStatus('Anreisen-Datei entfernt','');
 }
-function handleQuickDrop(e){
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  const f=e.dataTransfer.files[0];
-  if(f) quickLoadFile(f);
+
+// ── Abreisen Import (Tagesstart) ───────────────────────────────
+function quickLoadAbreisen(file){
+  if(!file) return;
+  quickAbreisenFileName=file.name;
+  setStatus('Lese Abreisen…','spin');
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  const apply=csv=>{
+    const parsed=parseCSV(csv);
+    if(!parsed||!parsed.rows.length){setStatus('Keine Abreisen-Daten gefunden','err');return;}
+    // Gäste aus dieser Datei sind per Definition Abreisende — GastTyp setzen, falls nicht vorhanden
+    parsed.rows.forEach(r=>{if(!r.GastTyp) r.GastTyp='AB';});
+    parsedFiles['abreisen']=parsed;
+    fileStatus.abreisen=true;
+    demoFileKeys.delete('abreisen');
+    autoMap();
+    setStatus(parsed.rows.length+' Abreisen eingelesen — bereit zur Berechnung','go');
+    updateStartPhase();
+  };
+  if(ext==='xlsx'||ext==='xls'){
+    reader.readAsArrayBuffer(file);
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        apply(XLSX.utils.sheet_to_csv(ws));
+      }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
+    };
+  }else{
+    reader.readAsText(file,'UTF-8');
+    reader.onload=e=>apply(e.target.result);
+  }
 }
-function clearQuickFile(){
-  quickGuestLoaded=false;quickGuestFileName='';
-  delete parsedFiles['inhaus'];
-  fileStatus.inhaus=false;
+function clearAbreisenFile(){
+  quickAbreisenFileName='';
+  delete parsedFiles['abreisen'];
+  fileStatus.abreisen=false;
+  autoMap();
   updateStartPhase();
-  setStatus('Datei entfernt','');
+  setStatus('Abreisen-Datei entfernt','');
 }
 function clearTemplate(){
   tischplanTemplate=null;tischplanMap={};tischplanKat={};tischplanKombi=[];
@@ -3597,7 +3628,7 @@ function clearTemplate(){
 
 // ── quickCalcAndExport ─────────────────────────────────────────
 function quickCalcPreview(){
-  if(!quickGuestLoaded&&!fileStatus.ankuenfte&&!fileStatus.inhaus) return;
+  if(!fileStatus.ankuenfte&&!fileStatus.abreisen&&!fileStatus.inhaus) return;
   autoMap();
   setStatus('Berechne Tischplan…','spin');
   // Datum/Mahlzeit von der Startseite in die intern genutzten Felder übernehmen
@@ -3612,13 +3643,12 @@ function quickCalcPreview(){
 // ── updateStartPhase ──────────────────────────────────────────
 function updateStartPhase(){
   const hasTemplate=!!tischplanTemplate;
-  const hasFile=quickGuestLoaded||fileStatus.ankuenfte||fileStatus.inhaus;
+  const hasAnkuenfte=fileStatus.ankuenfte;
+  const hasAbreisen=fileStatus.abreisen;
+  const hasFile=hasAnkuenfte||hasAbreisen||fileStatus.inhaus;
   const setup=el('tgst-setup');
   const daily=el('tgst-daily');
-  const dropzone=el('tgst-dropzone');
-  const fileLoaded=el('tgst-file-loaded');
   const calcBtn=el('btn-tgst-calc');
-  const fname=el('tgst-fname');
   const dashUp=el('dash-upload');
   // Hide whole upload area when calcDone
   if(dashUp) dashUp.style.display=calcDone?'none':'block';
@@ -3640,9 +3670,14 @@ function updateStartPhase(){
   }else{
     if(setup) setup.style.display='none';
     if(daily) daily.style.display='block';
-    if(dropzone) dropzone.style.display=hasFile?'none':'block';
-    if(fileLoaded) fileLoaded.style.display=hasFile?'flex':'none';
-    if(fname) fname.textContent=quickGuestFileName||'Gästedatei geladen';
+    const btnAn=el('btn-tgst-ankuenfte'), loadAn=el('tgst-ankuenfte-loaded'), fnAn=el('tgst-ankuenfte-fname');
+    if(btnAn) btnAn.style.display=hasAnkuenfte?'none':'block';
+    if(loadAn) loadAn.style.display=hasAnkuenfte?'flex':'none';
+    if(fnAn) fnAn.textContent=quickAnkuenfteFileName||'Anreisen geladen';
+    const btnAb=el('btn-tgst-abreisen'), loadAb=el('tgst-abreisen-loaded'), fnAb=el('tgst-abreisen-fname');
+    if(btnAb) btnAb.style.display=hasAbreisen?'none':'block';
+    if(loadAb) loadAb.style.display=hasAbreisen?'flex':'none';
+    if(fnAb) fnAb.textContent=quickAbreisenFileName||'Abreisen geladen';
     if(calcBtn) calcBtn.style.display=hasFile?'block':'none';
   }
 }
