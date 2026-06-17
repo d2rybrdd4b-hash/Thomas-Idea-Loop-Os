@@ -944,7 +944,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
 
-    <!-- Upload state: shown when no plan calculated yet -->
+    <!-- Import-Bereich: immer auf der Startseite sichtbar (auch nach Berechnung) -->
     <div id="dash-upload">
 
       <!-- Phase A: Vorlage noch nicht geladen (einmalige Einrichtung) -->
@@ -3649,21 +3649,8 @@ function updateStartPhase(){
   const setup=el('tgst-setup');
   const daily=el('tgst-daily');
   const calcBtn=el('btn-tgst-calc');
-  const dashUp=el('dash-upload');
-  // Hide whole upload area when calcDone
-  if(dashUp) dashUp.style.display=calcDone?'none':'block';
-  if(calcDone){
-    // Cockpit download button
-    const dl=el('cockpit-dl-section');
-    if(dl) dl.style.display=hasTemplate?'block':'none';
-    // Make "view" button secondary when download is primary
-    const vb=el('cockpit-btn-view');
-    if(vb){
-      if(hasTemplate){vb.classList.remove('btn-gold');vb.classList.add('btn-outline');}
-      else{vb.classList.add('btn-gold');vb.classList.remove('btn-outline');}
-    }
-    return;
-  }
+  // Anreisen/Abreisen-Import bleibt immer auf der Startseite sichtbar,
+  // unabhängig davon ob schon ein Tischplan berechnet wurde.
   if(!hasTemplate){
     if(setup) setup.style.display='block';
     if(daily) daily.style.display='none';
@@ -3679,6 +3666,18 @@ function updateStartPhase(){
     if(loadAb) loadAb.style.display=hasAbreisen?'flex':'none';
     if(fnAb) fnAb.textContent=quickAbreisenFileName||'Abreisen geladen';
     if(calcBtn) calcBtn.style.display=hasFile?'block':'none';
+    if(calcBtn) calcBtn.textContent=calcDone?'↻ Tischplan neu berechnen':'Intelligente Tischzuweisung';
+  }
+  if(calcDone){
+    // Cockpit download button
+    const dl=el('cockpit-dl-section');
+    if(dl) dl.style.display=hasTemplate?'block':'none';
+    // Make "view" button secondary when download is primary
+    const vb=el('cockpit-btn-view');
+    if(vb){
+      if(hasTemplate){vb.classList.remove('btn-gold');vb.classList.add('btn-outline');}
+      else{vb.classList.add('btn-gold');vb.classList.remove('btn-outline');}
+    }
   }
 }
 
