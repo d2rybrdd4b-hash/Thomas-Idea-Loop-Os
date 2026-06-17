@@ -970,6 +970,19 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
         </div>
 
+        <!-- Tischplan vom Vortag: liefert die Bleibegast-Zuordnung (welcher Gast saß wo) -->
+        <input type="file" id="fi-tgst-vortag" accept=".csv,.xlsx,.xls" style="display:none"
+          onchange="quickLoadVortag(this.files[0]);this.value=''">
+        <button class="btn btn-gold" id="btn-tgst-vortag" style="width:100%;margin-bottom:10px"
+          onclick="el('fi-tgst-vortag').click()">
+          ⬆ Tischplan vom Vortag hochladen
+        </button>
+        <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
+          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-name" id="tgst-vortag-fname">—</span>
+          <button class="tgst-file-clear" onclick="clearVortagFile()" title="Entfernen">✕</button>
+        </div>
+
         <!-- Anreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
         <input type="file" id="fi-tgst-ankuenfte" accept=".csv,.xlsx,.xls" style="display:none"
           onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
@@ -1227,10 +1240,20 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
     </div>
     <div id="dl-cards" style="display:none;flex-direction:column;gap:12px">
+      <div id="dl-check" class="warn-strip" style="display:none"></div>
+
+      <button class="btn btn-outline big-btn" style="width:100%" onclick="toggleExcelPreview()">
+        👁 Excel-Vorschau anzeigen
+      </button>
+      <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:360px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
       <button class="btn btn-gold big-btn" style="width:100%" onclick="exportToTischplanTemplate()">
         ⬇ Excel-Vorlage herunterladen
       </button>
-      <button class="btn btn-outline big-btn" style="width:100%" onclick="printAsPDF()">
+
+      <button class="btn btn-outline big-btn" style="width:100%" onclick="openPrint('service')">
+        👁 PDF-Vorschau anzeigen
+      </button>
+      <button class="btn btn-gold big-btn" style="width:100%" onclick="printAsPDF()">
         🖨 Als PDF exportieren
       </button>
     </div>
@@ -1249,18 +1272,22 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></span>
     <span class="tab-lbl">Start</span>
   </button>
+  <button class="tab-item" id="tab-2" onclick="goTab(2)">
+    <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
+    <span class="tab-lbl">Drucklisten</span>
+  </button>
   <button class="tab-item" id="tab-3" onclick="goTab(3)">
     <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
     <span class="tab-lbl">Einstellungen</span>
   </button>
-  <!-- Hidden stubs for JS tab references -->
+  <!-- Hidden stub for JS tab reference (Planungsmodul entfernt) -->
   <button id="tab-1" style="display:none"></button>
-  <button id="tab-2" style="display:none"></button>
 </div>
 
 <!-- PRINT OVERLAY (stubs for JS) -->
 <div id="print-overlay" style="display:none">
   <div id="print-toolbar">
+    <button class="ptool-btn" onclick="window.print()">🖨 Drucken</button>
     <button class="ptool-btn" onclick="closePrint()" style="margin-left:auto">✕ Schließen</button>
   </div>
   <div id="print-content"></div>
@@ -3512,6 +3539,7 @@ let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
 let quickAnkuenfteFileName=''; // filename of loaded Anreisen file
 let quickAbreisenFileName='';  // filename of loaded Abreisen file
+let quickVortagFileName='';    // filename of loaded Vortags-Tischplan file
 
 // ── Template Persistence ──────────────────────────────────────
 function saveTemplateToStorage(buf){
@@ -3532,6 +3560,75 @@ function restoreTemplateFromStorage(){
     tischplanTemplate=bytes.buffer;
     parseTischplanTemplate(tischplanTemplate);
   }catch(e){/* ignore corrupted */}
+}
+
+// ── Tischplan vom Vortag (liefert Bleibegast-Zuordnung) ────────
+function quickLoadVortag(file){
+  if(!file) return;
+  quickVortagFileName=file.name;
+  setStatus('Lese Tischplan vom Vortag…','spin');
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  const apply=(parsed,fromPanorama)=>{
+    if(!parsed||!parsed.rows.length){setStatus('Keine Daten im Vortags-Tischplan gefunden','err');return;}
+    parsedFiles['vortag']=parsed;
+    fileStatus.vortag=true;
+    let extra='';
+    if(fromPanorama){
+      // Panorama-Format liefert auch Tischkonfiguration + Hausgästeliste mit
+      if(!fileStatus.tische){
+        parsedFiles.tische=extractTablesFromVortag(parsed.rows);
+        fileStatus.tische=true;
+        extra+=', '+parsedFiles.tische.rows.length+' Tische';
+      }
+      if(!fileStatus.inhaus){
+        const inhausRows=parsed.rows
+          .filter(r=>{
+            const z=String(r.Zimmernummer||'').trim();
+            return r.Nachname&&z&&!/^zu\s/i.test(z);
+          })
+          .map(r=>({
+            Nachname:String(r.Nachname||'').trim(),
+            Zimmernummer:String(r.Zimmernummer||'').trim(),
+            AnzahlPersonen:r.AnzahlPersonen||'2',
+            Bemerkung:r.Extras||'',
+            VorherigerTisch:r.Tisch||'',
+            GastTyp:r.Status||''
+          }));
+        if(inhausRows.length>0){
+          parsedFiles.inhaus={headers:['Nachname','Zimmernummer','AnzahlPersonen','Bemerkung','VorherigerTisch','GastTyp'],rows:inhausRows};
+          fileStatus.inhaus=true;
+          extra+=', '+inhausRows.length+' Hausgäste';
+        }
+      }
+    }
+    autoMap();
+    setStatus(parsed.rows.length+' Vortags-Zuordnungen eingelesen'+extra,'go');
+    updateStartPhase();
+  };
+  if(ext==='xlsx'||ext==='xls'){
+    reader.readAsArrayBuffer(file);
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const panorama=parseVortagPanorama(wb);
+        if(panorama){apply(panorama,true);return;}
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        apply(parseCSV(XLSX.utils.sheet_to_csv(ws)));
+      }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
+    };
+  }else{
+    reader.readAsText(file,'UTF-8');
+    reader.onload=e=>apply(parseCSV(e.target.result));
+  }
+}
+function clearVortagFile(){
+  quickVortagFileName='';
+  delete parsedFiles['vortag'];
+  fileStatus.vortag=false;
+  autoMap();
+  updateStartPhase();
+  setStatus('Vortags-Tischplan entfernt','');
 }
 
 // ── Anreisen Import (Tagesstart) ───────────────────────────────
@@ -3657,6 +3754,10 @@ function updateStartPhase(){
   }else{
     if(setup) setup.style.display='none';
     if(daily) daily.style.display='block';
+    const btnVt=el('btn-tgst-vortag'), loadVt=el('tgst-vortag-loaded'), fnVt=el('tgst-vortag-fname');
+    if(btnVt) btnVt.style.display=fileStatus.vortag?'none':'block';
+    if(loadVt) loadVt.style.display=fileStatus.vortag?'flex':'none';
+    if(fnVt) fnVt.textContent=quickVortagFileName||'Vortags-Tischplan geladen';
     const btnAn=el('btn-tgst-ankuenfte'), loadAn=el('tgst-ankuenfte-loaded'), fnAn=el('tgst-ankuenfte-fname');
     if(btnAn) btnAn.style.display=hasAnkuenfte?'none':'block';
     if(loadAn) loadAn.style.display=hasAnkuenfte?'flex':'none';
@@ -3796,9 +3897,11 @@ function updateTemplateStatus(){
   updateSettingsStatus();
 }
 
-function exportToTischplanTemplate(){
-  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
-  if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
+// Baut die befüllte Tischplan-Vorlage (Workbook + Gast-Zuordnung) ohne sie herunterzuladen —
+// wird sowohl für den echten Export als auch für die Vorschau verwendet.
+function buildFilledTischplanSheet(){
+  if(!tischplanTemplate) return null;
+  if(!calcDone||(lastTables||[]).length===0) return null;
   const wb=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true});
   const ws=wb.Sheets[wb.SheetNames[0]];
   // Guest lookup by table ID
@@ -3831,12 +3934,55 @@ function exportToTischplanTemplate(){
       });
     }
   });
+  return{wb,ws,guestByTable};
+}
+
+function exportToTischplanTemplate(){
+  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
+  if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
+  const built=buildFilledTischplanSheet();
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
   const ds=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb,`Tischplan_${hotel}_${ds}.xlsx`,{bookSST:false});
+  XLSX.writeFile(built.wb,`Tischplan_${hotel}_${ds}.xlsx`,{bookSST:false});
   setStatus('Hotelier-Tischplan exportiert','go');
   el('s5-done').style.display='block';
+}
+
+// Zeigt/verbirgt eine HTML-Vorschau der befüllten Excel-Vorlage, plus Kontrollzeile
+// (wie viele Gäste tatsächlich in die Vorlage übernommen werden konnten).
+function toggleExcelPreview(){
+  const wrap=el('excel-preview-wrap');
+  if(!wrap) return;
+  if(wrap.style.display==='block'){wrap.style.display='none';return;}
+  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
+  if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
+  const built=buildFilledTischplanSheet();
+  if(!built) return;
+  wrap.innerHTML=XLSX.utils.sheet_to_html(built.ws,{editable:false});
+  wrap.style.display='block';
+  updateExportCheck();
+}
+
+// Kontrollzeile: wie viele importierte Gäste wirklich einen Tisch in der Vorlage haben
+function updateExportCheck(){
+  const box=el('dl-check');
+  if(!box) return;
+  if(!calcDone||!tischplanTemplate){box.style.display='none';return;}
+  const total=(assignedGuests||[]).length;
+  const tplTables=new Set(Object.keys(tischplanMap||{}));
+  const matched=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&tplTables.has(String(g.zugewiesener_tisch))).length;
+  const missing=total-matched;
+  const reds=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
+  box.style.display='flex';
+  if(missing<=0&&reds===0){
+    box.className='warn-strip green';
+    box.innerHTML=`✅ Alle ${total} Gäste aus den Imports wurden korrekt übernommen`;
+  }else{
+    box.className='warn-strip '+(missing>0?'red':'yellow');
+    box.innerHTML=(missing>0?`⚠️ ${missing} von ${total} Gästen ohne passenden Tisch in der Vorlage — bitte prüfen`:'')+
+      (reds>0?(missing>0?'<br>':'')+`🔴 ${reds} kritische Hinweise offen`:'');
+  }
 }
 
 function tplCell(ws,r,c,value,type){
@@ -3974,6 +4120,7 @@ function updateDrucklistenState(){
   const cards=el('dl-cards');
   if(noData) noData.style.display=calcDone?'none':'block';
   if(cards) cards.style.display=calcDone?'flex':'none';
+  updateExportCheck();
 }
 
 let activePrintView='service';
