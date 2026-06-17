@@ -376,7 +376,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .mt-8{margin-top:8px}
 
 /* ── STEP 0 DASHBOARD ── */
-#s0{padding:20px 18px}
+#s0{padding:20px 18px calc(80px + env(safe-area-inset-bottom,0px))}
 .dash-wrap{max-width:700px;margin:0 auto}
 .dash-hotel{text-align:center;margin-bottom:24px}
 .dash-hotel h2{font-size:36px;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:12px;line-height:1.1}
