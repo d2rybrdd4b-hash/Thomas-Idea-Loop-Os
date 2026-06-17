@@ -3149,9 +3149,11 @@ function runCalc(){
   updateDashboard();
   updateCockpitSolved();
   saveState();
+  goTab(2);
  }catch(ex){
   console.error('runCalc fehlgeschlagen:',ex);
   setStatus('Fehler bei der Berechnung: '+ex.message,'err');
+  alert('Die Berechnung ist fehlgeschlagen:\n\n'+ex.message+'\n\nBitte diesen Text an den Support weitergeben.');
  }
 }
 
