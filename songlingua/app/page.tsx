@@ -7,6 +7,7 @@ import { storageService } from "@/services/storageService";
 import { SpotifyConnectButton } from "@/components/SpotifyConnectButton";
 import { NowPlaying } from "@/components/NowPlaying";
 import { LyricsInput } from "@/components/LyricsInput";
+import { SongSearch } from "@/components/SongSearch";
 import { TranslationView } from "@/components/TranslationView";
 import { HistoryList } from "@/components/HistoryList";
 import type { HistoryEntry, LyricsAnalysis, Track } from "@/types";
@@ -116,13 +117,13 @@ export default function HomePage() {
 
       <NowPlaying connected={connected} track={track} />
 
+      <SongSearch track={track} />
+
       <LyricsInput
         value={lyrics}
         onChange={setLyrics}
         onAnalyze={handleAnalyze}
         loading={loading}
-        trackTitle={track?.title}
-        trackArtist={track?.artist}
       />
 
       {error && (

@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SongLingua",
   description: "Englisch lernen mit deinen Spotify-Songs.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SongLingua",
+  },
 };
 
 export const viewport: Viewport = {
