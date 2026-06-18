@@ -932,8 +932,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     <div class="dash-hotel">
       <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
       <div class="dash-meta">
-        <input type="text" id="dash-hotel-name" placeholder="Hotelname eingeben"
-          oninput="syncHotelName(this.value)">
         <input type="date" id="dash-date" onchange="updateDashboard()">
         <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
           <option value="fruehstueck">🌅 Frühstück</option>
@@ -1167,9 +1165,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <p style="font-size:11px;color:var(--dim);margin-bottom:12px">Lege selbst fest, wer die besten Plätze bekommt.</p>
 
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Aufenthaltsdauer → Kategorie</div>
+        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Lange Aufenthalte bevorzugen</div>
+        <p style="font-size:10px;color:var(--dim);margin-bottom:8px">Deine Tische sind in Kategorien eingeteilt (Kategorie 1 = deine besten Tische). Lege fest: Ab wie vielen Nächten bekommt ein Gast garantiert einen Tisch aus einer guten Kategorie?</p>
         <div id="nights-kat-rules"></div>
-        <button class="btn btn-outline btn-sm" onclick="addNightsKatRule()" style="margin-top:6px">+ Regel hinzufügen</button>
+        <button class="btn btn-outline btn-sm" onclick="addNightsKatRule()" style="margin-top:6px">+ weitere Stufe hinzufügen</button>
       </div>
 
       <div style="margin-bottom:16px">
@@ -1442,13 +1441,14 @@ function getMaxKatForNights(nights){
 function renderNightsKatRules(){
   const wrap=el('nights-kat-rules');if(!wrap)return;
   wrap.innerHTML=nightsKatRules.map((r,i)=>`
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-      <span>ab</span>
-      <input type="number" min="1" max="60" value="${r.minNights}" style="width:60px" onchange="updateNightsKatRule(${i},'minNights',this.value)">
-      <span>Nächten → mindestens Kategorie</span>
-      <input type="number" min="1" max="8" value="${r.maxKat}" style="width:60px" onchange="updateNightsKatRule(${i},'maxKat',this.value)">
-      <button class="btn-mini" onclick="removeNightsKatRule(${i})">✕</button>
-    </div>`).join('') || '<div class="muted">Keine Regeln definiert.</div>';
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;font-size:12px">
+      <span>Ab</span>
+      <input type="number" min="1" max="60" value="${r.minNights}" style="width:50px" onchange="updateNightsKatRule(${i},'minNights',this.value)">
+      <span>Nächten Aufenthalt → mindestens Kategorie</span>
+      <input type="number" min="1" max="8" value="${r.maxKat}" style="width:50px" onchange="updateNightsKatRule(${i},'maxKat',this.value)">
+      <span style="font-size:9px;color:var(--dim)">(1 = beste Tische)</span>
+      <button onclick="removeNightsKatRule(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;margin-left:auto">✕</button>
+    </div>`).join('') || '<div class="muted">Keine Regel definiert — Aufenthaltsdauer hat keinen Einfluss auf die Tischwahl.</div>';
 }
 function addNightsKatRule(){
   nightsKatRules.push({minNights:3,maxKat:4});
@@ -3836,14 +3836,14 @@ function switchPrint(type){
   });
 }
 function getHotelName(){
-  return localStorage.getItem('hsi_hotel')||el('dash-hotel-name')?.value||el('export-hotel')?.value||'Hotel';
+  return localStorage.getItem('hsi_hotel')||el('export-hotel')?.value||'Hotel';
 }
 function syncHotelName(v){
   if(v===undefined) v=localStorage.getItem('hsi_hotel')||'';
   if(!v) return;
   localStorage.setItem('hsi_hotel',v);
-  const inp=el('dash-hotel-name');if(inp&&inp.value!==v) inp.value=v;
   const eh=el('export-hotel');if(eh&&eh.value!==v) eh.value=v;
+  const hi=el('hotel-name-input');if(hi&&hi.value!==v) hi.value=v;
   const ht=el('dash-hotel-title');if(ht) ht.textContent=v;
   const fsh=el('fp-fs-hotel');if(fsh) fsh.textContent=v;
 }
