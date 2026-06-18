@@ -1173,8 +1173,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
 
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tisch-Tags &amp; Plätze</div>
-        <div id="tag-editor-list"></div>
+        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Wer bekommt zuerst die besten Tische?</div>
+        <div id="weights-editor-list"></div>
+        <div id="score-legend" style="margin-top:10px"></div>
       </div>
 
       <div>
@@ -1196,10 +1197,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <button id="cfg-btn-upload-vorlage"></button>
       <button id="cfg-btn-clear-vorlage"></button>
       <div id="template-status"></div>
-      <div id="score-legend"></div>
-      <input type="checkbox" id="chk-smart-assign" onchange="onSmartAssignToggle(this.checked)">
-      <div id="smart-assign-panel"></div>
-      <div id="tisch-config-list"></div>
       <span id="fb-vortag"></span><span id="fn-vortag"></span>
       <span id="fb-ankuenfte"></span><span id="fn-ankuenfte"></span>
       <span id="fb-inhaus"></span><span id="fn-inhaus"></span>
@@ -1299,25 +1296,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 <div class="modal-bg hidden" id="tisch-rules-modal" style="display:none!important"><div id="tisch-rules-list" style="display:none"></div></div>
 
-<!-- Weights modal -->
-<div class="modal-bg hidden" id="weights-modal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>⚖️ Tischregeln &amp; Gewichtung</h3>
-      <button class="close" onclick="closeModal('weights-modal')">×</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:10px;color:var(--dim);margin-bottom:14px">
-        Passen Sie an, welche Faktoren bei der Tischpriorität mehr zählen.
-      </p>
-      <div id="weights-list"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="resetWeights()">Zurücksetzen</button>
-      <button class="btn btn-gold btn-sm" onclick="saveWeights()">Speichern</button>
-    </div>
-  </div>
-</div>
 
 <div class="modal-bg hidden" id="pms-save-modal" style="display:none!important"><input id="pms-profile-name" style="display:none"></div>
 
@@ -1379,17 +1357,8 @@ let zimmerRegeln=[];
 let tischRegeln=[];
 let tableOverrides=new Set();
 let scoreGewichte={};
-let tableConfig={};
-let smartAssignEnabled=false;
 let fileStatus={vortag:false,ankuenfte:false,inhaus:false,abreisen:false,forecast:false,tische:false};
 
-const TABLE_TAGS=[
-  {key:'fenster', icon:'🪟', label:'Fenster/Ausblick'},
-  {key:'vip',    icon:'⭐', label:'VIP-Bereich'},
-  {key:'familie',icon:'👨‍👩‍👧', label:'Familie'},
-  {key:'ruhig',  icon:'🔇', label:'Ruhige Ecke'},
-  {key:'outdoor',icon:'🌿', label:'Outdoor/Terrasse'},
-];
 let currentStep=0;
 let calcDone=false;
 let isDemoMode=false;
@@ -2313,64 +2282,44 @@ function saveTischRegeln(){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SMART TABLE ASSIGNMENT
+//  SCORE GEWICHTE — wer bekommt zuerst die besten Tische?
 // ══════════════════════════════════════════════════════════════
-function loadSmartAssign(){
-  smartAssignEnabled=localStorage.getItem('hsi_smart_assign')==='1';
-  try{tableConfig=JSON.parse(localStorage.getItem('hsi_table_config')||'{}');}
-  catch(e){tableConfig={};}
-  const chk=el('chk-smart-assign');
-  if(chk) chk.checked=smartAssignEnabled;
-  const panel=el('smart-assign-panel');
-  if(panel) panel.style.display=smartAssignEnabled?'block':'none';
-  if(smartAssignEnabled) renderTableConfigPanel();
+function loadWeights(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('hsi_weights')||'{}');
+    const prio=Object.fromEntries(Object.entries(saved).filter(([k])=>k in DEFAULT_SW));
+    scoreGewichte={...DEFAULT_SW,...prio};
+  }catch(e){scoreGewichte={...DEFAULT_SW}}
 }
-function onSmartAssignToggle(enabled){
-  smartAssignEnabled=enabled;
-  localStorage.setItem('hsi_smart_assign',enabled?'1':'0');
-  const panel=el('smart-assign-panel');
-  if(panel) panel.style.display=enabled?'block':'none';
-  if(enabled) renderTableConfigPanel();
-}
-function getTablesForConfig(){
-  if(lastTables&&lastTables.length) return lastTables.filter(t=>t.aktiv);
-  const tplIds=Object.keys(tischplanKat||{});
-  if(tplIds.length) return tplIds.map(id=>({tisch_id:id,kategorie:tischplanKat[id]||5,kapazitaet:tableConfig[id]?.kapazitaet||4,aktiv:true,zone:'C'}));
-  return DEFAULT_TABLES.filter(t=>t.aktiv);
-}
-function initCfg(tid){if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0,minScore:0};}
-function renderTableConfigPanel(){
+function renderWeightsEditor(){
+  const wrap=el('weights-editor-list');if(!wrap)return;
+  const prioKeys=[
+    {k:'vip',     lbl:'VIP-Gast'},
+    {k:'stammgast',lbl:'Stammgast'},
+    {k:'langzeit', lbl:'Langzeit (>7 Tage)'},
+    {k:'fruehbucher',lbl:'Frühbucher (>30 Tage)'},
+    {k:'gruppe',  lbl:'Gruppenreservierung'},
+  ];
+  const sw=scoreGewichte||DEFAULT_SW;
+  wrap.innerHTML=prioKeys.map(({k,lbl})=>`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <span style="flex:1">${lbl}</span>
+      <input type="number" min="0" max="50" value="${sw[k]||0}" style="width:60px" onchange="onWeightChange('${k}',this.value)">
+      <span style="font-size:9px;color:var(--dim)">Pkt.</span>
+    </div>`).join('')
+    +`<button class="btn btn-outline btn-sm" onclick="resetWeights()" style="margin-top:6px">Auf Standard zurücksetzen</button>`;
   renderScoreLegend();
-  const list=el('tisch-config-list');
-  if(!list) return;
-  const tables=getTablesForConfig();
-  list.innerHTML=`<div style="display:flex;gap:0;font-size:10px;font-weight:700;
-    color:var(--dim);padding:4px 0 6px;border-bottom:1px solid var(--border);letter-spacing:.4px">
-    <span style="min-width:44px">TISCH</span><span style="flex:1">TAGS</span><span style="min-width:90px;text-align:right">MIN.SCORE</span>
-  </div>`+tables.map(t=>{
-    const cfg=tableConfig[t.tisch_id]||{};
-    const tags=cfg.tags||[];
-    const minScore=cfg.minScore||0;
-    const isPremium=minScore>0;
-    return`<div class="tcfg-row-wrap">
-      <div class="tcfg-row" style="${isPremium?'background:var(--gold-glow);border-radius:6px 6px 0 0;padding:6px 4px;':''}" data-tid="${t.tisch_id}">
-        <div class="tcfg-id" onclick="toggleTischDetail('${t.tisch_id}')" title="Tisch-Details anzeigen">
-          ${t.tisch_id}${isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${minScore}</div>`:''}
-          <div style="font-size:8px;color:var(--dim);font-weight:400;margin-top:1px">▾</div>
-        </div>
-        <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
-          <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
-          ${td.icon} ${td.label}</label>`).join('')}</div>
-        <div class="tcfg-minscore" title="Nur Gäste mit ≥ diesem Score bekommen diesen Tisch in Runde 1. Bleibt er leer, füllt Runde 2 auf.">
-          <span style="font-size:10px;color:var(--dim)">≥</span>
-          <input type="number" min="0" max="100" step="5" value="${minScore}" class="tcfg-minscore-inp"
-                 onchange="onMinScoreChange(this,'${t.tisch_id}')">
-          <span style="font-size:10px;color:var(--dim)">Pkt</span>
-        </div>
-      </div>
-      <div class="tcfg-detail" id="tcfg-detail-${t.tisch_id}"></div>
-    </div>`;
-  }).join('');
+}
+function onWeightChange(k,val){
+  scoreGewichte[k]=Math.min(50,Math.max(0,parseInt(val)||0));
+  localStorage.setItem('hsi_weights',JSON.stringify(scoreGewichte));
+  renderScoreLegend();
+}
+function resetWeights(){
+  scoreGewichte={...DEFAULT_SW};
+  localStorage.setItem('hsi_weights',JSON.stringify(scoreGewichte));
+  renderWeightsEditor();
+  setStatus('Gewichte zurückgesetzt','go');
 }
 function renderScoreLegend(){
   const box=el('score-legend');
@@ -2385,195 +2334,14 @@ function renderScoreLegend(){
   ).join('');
   const vip=sw.vip||0, stamm=sw.stammgast||0, lang=sw.langzeit||0;
   box.innerHTML=`
-    <div class="score-leg-title">Wer bekommt den besten Platz?</div>
+    <div class="score-leg-title">Beispiel-Rechnung</div>
     <div class="score-leg-grid">${items}</div>
     <div class="score-leg-hint">
-      Beispiele: VIP-Gast = <strong>${vip} Pkt</strong> &nbsp;·&nbsp;
+      VIP-Gast = <strong>${vip} Pkt</strong> &nbsp;·&nbsp;
       VIP + Stammgast = <strong>${vip+stamm} Pkt</strong> &nbsp;·&nbsp;
       Stammgast + Langzeit = <strong>${stamm+lang} Pkt</strong><br>
-      Allergie, Familie, Anreise/Abreise werden erkannt — fließen aber nicht in die Priorität ein.<br>
-      Setze MIN.SCORE auf einem Tisch, damit nur Gäste ab dieser Punktzahl ihn in Runde 1 bekommen.
+      Wer am Ende die meisten Punkte hat, bekommt bei knappen Tischen zuerst den besten Platz.
     </div>`;
-}
-function toggleTischDetail(tid){
-  const det=el('tcfg-detail-'+tid);
-  if(!det) return;
-  if(det.style.display==='block'){det.style.display='none';return;}
-  det.innerHTML=buildTischDetailHtml(tid);
-  det.style.display='block';
-}
-function buildTischDetailHtml(tid){
-  const cfg=tableConfig[tid]||{};
-  const tags=cfg.tags||[];
-  const minScore=cfg.minScore||0;
-  const sw=scoreGewichte||DEFAULT_SW;
-  const tagHtml=tags.length>0
-    ?tags.map(k=>{const td=TABLE_TAGS.find(t=>t.key===k);return td?`<span class="tcfg-dtag">${td.icon} ${td.label}</span>`:''}).join('')
-    :'<span style="color:var(--dim);font-size:11px">Keine Tags — alle Gäste kommen in Frage</span>';
-  const vipPts=sw.vip||0, stammPts=sw.stammgast||0;
-  const exBase=[
-    {lbl:'VIP-Gast',pts:vipPts,ico:'⭐'},
-    {lbl:'Stammgast',pts:stammPts,ico:'🔁'},
-    {lbl:'Langzeit-Gast',pts:sw.langzeit||0,ico:'📅'},
-    {lbl:'Frühbucher',pts:sw.fruehbucher||0,ico:'⏰'},
-    {lbl:'Gruppe',pts:sw.gruppe||0,ico:'👥'},
-  ].filter(e=>e.pts>0);
-  if(vipPts>0&&stammPts>0) exBase.push({lbl:'VIP + Stammgast',pts:vipPts+stammPts,ico:'⭐'});
-  exBase.sort((a,b)=>b.pts-a.pts);
-  const scoreHtml=exBase.slice(0,5).map(e=>{
-    const chk=minScore>0?`<span class="tcfg-dscore-chk" style="color:${e.pts>=minScore?'var(--green)':'var(--red)'}">${e.pts>=minScore?'✓ Runde 1':'✗ Runde 2'}</span>`:'';
-    return`<div class="tcfg-dscore-row"><span class="tcfg-dscore-lbl">${e.ico} ${e.lbl}</span><span class="tcfg-dscore-pts">${e.pts} Pkt</span>${chk}</div>`;
-  }).join('');
-  const hint=minScore===0
-    ?'Kein MIN.SCORE gesetzt — alle Gäste kommen für diesen Tisch in Frage (Runde 2).'
-    :`MIN.SCORE ≥${minScore} Pkt: Nur Gäste mit mindestens ${minScore} Punkten bekommen diesen Tisch in Runde 1.`;
-  return`<div class="tcfg-detail-label">Aktive Tags</div>
-    <div class="tcfg-detail-tags">${tagHtml}</div>
-    <div class="tcfg-detail-label" style="margin-top:8px">Score-Beispiele${minScore>0?' — Runde-1 / Runde-2 Zuweisung':''}</div>
-    ${scoreHtml}
-    <div class="tcfg-dhint">${hint}</div>`;
-}
-function onTagChange(inp,tid){
-  initCfg(tid);
-  const tags=tableConfig[tid].tags||[];
-  tableConfig[tid].tags=inp.checked?[...new Set([...tags,inp.value])]:tags.filter(t=>t!==inp.value);
-  inp.parentElement.classList.toggle('tcfg-tag-on',inp.checked);
-  saveTischConfig();
-}
-function onKapazitaetChange(inp,tid){
-  initCfg(tid);
-  tableConfig[tid].kapazitaet=Math.min(30,Math.max(1,parseInt(inp.value)||4));
-  saveTischConfig();
-}
-function renderTagEditor(){
-  const wrap=el('tag-editor-list');if(!wrap)return;
-  const tables=getTablesForConfig();
-  wrap.innerHTML=`<div style="display:flex;gap:0;font-size:10px;font-weight:700;
-    color:var(--dim);padding:4px 0 6px;border-bottom:1px solid var(--border);letter-spacing:.4px">
-    <span style="min-width:50px">TISCH</span><span style="flex:1">TAGS</span><span style="min-width:80px;text-align:right">PLÄTZE</span>
-  </div>`+tables.map(t=>{
-    initCfg(t.tisch_id);
-    const cfg=tableConfig[t.tisch_id];
-    const tags=cfg.tags||[];
-    return`<div class="tcfg-row" data-tid="${t.tisch_id}">
-      <div class="tcfg-id">${t.tisch_id}</div>
-      <div class="tcfg-tags">${TABLE_TAGS.map(td=>`<label class="tcfg-tag${tags.includes(td.key)?' tcfg-tag-on':''}">
-        <input type="checkbox" value="${td.key}"${tags.includes(td.key)?' checked':''} onchange="onTagChange(this,'${t.tisch_id}')">
-        ${td.icon} ${td.label}</label>`).join('')}</div>
-      <div class="tcfg-minscore">
-        <input type="number" min="1" max="30" value="${cfg.kapazitaet||t.kapazitaet||4}" style="width:50px" onchange="onKapazitaetChange(this,'${t.tisch_id}')">
-      </div>
-    </div>`;
-  }).join('') || '<div class="muted">Keine Tische geladen — lade zuerst eine Tischvorlage auf der Startseite.</div>';
-}
-function onBonusChange(inp,tid){
-  initCfg(tid);
-  tableConfig[tid].bonus=Math.min(30,Math.max(0,parseInt(inp.value)||0));
-}
-function onMinScoreChange(inp,tid){
-  initCfg(tid);
-  tableConfig[tid].minScore=Math.min(100,Math.max(0,parseInt(inp.value)||0));
-  const row=inp.closest('.tcfg-row');
-  const isPremium=tableConfig[tid].minScore>0;
-  if(row) row.style.cssText=isPremium?'background:var(--gold-glow);border-radius:6px 6px 0 0;padding:6px 4px;':'';
-  const idEl=row?.querySelector('.tcfg-id');
-  if(idEl) idEl.innerHTML=tid+(isPremium?`<div style="font-size:8px;color:var(--gold);font-weight:700">≥${tableConfig[tid].minScore}</div>`:'')
-    +`<div style="font-size:8px;color:var(--dim);font-weight:400;margin-top:1px">▾</div>`;
-  // Refresh open detail panel if visible
-  const det=el('tcfg-detail-'+tid);
-  if(det&&det.style.display==='block') det.innerHTML=buildTischDetailHtml(tid);
-}
-function saveTischConfig(){
-  localStorage.setItem('hsi_table_config',JSON.stringify(tableConfig));
-  setStatus('Tischkonfiguration gespeichert','go');
-}
-function resetTischConfig(){
-  tableConfig={};
-  localStorage.removeItem('hsi_table_config');
-  renderTableConfigPanel();
-  setStatus('Tischkonfiguration zurückgesetzt','go');
-}
-function findBestTableWithTag(ts,tag,pax,nights,checkIn,checkOut,cal){
-  const avail=ts.filter(t=>{
-    if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
-    if(!(tableConfig[t.tisch_id]?.tags||[]).includes(tag)) return false;
-    if(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id)){
-      if(!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut)) return false;
-    }
-    return true;
-  });
-  if(!avail.length) return null;
-  const maxKat=getMaxKatForNights(nights);
-  avail.sort((a,b)=>{
-    const bd=(tableConfig[b.tisch_id]?.bonus||0)-(tableConfig[a.tisch_id]?.bonus||0);
-    if(bd) return bd;
-    if(maxKat!==null){
-      const aq=(a.kategorie||9)<=maxKat?0:1, bq=(b.kategorie||9)<=maxKat?0:1;
-      if(aq!==bq) return aq-bq;
-      return(a.kategorie||9)-(b.kategorie||9);
-    }
-    return nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0);
-  });
-  return avail[0]||null;
-}
-
-// ══════════════════════════════════════════════════════════════
-//  SCORE GEWICHTE
-// ══════════════════════════════════════════════════════════════
-function loadWeights(){
-  try{
-    const saved=JSON.parse(localStorage.getItem('hsi_weights')||'{}');
-    const prio=Object.fromEntries(Object.entries(saved).filter(([k])=>k in DEFAULT_SW));
-    scoreGewichte={...DEFAULT_SW,...prio};
-  }catch(e){scoreGewichte={...DEFAULT_SW}}
-}
-function showWeightsModal(){
-  const prioKeys=[
-    {k:'vip',     lbl:'VIP-Gast'},
-    {k:'stammgast',lbl:'Stammgast'},
-    {k:'langzeit', lbl:'Langzeit (>7 Tage)'},
-    {k:'fruehbucher',lbl:'Frühbucher (>30 Tage)'},
-    {k:'gruppe',  lbl:'Gruppenreservierung'},
-  ];
-  const matchInfo=[
-    {lbl:'Allergie / Diät',         note:'Wird erkannt & als Badge angezeigt'},
-    {lbl:'Familie mit Kindern',      note:'Wird erkannt, Tisch-Tag "Familie" greift'},
-    {lbl:'Anreisetag',               note:'Wird erkannt & in Statistik gezählt'},
-    {lbl:'Abreisetag',               note:'Wird erkannt & in Statistik gezählt'},
-  ];
-  const sw=scoreGewichte||DEFAULT_SW;
-  const prioHtml=prioKeys.map(({k,lbl})=>`
-    <div class="mrow" style="align-items:center">
-      <div class="mfield">${lbl}</div>
-      <input type="number" min="0" max="50" value="${sw[k]||0}" id="sw-${k}"
-        style="width:70px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px">
-      <span style="font-size:9px;color:var(--dim)">Pkt.</span>
-    </div>`).join('');
-  const matchHtml=matchInfo.map(({lbl,note})=>`
-    <div class="sw-match-row">
-      <span class="sw-match-lbl">${lbl}</span>
-      <span class="sw-match-note">${note}</span>
-    </div>`).join('');
-  el('weights-list').innerHTML=`
-    <div class="sw-section-hdr">Priorität — Wer bekommt den besten Platz?</div>
-    ${prioHtml}
-    <div class="sw-section-hdr">Erkannt, aber nicht in Score bewertet</div>
-    ${matchHtml}`;
-  openModal('weights-modal');
-}
-function saveWeights(){
-  ['vip','stammgast','langzeit','fruehbucher','gruppe'].forEach(k=>{
-    const input=el('sw-'+k);
-    if(input) scoreGewichte[k]=parseInt(input.value)||0;
-  });
-  localStorage.setItem('hsi_weights',JSON.stringify(scoreGewichte));
-  closeModal('weights-modal');
-  setStatus('Gewichte gespeichert','go');
-  renderScoreLegend();
-}
-function resetWeights(){
-  scoreGewichte={...DEFAULT_SW};
-  showWeightsModal();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2677,7 +2445,7 @@ function parseTables(rows){
       return tplIds.map(id=>({
         tisch_id:id,
         zone:'C',
-        kapazitaet:tableConfig[id]?.kapazitaet||4,
+        kapazitaet:4,
         kategorie:tischplanKat[id]||5,
         aktiv:true,
         x:0,y:0,
@@ -2698,7 +2466,7 @@ function parseTables(rows){
     return{
       tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
-      kapazitaet:parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||tableConfig[id]?.kapazitaet||4),
+      kapazitaet:parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
       kategorie:kat,
       aktiv:ak!=='0'&&ak!=='false'&&ak!=='nein',
       x:parseInt(r.X||r.x||pos.x||0),
@@ -2728,10 +2496,6 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
   const pool=inZone.length>0?inZone:avail;
   const maxKat=getMaxKatForNights(nights);
   pool.sort((a,b)=>{
-    if(smartAssignEnabled){
-      const bd=(tableConfig[b.tisch_id]?.bonus||0)-(tableConfig[a.tisch_id]?.bonus||0);
-      if(bd!==0) return bd;
-    }
     if(maxKat!==null){
       const aq=(a.kategorie||9)<=maxKat?0:1, bq=(b.kategorie||9)<=maxKat?0:1;
       if(aq!==bq) return aq-bq;
@@ -3024,40 +2788,10 @@ function runCalc(){
     assigned++;
   };
 
-  let ruleApplied=0,unassigned=0,premiumPlaced=0; assigned=0;
+  let ruleApplied=0,unassigned=0; assigned=0;
 
-  // ── PASS 1 (smart assign only): high-score guests → premium tables ──
-  if(smartAssignEnabled){
-    const hasPremium=ts.some(t=>(tableConfig[t.tisch_id]?.minScore||0)>0&&t.aktiv&&!t.blocked_for);
-    if(hasPremium){
-      [...sorted].sort((a,b)=>b.prioritaet_score-a.prioritaet_score).forEach(g=>{
-        if(g.zugewiesener_tisch) return;
-        const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
-        const eligible=ts.filter(t=>{
-          const min=(tableConfig[t.tisch_id]?.minScore||0);
-          if(!min||t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<g.pax) return false;
-          if(g.prioritaet_score<min) return false;
-          if(tableCalendar&&g.check_in&&g.check_out&&!tableOverrides.has(t.tisch_id)){
-            if(!isTableFreeForStay(tableCalendar,t.tisch_id,g.check_in,g.check_out)) return false;
-          }
-          return true;
-        });
-        if(!eligible.length) return;
-        eligible.sort((a,b)=>{
-          const bd=(tableConfig[b.tisch_id]?.bonus||0)-(tableConfig[a.tisch_id]?.bonus||0);
-          return bd||(nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0));
-        });
-        const t=eligible[0];
-        doAssign(g,t);
-        g.begruendung=`Score ${g.prioritaet_score} Pkt → `+buildBegruendung(g,t.zone);
-        premiumPlaced++;
-      });
-    }
-  }
-
-  // ── PASS 2: remaining guests → normal assignment (incl. still-empty premium tables) ──
   sorted.forEach(g=>{
-    if(g.zugewiesener_tisch) return; // already placed in pass 1 or group
+    if(g.zugewiesener_tisch) return; // already placed in group pass
     const override=applyZimmerRegeln(g);
     let targetTisch=null;
     if(override){
@@ -3069,22 +2803,6 @@ function runCalc(){
       } else if(override.zone){
         targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
         if(targetTisch) ruleApplied++;
-      }
-    }
-    if(!targetTisch){
-      const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
-      if(g.kinder>0){
-        const t=findBestTableWithTag(ts,'familie',g.pax,nights,g.check_in,g.check_out,tableCalendar);
-        if(t){targetTisch=t;ruleApplied++;}
-      }
-      if(!targetTisch&&g.vip){
-        const t=findBestTableWithTag(ts,'vip',g.pax,nights,g.check_in,g.check_out,tableCalendar);
-        if(t){targetTisch=t;ruleApplied++;}
-      }
-      if(!targetTisch&&hasActiveOccasion(g)){
-        const t=findBestTableWithTag(ts,'vip',g.pax,nights,g.check_in,g.check_out,tableCalendar)
-              ||findBestTableWithTag(ts,'ruhig',g.pax,nights,g.check_in,g.check_out,tableCalendar);
-        if(t){targetTisch=t;ruleApplied++;}
       }
     }
     if(!targetTisch){
@@ -3104,7 +2822,7 @@ function runCalc(){
 
   if(el('cs2-res')) el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   if(el('cs3-res')) el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
-  if(el('cs4-res')) el('cs4-res').textContent='Score-Rang für '+sorted.length+' Neugäste'+(premiumPlaced?' | '+premiumPlaced+' an Premium-Tischen':'');
+  if(el('cs4-res')) el('cs4-res').textContent='Score-Rang für '+sorted.length+' Neugäste';
   if(el('cs6-res')) el('cs6-res').textContent=assigned+' Gäste zugewiesen'+(unassigned?' | '+unassigned+' ohne Tisch':'');
 
   // Merge all guests
@@ -3836,24 +3554,9 @@ function parseTischplanTemplate(buf){
     // Tisch-Position: ein Spaltenblock, Tisch-ID in Spalte 0 (z.B. "611")
     if(/^\d/.test(a)) tischplanMap[a]={r};
   }
-  autoConfigFromTemplate();
   saveTemplateToStorage(buf);
   updateTemplateStatus();
   updateStartPhase();
-}
-
-function autoConfigFromTemplate(){
-  // Kat 1 = beste Tische → MIN.SCORE=15 damit VIP/Stammgast sie bekommen
-  // Kat 2–6 = offen → 0
-  // Kat 7–8 = letzter Ausweg → bleiben auf 0, aber Tags werden geleert
-  const katScore={1:15,2:0,3:0,4:0,5:0,6:0,7:0,8:0};
-  Object.entries(tischplanKat).forEach(([tid,kat])=>{
-    if(!tableConfig[tid]) tableConfig[tid]={tags:[],bonus:0,minScore:0};
-    tableConfig[tid].minScore=katScore[kat]??0;
-    if(kat===1&&tableConfig[tid].tags.length===0) tableConfig[tid].tags=['vip'];
-  });
-  saveTischConfig();
-  renderTableConfigPanel();
 }
 
 function updateSettingsStatus(){
@@ -4011,24 +3714,15 @@ function exportExcel(){
   const sh1Data=[
     [`${hotelName} — Tischplan ${slot} — ${dateStr}`],
     [],
-    smartAssignEnabled
-      ?['Tisch','Tisch-Info','Zone','Zimmer','Nachname','Vorname','PAX','Kinder','Status','VIP','Score','Allergie','Bemerkung']
-      :['Tisch','Zone','Zimmer','Nachname','Vorname','PAX','Kinder','Status','VIP','Allergie','Priorität','Bemerkung']
+    ['Tisch','Zone','Zimmer','Nachname','Vorname','PAX','Kinder','Status','VIP','Allergie','Priorität','Bemerkung']
   ];
   const byTable=[...assignedGuests.filter(g=>g.zugewiesener_tisch)];
   byTable.sort((a,b)=>(a.zugewiesener_tisch||'').localeCompare(b.zugewiesener_tisch||''));
   byTable.forEach(g=>{
-    const tInfo=getTischInfo(g.zugewiesener_tisch);
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-    if(smartAssignEnabled){
-      sh1Data.push([g.zugewiesener_tisch,tInfo,g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'',
-        g.zimmer,g.nachname,g.vorname||'',g.pax,g.kinder||0,statusStr,g.vip?'VIP':'',
-        g.prioritaet_score||0,g.allergie||'',g.bemerkung||'']);
-    } else {
-      sh1Data.push([g.zugewiesener_tisch,g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'',
-        g.zimmer,g.nachname,g.vorname||'',g.pax,g.kinder||0,statusStr,g.vip?'VIP':'',
-        g.allergie||'',g.prioritaet_score,g.bemerkung||'']);
-    }
+    sh1Data.push([g.zugewiesener_tisch,g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'',
+      g.zimmer,g.nachname,g.vorname||'',g.pax,g.kinder||0,statusStr,g.vip?'VIP':'',
+      g.allergie||'',g.prioritaet_score,g.bemerkung||'']);
   });
   // Geburtstage & Hinweise anhängen
   const gbText=(el('geburtstage-input')?.value||'').trim();
@@ -4185,28 +3879,6 @@ function renderPrintView(type){
   el('print-content').innerHTML=hdr+fpSection+body;
 }
 function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')+' '+(g.gast_typ||'');}
-function buildScoreBreakdown(g){
-  const p=[];
-  if(g.vip) p.push('VIP +'+(scoreGewichte.vip||0));
-  if(g.stammgast) p.push('Stammgast +'+(scoreGewichte.stammgast||0));
-  if((g.pax||1)>=4) p.push('Gruppe +'+(scoreGewichte.gruppe||0));
-  if(g.check_in&&g.check_out){
-    const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
-    if(nights>=7) p.push('Langzeit +'+(scoreGewichte.langzeit||0));
-    const leadDays=Math.round((new Date(g.check_in)-new Date())/86400000);
-    if(leadDays>30) p.push('Frühbucher +'+(scoreGewichte.fruehbucher||0));
-  }
-  const kat=(g.zimmer_kat||'').toLowerCase();
-  if(kat.includes('suite')||kat.includes('premium')) p.push('Zimmer-Kat +10');
-  return p.length?(g.prioritaet_score+' Pkt: '+p.join(' · ')):'Standard (0 Pkt)';
-}
-function getTischInfo(tid){
-  if(!smartAssignEnabled) return'';
-  const cfg=tableConfig[tid]||{};
-  const tags=(cfg.tags||[]).map(k=>TABLE_TAGS.find(t=>t.key===k)?.icon||'').join('');
-  const min=cfg.minScore||0;
-  return (tags?tags+' ':'')+( min?`≥${min}Pkt`:'');
-}
 function renderBadgesHtml(g){
   const txt=gAllText(g);
   const ab=ALLERGIE_DEFS.filter(d=>d.test.test(txt)).map(d=>
@@ -4247,8 +3919,7 @@ function renderServiceList(){
       <td>${g.essen_zeit||'—'}</td>
       <td>${g.bemerkung||'—'}</td>
     </tr>`).join('');
-    const tInfo=getTischInfo(tid);
-    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}${tInfo?' · '+tInfo:''}</div>
+    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}</div>
     <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   }).join('');
@@ -4287,7 +3958,7 @@ function renderSpecialList(){
       <div class="sc-zimmer">${g.zimmer}</div>
       <div class="sc-body">
         <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
-        <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}${smartAssignEnabled&&g.prioritaet_score?' | '+buildScoreBreakdown(g):''}</div>
+        <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
         <div class="sc-tags">
           ${statusTag}
           ${renderSpecialBadgesForCard(g)}
@@ -4321,7 +3992,7 @@ function updateStepUI(n){
   for(let i=0;i<=5;i++){const p=el('s'+i);if(p)p.classList.toggle('act',i===n);}
   updateTabBar(n);
   if(n===3) applyCalcStepsVisibility();
-  if(n===1){renderNightsKatRules();renderTagEditor();renderAnlaesse();}
+  if(n===1){renderNightsKatRules();renderWeightsEditor();renderAnlaesse();}
 }
 function applyCalcStepsVisibility(){
   const cs=el('calc-steps');
@@ -4745,7 +4416,6 @@ loadPMSProfiles();
 loadRules();
 loadTischRegeln();
 loadWeights();
-loadSmartAssign();
 loadNightsKatRules();
 loadAnlaesse();
 loadLangPref();
