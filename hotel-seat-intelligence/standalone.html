@@ -2596,13 +2596,18 @@ function detectGroups(guests){
   return warns;
 }
 
+// Familie und Allergie sind echte Bedürfnisse (Platz/Ruhe), keine Bevorzugung —
+// die bleiben als feste Zonen-Regel bestehen. VIP-Status und Zimmerkategorie fließen
+// dagegen bereits in den Priorität Score ein (siehe scoreGuest); statt sie hier ein
+// zweites Mal direkt zu verdrahten, entscheidet ab jetzt der Score selbst, wer Zugriff
+// auf die Premium-/Fensterzone bekommt — Gäste mit VIP-Niveau-Score oder höher zuerst.
 function getZoneForGuest(g){
   if(g.kinder>0) return'F';
-  if(g.vip) return'A';
-  const kat=g.zimmer_kat.toLowerCase();
-  if(kat.includes('suite')) return'A';
-  if(kat.includes('premium')) return'B';
   if(g.allergie) return'Q';
+  const aThresh=scoreGewichte.vip||20;
+  const bThresh=aThresh/2;
+  if(g.prioritaet_score>=aThresh) return'A';
+  if(g.prioritaet_score>=bThresh) return'B';
   return'C';
 }
 
@@ -2818,13 +2823,15 @@ function runCalc(){
       }
     });
 
-  // Individual placement for remaining (non-group) neu guests
+  // Individual placement for remaining (non-group) neu guests — Familie bleibt ein
+  // eigener Bedürfnis-Vorlauf (braucht den Familienbereich), alle übrigen Gäste
+  // (vorher künstlich nach VIP/Anlass/Rest getrennt) laufen jetzt in einem Topf und
+  // konkurrieren rein über ruleRank (Aufenthaltsdauer-Berechtigung) und Score
+  // (enthält VIP/Stammgast/Anlass-Bonus bereits) um die besten freien Tische.
   const fam=neu.filter(g=>!groupAssigned.has(g.id)&&g.kinder>0);
-  const bar=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder&&g.vip);
-  const anl=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder&&!g.vip&&hasActiveOccasion(g));
-  const nor=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder&&!g.vip&&!hasActiveOccasion(g));
+  const rest=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder);
   const rankSort=(a,b)=>(ruleRank(a)-ruleRank(b))||(b.prioritaet_score-a.prioritaet_score);
-  const sorted=[...fam.sort(rankSort),...bar.sort(rankSort),...anl.sort(rankSort),...nor.sort(rankSort)];
+  const sorted=[...fam.sort(rankSort),...rest.sort(rankSort)];
 
   const doAssign=(g,t)=>{
     t.belegtPax+=g.pax;
