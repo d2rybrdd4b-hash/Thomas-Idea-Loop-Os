@@ -121,6 +121,8 @@ export default function HomePage() {
         onChange={setLyrics}
         onAnalyze={handleAnalyze}
         loading={loading}
+        trackTitle={track?.title}
+        trackArtist={track?.artist}
       />
 
       {error && (

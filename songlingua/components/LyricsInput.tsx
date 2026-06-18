@@ -3,17 +3,39 @@ export function LyricsInput({
   onChange,
   onAnalyze,
   loading,
+  trackTitle,
+  trackArtist,
 }: {
   value: string;
   onChange: (value: string) => void;
   onAnalyze: () => void;
   loading: boolean;
+  trackTitle?: string;
+  trackArtist?: string;
 }) {
+  const searchUrl =
+    trackTitle &&
+    `https://genius.com/search?q=${encodeURIComponent(
+      [trackTitle, trackArtist].filter(Boolean).join(" ")
+    )}`;
+
   return (
     <div className="rounded-2xl border border-surface-border bg-surface-card p-4">
-      <label className="mb-2 block text-sm font-medium text-zinc-300">
-        Textausschnitt einfügen (kurz, kein ganzer Song)
-      </label>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <label className="block text-sm font-medium text-zinc-300">
+          Textausschnitt einfügen (kurz, kein ganzer Song)
+        </label>
+        {searchUrl && (
+          <a
+            href={searchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 rounded-full border border-surface-border px-3 py-1 text-xs font-medium text-zinc-300 active:scale-[0.98]"
+          >
+            Songtext suchen ↗
+          </a>
+        )}
+      </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
