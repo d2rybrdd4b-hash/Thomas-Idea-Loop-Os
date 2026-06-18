@@ -2437,6 +2437,23 @@ function scoreGuest(g,ref){
   return s;
 }
 
+function buildScoreBreakdown(g){
+  const parts=[];
+  if(g.vip&&scoreGewichte.vip) parts.push(`VIP +${scoreGewichte.vip}`);
+  if(g.stammgast&&scoreGewichte.stammgast) parts.push(`Stammgast +${scoreGewichte.stammgast}`);
+  if((g.pax||1)>=4&&scoreGewichte.gruppe) parts.push(`Gruppe +${scoreGewichte.gruppe}`);
+  if(g.check_in&&g.check_out){
+    const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
+    if(nights>=7&&scoreGewichte.langzeit) parts.push(`Langzeit +${scoreGewichte.langzeit}`);
+    const leadDays=Math.round((new Date(g.check_in)-new Date())/86400000);
+    if(leadDays>30&&scoreGewichte.fruehbucher) parts.push(`Frühbucher +${scoreGewichte.fruehbucher}`);
+  }
+  const zimmerKat=(g.zimmer_kat||'').toLowerCase();
+  if(zimmerKat.includes('suite')||zimmerKat.includes('premium')) parts.push('Zimmerkat. +10');
+  if(parts.length===0) return `${g.prioritaet_score} Pkt: Standard`;
+  return `${g.prioritaet_score} Pkt: ${parts.join(' · ')}`;
+}
+
 function parseTables(rows){
   if(!rows||rows.length===0){
     // Reale Tische aus der hochgeladenen Tischvorlage des Hoteliers verwenden, falls vorhanden
@@ -3722,7 +3739,7 @@ function exportExcel(){
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
     sh1Data.push([g.zugewiesener_tisch,g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'',
       g.zimmer,g.nachname,g.vorname||'',g.pax,g.kinder||0,statusStr,g.vip?'VIP':'',
-      g.allergie||'',g.prioritaet_score,g.bemerkung||'']);
+      g.allergie||'',buildScoreBreakdown(g),g.bemerkung||'']);
   });
   // Geburtstage & Hinweise anhängen
   const gbText=(el('geburtstage-input')?.value||'').trim();
