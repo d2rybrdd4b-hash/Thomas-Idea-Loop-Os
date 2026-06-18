@@ -3615,6 +3615,28 @@ function updateTemplateStatus(){
   updateSettingsStatus();
 }
 
+// Fügt eine leere Spalte an Index `col` ein (0-basiert) — verschiebt alle Zellen,
+// verbundenen Bereiche und Spaltenbreiten ab dieser Spalte um eins nach rechts.
+function insertSheetColumn(ws,col){
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+  for(let r=range.s.r;r<=range.e.r;r++){
+    for(let c=range.e.c+1;c>col;c--){
+      const srcKey=XLSX.utils.encode_cell({r,c:c-1});
+      const dstKey=XLSX.utils.encode_cell({r,c});
+      if(ws[srcKey]!==undefined) ws[dstKey]=ws[srcKey]; else delete ws[dstKey];
+    }
+    delete ws[XLSX.utils.encode_cell({r,c:col})];
+  }
+  range.e.c+=1;
+  ws['!ref']=XLSX.utils.encode_range(range);
+  if(ws['!merges']) ws['!merges'].forEach(m=>{
+    if(m.s.c>=col) m.s.c+=1;
+    if(m.e.c>=col) m.e.c+=1;
+  });
+  if(ws['!cols']) ws['!cols'].splice(col,0,ws['!cols'][col-1]?{...ws['!cols'][col-1]}:{wch:14});
+  return range;
+}
+
 // Baut die befüllte Tischplan-Vorlage (Workbook + Gast-Zuordnung) ohne sie herunterzuladen —
 // wird sowohl für den echten Export als auch für die Vorschau verwendet.
 function buildFilledTischplanSheet(){
@@ -3631,8 +3653,19 @@ function buildFilledTischplanSheet(){
       if(g) guestByTable[String(t.tisch_id)]=g;
     }
   });
-  // Write to cells — ein Spaltenblock: Tisch=0, Zimmer=1, Status=2, Name=3, PAX=4, Extras=5
+  // Write to cells — ein Spaltenblock: Tisch=0, Zimmer=1, Status=2, Name=3, PAX=4, Priorität Score=5(neu), Extras=6
   const base=1;
+  const range=insertSheetColumn(ws,base+4);
+  // Kopfzeilen "Extras" finden (jetzt nach rechts verschoben) und davor "Priorität Score" beschriften
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const extrasKey=XLSX.utils.encode_cell({r,c:base+5});
+    const cell=ws[extrasKey];
+    if(cell&&String(cell.v||'').trim().toLowerCase()==='extras'){
+      const scoreKey=XLSX.utils.encode_cell({r,c:base+4});
+      const paxKey=XLSX.utils.encode_cell({r,c:base+3});
+      ws[scoreKey]={v:'Priorität Score',t:'s',s:ws[paxKey]?ws[paxKey].s:undefined};
+    }
+  }
   Object.entries(tischplanMap).forEach(([tid,{r}])=>{
     const g=guestByTable[tid];
     if(g){
@@ -3644,10 +3677,11 @@ function buildFilledTischplanSheet(){
       tplCell(ws,r,base+1,statusStr);
       tplCell(ws,r,base+2,name);
       tplCell(ws,r,base+3,g.pax||1,'n');
-      tplCell(ws,r,base+4,extras);
+      tplCell(ws,r,base+4,buildScoreBreakdown(g));
+      tplCell(ws,r,base+5,extras);
     } else {
       // Clear cells for empty/free tables
-      [0,1,2,3,4].forEach(d=>tplCell(ws,r,base+d,''));
+      [0,1,2,3,4,5].forEach(d=>tplCell(ws,r,base+d,''));
     }
   });
   return{wb,ws,guestByTable};
