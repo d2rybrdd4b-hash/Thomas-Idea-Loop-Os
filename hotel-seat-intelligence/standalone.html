@@ -23,6 +23,7 @@
   --green:#2ECC71;--red:#E55555;--orange:#E8843A;--text:#D8E4F0;--dim:#5A7A96;
   --za:#C8A84B;--zb:#3BB87A;--zc:#5A7A96;--zf:#3AB4E0;--zq:#9B72C0;--zp:#3BB8A0;--zn:#C89060;--zx:#8A8A8A;
   --hdr:#090F17;--r:10px;
+  --font-display:Georgia,'Iowan Old Style','Palatino Linotype','Book Antiqua',ui-serif,serif;
 }
 [data-theme="day"]{
   --bg:#F5F0E8;--panel:#F8F4EE;--card:#FFFFFF;--border:#DDD8CE;
@@ -35,7 +36,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           background:var(--bg);color:var(--text);overflow:hidden;transition:background .25s,color .25s}
 
 /* ── HEADER ── */
-#hdr{height:56px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.08);
+#hdr{height:56px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08)),var(--hdr);
+     border-bottom:1px solid rgba(255,255,255,.08);
      display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
 /* ── THEME PILL SWITCH ── */
 .theme-pill{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;padding:2px 6px;border-radius:20px;transition:background .2s}
@@ -82,8 +84,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
      font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;
      display:inline-flex;align-items:center;gap:8px}
 .btn:disabled{opacity:.3;cursor:not-allowed}
-.btn-gold{background:var(--gold);color:#090F17}
-.btn-gold:not(:disabled):hover{background:#D4AF5A;transform:translateY(-1px)}
+.btn-gold{background:linear-gradient(155deg,rgba(255,255,255,.32),rgba(255,255,255,0)),var(--gold);color:#090F17}
+.btn-gold:not(:disabled):hover{background:linear-gradient(155deg,rgba(255,255,255,.42),rgba(255,255,255,0)),var(--gold);transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
 .btn-ghost:not(:disabled):hover{border-color:var(--dim)}
 .btn-blue{background:rgba(58,180,224,.12);color:#3AB4E0;border:1px solid rgba(58,180,224,.25)}
@@ -193,7 +195,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tbl-preview td{padding:8px 12px;border-bottom:1px solid var(--border)}
 .tbl-preview tr:last-child td{border-bottom:none}
 .tbl-preview tr:hover td{background:rgba(255,255,255,.02)}
-.zone-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.zone-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;
+  box-shadow:inset -1px -1px 1.5px rgba(0,0,0,.3),inset 1px 1px 1px rgba(255,255,255,.55)}
 #s3 .bot{display:flex;justify-content:space-between;align-items:center;
          max-width:900px;margin:24px auto 0;gap:12px}
 
@@ -306,7 +309,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 #print-content{flex:1;overflow-y:auto;padding:40px;background:var(--bg)}
 .pview-hdr{text-align:center;margin-bottom:28px;padding-bottom:20px;
            border-bottom:2px solid var(--gold)}
-.pview-hdr h1{font-size:20px;font-weight:300;letter-spacing:1px}
+.pview-hdr h1{font-family:var(--font-display);font-size:20px;font-weight:300;letter-spacing:1px}
 .pview-hdr h1 em{color:var(--gold);font-style:normal}
 .pview-hdr p{font-size:11px;color:var(--dim);margin-top:6px}
 .ptbl{width:100%;border-collapse:collapse;font-size:11px}
@@ -389,7 +392,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 #s0{padding:20px 18px calc(80px + env(safe-area-inset-bottom,0px))}
 .dash-wrap{max-width:700px;margin:0 auto}
 .dash-hotel{text-align:center;margin-bottom:24px}
-.dash-hotel h2{font-size:36px;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:12px;line-height:1.1}
+.dash-hotel h2{font-family:var(--font-display);font-size:36px;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:12px;line-height:1.1}
 .dash-tagline{font-size:13px;color:var(--dim);margin:8px 0 20px;line-height:1.6}
 .dash-meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
 .dash-meta input,.dash-meta select{background:rgba(255,255,255,.06);color:var(--text);
@@ -410,7 +413,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .fp-meal-ctx{font-size:11px;font-weight:700;color:var(--dim);padding:3px 10px;
              background:var(--card);border:1px solid var(--border);border-radius:20px;white-space:nowrap}
 /* ── COCKPIT START TAB ── */
-.cockpit-hero{display:flex;flex-direction:column;background:rgba(46,204,113,.09);
+.cockpit-hero{display:flex;flex-direction:column;
+  background:linear-gradient(155deg,rgba(46,204,113,.14),rgba(46,204,113,.05));
   border:1.5px solid rgba(46,204,113,.28);border-radius:18px;margin-bottom:14px;
   overflow:hidden;box-shadow:0 4px 28px rgba(46,204,113,.1)}
 .cockpit-status{display:flex;align-items:center;gap:16px;padding:20px 22px 18px}
@@ -428,13 +432,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .cockpit-ring.alert .ring-bg{stroke:rgba(229,85,85,.18)}
 .cockpit-ring.alert .cockpit-ring-ico{color:var(--red)}
 .cockpit-status-body{flex:1;min-width:0}
-.cockpit-status-tit{font-size:19px;font-weight:700;color:var(--green);margin-bottom:3px;letter-spacing:-.2px}
+.cockpit-status-tit{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--green);margin-bottom:3px;letter-spacing:-.2px}
 .cockpit-status-sub{font-size:12px;color:var(--dim);line-height:1.4}
 .cockpit-kpis{display:flex;border-top:1px solid rgba(46,204,113,.18)}
 .ckpi{flex:1;text-align:center;padding:13px 8px 11px;
   border-right:1px solid rgba(46,204,113,.12);background:transparent;border-radius:0;cursor:default}
 .ckpi:last-child{border-right:none}
-.ckpi-val{font-size:26px;font-weight:800;color:var(--gold);line-height:1}
+.ckpi-val{font-size:26px;font-weight:800;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
 .ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
 .ckpi.ckpi-green .ckpi-val{color:var(--green)}
 .ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
