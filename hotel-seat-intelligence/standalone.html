@@ -1315,6 +1315,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 //  UTILS
 // ══════════════════════════════════════════════════════════════
 const el=id=>document.getElementById(id);
+function esc(v){
+  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function setStatus(msg,state=''){
   el('stxt').textContent=msg;
   const d=el('sdot');
@@ -2201,8 +2204,8 @@ function renderPreview(rows){
   const tbl=el('s2-preview');
   if(rows.length===0){tbl.innerHTML='<tr><td style="color:var(--dim);padding:12px">Keine Daten</td></tr>';return;}
   const cols=showFields.filter(f=>rows.some(r=>r[f]));
-  tbl.innerHTML=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-  <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]||''}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  tbl.innerHTML=`<thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2954,21 +2957,21 @@ function renderPlanTable(guests,filter=''){
     if(!s||s==='BL') return'';
     const disp={'AN·AB':'AN/AB'}[s]||s;
     const cls={AN:'an',AB:'ab','AN·AB':'anab'}[s]||'';
-    return`<span class="sbadge ${cls}">${disp}</span>`;
+    return`<span class="sbadge ${cls}">${esc(disp)}</span>`;
   };
   tbl.innerHTML=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
   <tbody>${rows.map(g=>{
     const zone=g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'';
     const zc=zoneColor[zone]||'var(--dim)';
     return`<tr>
-      <td><b>${g.zugewiesener_tisch}</b></td>
-      <td><span class="zone-dot" style="background:${zc}"></span>${zone}</td>
-      <td>${g.zimmer}</td>
-      <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.allergie?` <span style="font-size:9px;color:var(--orange)">⚠${g.allergie}</span>`:''}</td>
-      <td>${g.pax}${g.kinder?` <span style="font-size:9px;color:var(--zb)">+${g.kinder}K</span>`:''}</td>
+      <td><b>${esc(g.zugewiesener_tisch)}</b></td>
+      <td><span class="zone-dot" style="background:${zc}"></span>${esc(zone)}</td>
+      <td>${esc(g.zimmer)}</td>
+      <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.allergie?` <span style="font-size:9px;color:var(--orange)">⚠${esc(g.allergie)}</span>`:''}</td>
+      <td>${esc(g.pax)}${g.kinder?` <span style="font-size:9px;color:var(--zb)">+${esc(g.kinder)}K</span>`:''}</td>
       <td>${statusBadge(g.status)}</td>
       <td>${g.vip?'⭐':''}</td>
-      <td style="font-size:10px;color:var(--dim);max-width:200px;line-height:1.3">${g.begruendung||'—'}</td>
+      <td style="font-size:10px;color:var(--dim);max-width:200px;line-height:1.3">${esc(g.begruendung||'—')}</td>
     </tr>`;
   }).join('')}
   ${rows.length===0?'<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:16px">Keine Treffer</td></tr>':''}
@@ -4095,7 +4098,7 @@ function getSlotLabel(){
 }
 function renderPrintView(type){
   const hotel=getHotelName();
-  const hdr=`<div class="pview-hdr"><h1>${hotel} — <em>${
+  const hdr=`<div class="pview-hdr"><h1>${esc(hotel)} — <em>${
     {service:'Service-Liste',reception:'Rezeptionsliste',special:'Sonderhinweise'}[type]
   }</em></h1><p>${refDate} | ${getSlotLabel()} | Erstellt: ${new Date().toLocaleTimeString('de-DE')}</p></div>`;
 
@@ -4112,7 +4115,7 @@ function renderPrintView(type){
       const clone=fpWrap.cloneNode(true);
       clone.style.cssText='display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding:10px;box-sizing:border-box;align-items:stretch';
       fpSection=`<div class="fp-print-section" style="margin-bottom:20px;page-break-after:avoid">
-        <div class="pgroup-hdr" style="border-color:#9B6B1A;color:#9B6B1A">Grundriss — ${hotel}</div>
+        <div class="pgroup-hdr" style="border-color:#9B6B1A;color:#9B6B1A">Grundriss — ${esc(hotel)}</div>
         <div style="background:#F5EFE3;border-radius:8px;padding:10px;margin-top:6px">${clone.outerHTML}</div>
       </div><div style="page-break-before:always"></div>`;
     }
@@ -4150,18 +4153,18 @@ function renderServiceList(){
     const statusBadge=s=>{
       if(!s||s==='BL') return'';
       const c={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'}[s]||'#888';
-      return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${s}</span>`;
+      return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${esc(s)}</span>`;
     };
     const rows=byTable[tid].map(g=>`<tr>
-      <td>${g.zimmer}</td>
-      <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
+      <td>${esc(g.zimmer)}</td>
+      <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
       <td>${statusBadge(g.status)}</td>
-      <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
+      <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
       <td>${renderBadgesHtml(g)}</td>
-      <td>${g.essen_zeit||'—'}</td>
-      <td>${g.bemerkung||'—'}</td>
+      <td>${esc(g.essen_zeit||'—')}</td>
+      <td>${esc(g.bemerkung||'—')}</td>
     </tr>`).join('');
-    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${tid} — Zone ${zone}</div>
+    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${esc(tid)} — Zone ${esc(zone)}</div>
     <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   }).join('');
@@ -4169,13 +4172,13 @@ function renderServiceList(){
 function renderReceptionList(){
   const rows=[...assignedGuests].sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0));
   const trs=rows.map(g=>`<tr>
-    <td><b>${g.zimmer}</b></td>
-    <td>${g.vorname?g.vorname+' ':''}${g.nachname}${g.vip?' ⭐':''}</td>
-    <td>${g.pax}${g.kinder?'+'+g.kinder+'K':''}</td>
-    <td>${g.zugewiesener_tisch||'—'}</td>
-    <td>${g.status||'—'}</td>
+    <td><b>${esc(g.zimmer)}</b></td>
+    <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
+    <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
+    <td>${esc(g.zugewiesener_tisch||'—')}</td>
+    <td>${esc(g.status||'—')}</td>
     <td>${renderBadgesHtml(g)}</td>
-    <td>${g.essen_zeit||'—'}</td>
+    <td>${esc(g.essen_zeit||'—')}</td>
   </tr>`).join('');
   return`<table class="ptbl"><thead><tr>
     <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Status</th><th>Allergie</th><th>Zeit</th>
@@ -4195,12 +4198,12 @@ function renderSpecialList(){
     return(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0);
   }).map(g=>{
     const sc=statusColors2[g.status];
-    const statusTag=sc?`<span class="sc-tag" style="background:${sc}20;color:${sc};border-color:${sc}55;font-weight:800">${g.status}</span>`:'';
+    const statusTag=sc?`<span class="sc-tag" style="background:${sc}20;color:${sc};border-color:${sc}55;font-weight:800">${esc(g.status)}</span>`:'';
     return`<div class="sonder-card">
-      <div class="sc-zimmer">${g.zimmer}</div>
+      <div class="sc-zimmer">${esc(g.zimmer)}</div>
       <div class="sc-body">
-        <div class="sc-name">${g.vorname?g.vorname+' ':''}${g.nachname}</div>
-        <div class="sc-tisch">Tisch: ${g.zugewiesener_tisch||'—'} | ${g.pax} PAX${g.essen_zeit?' | '+g.essen_zeit:''}</div>
+        <div class="sc-name">${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}</div>
+        <div class="sc-tisch">Tisch: ${esc(g.zugewiesener_tisch||'—')} | ${esc(g.pax)} PAX${g.essen_zeit?' | '+esc(g.essen_zeit):''}</div>
         <div class="sc-tags">
           ${statusTag}
           ${renderSpecialBadgesForCard(g)}
