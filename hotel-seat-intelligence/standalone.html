@@ -3927,10 +3927,7 @@ function buildFilledTischplanSheet(){
       tplCell(ws,r,base+4,extras);
     } else {
       // Clear cells for empty/free tables
-      [0,1,2,3,4].forEach(d=>{
-        const addr=XLSX.utils.encode_cell({r,c:base+d});
-        if(ws[addr]) ws[addr].v='';
-      });
+      [0,1,2,3,4].forEach(d=>tplCell(ws,r,base+d,''));
     }
   });
   return{wb,ws,guestByTable};
@@ -3990,6 +3987,10 @@ function tplCell(ws,r,c,value,type){
   ws[addr].v=value;
   ws[addr].t=type||'s';
   delete ws[addr].f;
+  // gecachte Anzeigetexte löschen, sonst zeigt die Vorschau (sheet_to_html) weiter die alten Werte
+  delete ws[addr].w;
+  delete ws[addr].h;
+  delete ws[addr].r;
 }
 
 function exportExcel(){
