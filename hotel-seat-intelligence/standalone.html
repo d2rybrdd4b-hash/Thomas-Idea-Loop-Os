@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Hotel Seat Intelligence</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -3615,36 +3616,43 @@ function updateTemplateStatus(){
   updateSettingsStatus();
 }
 
-// Fügt eine leere Spalte an Index `col` ein (0-basiert) — verschiebt alle Zellen,
-// verbundenen Bereiche und Spaltenbreiten ab dieser Spalte um eins nach rechts.
-function insertSheetColumn(ws,col){
-  const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
-  for(let r=range.s.r;r<=range.e.r;r++){
-    for(let c=range.e.c+1;c>col;c--){
-      const srcKey=XLSX.utils.encode_cell({r,c:c-1});
-      const dstKey=XLSX.utils.encode_cell({r,c});
-      if(ws[srcKey]!==undefined) ws[dstKey]=ws[srcKey]; else delete ws[dstKey];
+function colToNum(letters){let n=0;for(let i=0;i<letters.length;i++)n=n*26+(letters.charCodeAt(i)-64);return n;}
+function numToCol(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+
+// Fügt eine leere Spalte an Index `col` ein (1-basiert, ExcelJS-Konvention) — verschiebt alle
+// Zellen (inkl. Formatierung), verbundenen Bereiche und Spaltenbreiten ab dieser Spalte um eins nach rechts.
+function insertWsColumn(ws,col){
+  const dim=ws.dimensions||{top:1,left:1,bottom:ws.rowCount,right:ws.columnCount};
+  const merges=(ws.model.merges||[]).slice();
+  merges.forEach(m=>ws.unMergeCells(m));
+  for(let r=dim.top;r<=dim.bottom;r++){
+    for(let c=dim.right+1;c>col;c--){
+      const src=ws.getCell(r,c-1),dst=ws.getCell(r,c);
+      dst.value=src.value;dst.style=src.style;
     }
-    delete ws[XLSX.utils.encode_cell({r,c:col})];
+    const cleared=ws.getCell(r,col);
+    cleared.value=null;cleared.style={};
   }
-  range.e.c+=1;
-  ws['!ref']=XLSX.utils.encode_range(range);
-  if(ws['!merges']) ws['!merges'].forEach(m=>{
-    if(m.s.c>=col) m.s.c+=1;
-    if(m.e.c>=col) m.e.c+=1;
+  for(let c=dim.right+1;c>col;c--) ws.getColumn(c).width=ws.getColumn(c-1).width;
+  ws.getColumn(col).width=ws.getColumn(col-1).width;
+  const re=/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/;
+  merges.forEach(m=>{
+    const mm=re.exec(m);if(!mm) return;
+    let c1=colToNum(mm[1]),r1=+mm[2],c2=colToNum(mm[3]),r2=+mm[4];
+    if(c1>=col)c1++;if(c2>=col)c2++;
+    ws.mergeCells(`${numToCol(c1)}${r1}:${numToCol(c2)}${r2}`);
   });
-  if(ws['!cols']) ws['!cols'].splice(col,0,ws['!cols'][col-1]?{...ws['!cols'][col-1]}:{wch:14});
-  return range;
+  return{top:dim.top,bottom:dim.bottom,right:dim.right+1};
 }
 
 // Baut die befüllte Tischplan-Vorlage (Workbook + Gast-Zuordnung) ohne sie herunterzuladen —
 // wird sowohl für den echten Export als auch für die Vorschau verwendet.
-function buildFilledTischplanSheet(){
+async function buildFilledTischplanSheet(){
   if(!tischplanTemplate) return null;
   if(!calcDone||(lastTables||[]).length===0) return null;
-  const wb=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true});
-  const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wb.SheetNames[0];
-  const ws=wb.Sheets[sheetName];
+  const wb=new ExcelJS.Workbook();
+  await wb.xlsx.load(tischplanTemplate);
+  const ws=wb.worksheets.find(w=>/^Tischplan/i.test(w.name.trim()))||wb.worksheets[0];
   // Guest lookup by table ID
   const guestByTable={};
   (lastTables||[]).forEach(t=>{
@@ -3653,63 +3661,100 @@ function buildFilledTischplanSheet(){
       if(g) guestByTable[String(t.tisch_id)]=g;
     }
   });
-  // Write to cells — ein Spaltenblock: Tisch=0, Zimmer=1, Status=2, Name=3, PAX=4, Priorität Score=5(neu), Extras=6
-  const base=1;
-  const range=insertSheetColumn(ws,base+4);
+  // Spalten (1-basiert): Tisch=1, Zimmer=2, Status=3, Name=4, PAX=5, Priorität Score=6(neu), Extras=7
+  const base=2;
+  const range=insertWsColumn(ws,base+4);
   // Kopfzeilen "Extras" finden (jetzt nach rechts verschoben) und davor "Priorität Score" beschriften
-  for(let r=range.s.r;r<=range.e.r;r++){
-    const extrasKey=XLSX.utils.encode_cell({r,c:base+5});
-    const cell=ws[extrasKey];
-    if(cell&&String(cell.v||'').trim().toLowerCase()==='extras'){
-      const scoreKey=XLSX.utils.encode_cell({r,c:base+4});
-      const paxKey=XLSX.utils.encode_cell({r,c:base+3});
-      ws[scoreKey]={v:'Priorität Score',t:'s',s:ws[paxKey]?ws[paxKey].s:undefined};
+  for(let r=range.top;r<=range.bottom;r++){
+    const cell=ws.getCell(r,base+5);
+    if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
+      const scoreCell=ws.getCell(r,base+4);
+      scoreCell.value='Priorität Score';
+      scoreCell.style=ws.getCell(r,base+3).style;
     }
   }
   Object.entries(tischplanMap).forEach(([tid,{r}])=>{
+    const xlRow=r+1;
     const g=guestByTable[tid];
+    const tischFill=ws.getCell(xlRow,base-1).fill;
     if(g){
       const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
         +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
       const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
       const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-      tplCell(ws,r,base,  String(g.zimmer||''));
-      tplCell(ws,r,base+1,statusStr);
-      tplCell(ws,r,base+2,name);
-      tplCell(ws,r,base+3,g.pax||1,'n');
-      tplCell(ws,r,base+4,buildScoreBreakdown(g));
-      tplCell(ws,r,base+5,extras);
+      const zimmerCell=ws.getCell(xlRow,base);
+      zimmerCell.value=String(g.zimmer||'');
+      zimmerCell.fill=tischFill;
+      ws.getCell(xlRow,base+1).value=statusStr;
+      ws.getCell(xlRow,base+2).value=name;
+      ws.getCell(xlRow,base+3).value=g.pax||1;
+      ws.getCell(xlRow,base+4).value=buildScoreBreakdown(g);
+      ws.getCell(xlRow,base+5).value=extras;
     } else {
-      // Clear cells for empty/free tables
-      [0,1,2,3,4,5].forEach(d=>tplCell(ws,r,base+d,''));
+      // Zellen für freie Tische leeren
+      [0,1,2,3,4,5].forEach(d=>{ws.getCell(xlRow,base+d).value=null;});
     }
   });
   return{wb,ws,guestByTable};
 }
 
-function exportToTischplanTemplate(){
+function triggerXlsxDownload(buffer,filename){
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+async function exportToTischplanTemplate(){
   if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
-  const built=buildFilledTischplanSheet();
+  const built=await buildFilledTischplanSheet();
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
   const ds=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(built.wb,`Tischplan_${hotel}_${ds}.xlsx`,{bookSST:false});
+  const buffer=await built.wb.xlsx.writeBuffer();
+  triggerXlsxDownload(buffer,`Tischplan_${hotel}_${ds}.xlsx`);
   setStatus('Hotelier-Tischplan exportiert','go');
   el('s5-done').style.display='block';
 }
 
+// Wandelt eine ExcelJS-ARGB-Füllfarbe in CSS um (für die HTML-Vorschau)
+function fillToCss(fill){
+  const argb=fill&&fill.type==='pattern'&&fill.pattern==='solid'&&fill.fgColor&&fill.fgColor.argb;
+  if(!argb) return '';
+  return `background-color:#${argb.slice(-6)}`;
+}
+
+// Baut eine einfache HTML-Tabellen-Vorschau des befüllten Sheets (inkl. Zellfarben)
+function buildSheetPreviewHtml(ws,range){
+  let html='<table style="border-collapse:collapse;font-size:11px">';
+  for(let r=range.top;r<=range.bottom;r++){
+    html+='<tr>';
+    for(let c=1;c<=range.right;c++){
+      const cell=ws.getCell(r,c);
+      const v=cell.value==null?'':String(cell.value);
+      html+=`<td style="border:1px solid #ccc;padding:2px 4px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
+    }
+    html+='</tr>';
+  }
+  html+='</table>';
+  return html;
+}
+
 // Zeigt/verbirgt eine HTML-Vorschau der befüllten Excel-Vorlage, plus Kontrollzeile
 // (wie viele Gäste tatsächlich in die Vorlage übernommen werden konnten).
-function toggleExcelPreview(){
+async function toggleExcelPreview(){
   const wrap=el('excel-preview-wrap');
   if(!wrap) return;
   if(wrap.style.display==='block'){wrap.style.display='none';return;}
   if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
-  const built=buildFilledTischplanSheet();
+  const built=await buildFilledTischplanSheet();
   if(!built) return;
-  wrap.innerHTML=XLSX.utils.sheet_to_html(built.ws,{editable:false});
+  const dim=built.ws.dimensions||{top:1,bottom:built.ws.rowCount,right:built.ws.columnCount};
+  wrap.innerHTML=buildSheetPreviewHtml(built.ws,dim);
   wrap.style.display='block';
   updateExportCheck();
 }
@@ -3733,18 +3778,6 @@ function updateExportCheck(){
     box.innerHTML=(missing>0?`⚠️ ${missing} von ${total} Gästen ohne passenden Tisch in der Vorlage — bitte prüfen`:'')+
       (reds>0?(missing>0?'<br>':'')+`🔴 ${reds} kritische Hinweise offen`:'');
   }
-}
-
-function tplCell(ws,r,c,value,type){
-  const addr=XLSX.utils.encode_cell({r,c});
-  if(!ws[addr]) ws[addr]={};
-  ws[addr].v=value;
-  ws[addr].t=type||'s';
-  delete ws[addr].f;
-  // gecachte Anzeigetexte löschen, sonst zeigt die Vorschau (sheet_to_html) weiter die alten Werte
-  delete ws[addr].w;
-  delete ws[addr].h;
-  delete ws[addr].r;
 }
 
 function exportExcel(){
