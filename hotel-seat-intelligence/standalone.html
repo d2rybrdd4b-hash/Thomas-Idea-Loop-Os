@@ -1534,6 +1534,26 @@ const DEFAULT_TABLES=[
   {tisch_id:'S01',zone:'C',kapazitaet:12,kategorie:8,aktiv:true,x:380,y:350},
 ];
 
+// Feste Tischkategorien (Kat 1–8) des Hotels — aus der Tischkategorien-Legende
+// der Tischplan-Vorlage übernommen, da die täglichen Tischplan-Dateien diese
+// Zuordnung selbst nicht enthalten (weder als Text noch als Zellfarbe).
+const TISCH_KAT_MAP={};
+[
+  [1,'641,643,644,651,652,653,654,711,712,713,714,715,716,717,718,721,722,723,724,725,726,727'],
+  [2,'631,633,642,645,646,621,624,611,614,663,664,673,674,728,729,732,733'],
+  [3,'632,634,635,636,625,626,627,615,616,617,661,662,671,672,730,731'],
+  [4,'612,613,622,623,741,742,743'],
+  [5,'746,749'],
+  [6,'747,750'],
+  [7,'744,745,748'],
+  [8,'720,802,803,804'],
+].forEach(([kat,list])=>{
+  list.split(',').map(t=>t.trim()).filter(Boolean).forEach(t=>{TISCH_KAT_MAP[t]=kat;});
+});
+
+// Pastellfarben je Kategorie für die Excel-Einfärbung (ARGB, ohne Alpha-Präfix)
+const KAT_FARBEN={1:'C6EFCE',2:'FFEB9C',3:'FFC7CE',4:'BDD7EE',5:'D9D2E9',6:'FCE4D6',7:'D0E0E3',8:'D9D9D9'};
+
 // Zimmerstamm des Hotels — 70 Zimmer
 const ZIMMERSTAMM=new Set([
   101,102,103,104,105,106,107,108,109,110,111,112,113,
@@ -3616,6 +3636,17 @@ function updateTemplateStatus(){
   updateSettingsStatus();
 }
 
+// ExcelJS teilt sich Style-Objekte per Referenz zwischen Zellen mit identischer
+// Formatierung. Ein direktes `cell.fill=...` mutiert dieses geteilte Objekt und
+// färbt dadurch ungewollt auch andere Zellen mit — daher immer über eine Kopie
+// des Style-Objekts setzen.
+function setCellFill(cell,fill){
+  cell.style=Object.assign({},cell.style,{fill});
+}
+function copyCellStyle(dst,src){
+  dst.style=Object.assign({},src.style);
+}
+
 function colToNum(letters){let n=0;for(let i=0;i<letters.length;i++)n=n*26+(letters.charCodeAt(i)-64);return n;}
 function numToCol(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
 
@@ -3628,7 +3659,7 @@ function insertWsColumn(ws,col){
   for(let r=dim.top;r<=dim.bottom;r++){
     for(let c=dim.right+1;c>col;c--){
       const src=ws.getCell(r,c-1),dst=ws.getCell(r,c);
-      dst.value=src.value;dst.style=src.style;
+      dst.value=src.value;copyCellStyle(dst,src);
     }
     const cleared=ws.getCell(r,col);
     cleared.value=null;cleared.style={};
@@ -3670,13 +3701,17 @@ async function buildFilledTischplanSheet(){
     if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
       const scoreCell=ws.getCell(r,base+4);
       scoreCell.value='Priorität Score';
-      scoreCell.style=ws.getCell(r,base+3).style;
+      copyCellStyle(scoreCell,ws.getCell(r,base+3));
     }
   }
   Object.entries(tischplanMap).forEach(([tid,{r}])=>{
     const xlRow=r+1;
     const g=guestByTable[tid];
-    const tischFill=ws.getCell(xlRow,base-1).fill;
+    const kat=TISCH_KAT_MAP[tid];
+    const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
+    if(katFill){
+      setCellFill(ws.getCell(xlRow,base-1),katFill); // Tisch-ID-Zelle
+    }
     if(g){
       const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
         +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
@@ -3684,7 +3719,7 @@ async function buildFilledTischplanSheet(){
       const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
       const zimmerCell=ws.getCell(xlRow,base);
       zimmerCell.value=String(g.zimmer||'');
-      zimmerCell.fill=tischFill;
+      if(katFill) setCellFill(zimmerCell,katFill);
       ws.getCell(xlRow,base+1).value=statusStr;
       ws.getCell(xlRow,base+2).value=name;
       ws.getCell(xlRow,base+3).value=g.pax||1;
