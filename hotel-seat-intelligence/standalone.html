@@ -3650,6 +3650,77 @@ function copyCellStyle(dst,src){
 function colToNum(letters){let n=0;for(let i=0;i<letters.length;i++)n=n*26+(letters.charCodeAt(i)-64);return n;}
 function numToCol(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
 
+// Setzt für jede Spalte im Bereich [top..bottom] eine Breite, die zum längsten
+// enthaltenen Zelleninhalt passt — verhindert abgeschnittenen Text (z.B. beim
+// Priorität-Score oder langen Namen), ohne den Bereich pauschal sehr breit zu machen.
+function autoFitColumns(ws,top,bottom,left,right){
+  for(let c=left;c<=right;c++){
+    let maxLen=6;
+    for(let r=top;r<=bottom;r++){
+      const cell=ws.getCell(r,c);
+      // Verbundene Zellen (z.B. die durchgehende Titelzeile) bei der Breitenmessung
+      // ignorieren — ihr Inhalt spannt ohnehin über mehrere Spalten und würde sonst
+      // einzelne schmale Spalten (z.B. Tisch-ID, Zimmer) künstlich aufblähen.
+      if(cell.isMerged) continue;
+      let v=cell.value;
+      if(v==null) continue;
+      // Formelzellen (z.B. die SUM/COUNTA-Formeln der "Summe"-Zeile) liefern ein
+      // Objekt {formula,result} statt eines einfachen Werts — für die Breitenmessung
+      // zählt nur das angezeigte Ergebnis, nicht die rohe Objektstruktur.
+      if(typeof v==='object'&&'result' in v) v=v.result;
+      const len=String(v).length;
+      if(len>maxLen) maxLen=len;
+    }
+    ws.getColumn(c).width=Math.min(maxLen+2,100);
+  }
+}
+
+// Entfernt die angegebenen Zeilen (1-basiert) komplett und rückt alle Zeilen darunter
+// nach oben — inkl. korrekter Verschiebung verbundener Bereiche. ExcelJS' eingebautes
+// spliceRows() verschiebt zwar Zellwerte korrekt, lässt aber verbundene Zellen UNTERHALB
+// der gelöschten Zeilen als verwaiste Merge-Referenzen zurück, die beim Speichern
+// stillschweigend verloren gehen (z.B. die durchgehenden grauen Balken von Abschnitten
+// wie "Day Spa" oder "Änderungen" unterhalb der Tischtabelle) — daher hier manuell gelöst.
+function deleteWsRows(ws,rows){
+  const dim=ws.dimensions||{top:1,left:1,bottom:ws.rowCount,right:ws.columnCount};
+  const delSet=new Set(rows);
+  const merges=(ws.model.merges||[]).slice();
+  merges.forEach(m=>ws.unMergeCells(m));
+  const rowMap={};
+  let newR=dim.top;
+  for(let r=dim.top;r<=dim.bottom;r++){
+    if(delSet.has(r)){rowMap[r]=null;continue;}
+    rowMap[r]=newR;newR++;
+  }
+  const newBottom=newR-1;
+  for(let r=dim.top;r<=dim.bottom;r++){
+    const dst=rowMap[r];
+    if(dst==null||dst===r) continue;
+    for(let c=dim.left;c<=dim.right;c++){
+      const src=ws.getCell(r,c),cell=ws.getCell(dst,c);
+      cell.value=src.value;copyCellStyle(cell,src);
+    }
+    ws.getRow(dst).height=ws.getRow(r).height;
+  }
+  for(let r=newBottom+1;r<=dim.bottom;r++){
+    for(let c=dim.left;c<=dim.right;c++){
+      const cell=ws.getCell(r,c);cell.value=null;cell.style={};
+    }
+  }
+  const re=/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/;
+  merges.forEach(m=>{
+    const mm=re.exec(m);if(!mm) return;
+    const c1=colToNum(mm[1]),r1=+mm[2],c2=colToNum(mm[3]),r2=+mm[4];
+    let nr1=rowMap[r1],nr2=rowMap[r2];
+    if(r1===r2){if(nr1==null) return;ws.mergeCells(`${numToCol(c1)}${nr1}:${numToCol(c2)}${nr1}`);return;}
+    for(let rr=r1;nr1==null&&rr<=r2;rr++) nr1=rowMap[rr];
+    for(let rr=r2;nr2==null&&rr>=r1;rr--) nr2=rowMap[rr];
+    if(nr1==null||nr2==null) return;
+    ws.mergeCells(`${numToCol(c1)}${nr1}:${numToCol(c2)}${nr2}`);
+  });
+  return{top:dim.top,bottom:newBottom,right:dim.right};
+}
+
 // Fügt eine leere Spalte an Index `col` ein (1-basiert, ExcelJS-Konvention) — verschiebt alle
 // Zellen (inkl. Formatierung), verbundenen Bereiche und Spaltenbreiten ab dieser Spalte um eins nach rechts.
 function insertWsColumn(ws,col){
@@ -3730,7 +3801,43 @@ async function buildFilledTischplanSheet(){
       [0,1,2,3,4,5].forEach(d=>{ws.getCell(xlRow,base+d).value=null;});
     }
   });
+  // Graue Trenn-/Zonenbalken zwischen den Tisch-Blöcken entfernen, um die Tabelle
+  // kompakter darzustellen — nur Zeilen oberhalb des letzten erkannten Tisches.
+  const dataRows=new Set(Object.values(tischplanMap).map(o=>o.r+1));
+  const maxTischRow=dataRows.size?Math.max(...dataRows):0;
+  const sepRows=[];
+  for(let r=3;r<=maxTischRow;r++){
+    if(!dataRows.has(r)) sepRows.push(r);
+  }
+  const afterDelete=deleteWsRows(ws,sepRows);
+  // Spaltenbreiten an den tatsächlichen Tabelleninhalt anpassen, bevor die Legende
+  // angehängt wird — sonst würde die lange Tisch-ID-Liste der Legende Spalte C
+  // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
+  autoFitColumns(ws,1,afterDelete.bottom,1,range.right);
+  addKategorienLegende(ws,Object.keys(tischplanMap),range.right);
   return{wb,ws,guestByTable};
+}
+
+// Fügt unterhalb des gesamten Tabellenblatts eine Legende "Tischkategorien" mit
+// Farbmuster und zugehörigen Tisch-IDs je Kategorie (1–8) ein. Die Tisch-ID-Liste
+// wird über die restlichen Spalten gemerged, damit sie auch bei vielen Tischen
+// vollständig sichtbar ist, ohne die schmale Status-Spalte der Haupttabelle zu verbreitern.
+function addKategorienLegende(ws,tischIds,lastCol){
+  const startRow=ws.dimensions.bottom+2;
+  ws.getCell(startRow,1).value='Tischkategorien';
+  ws.getCell(startRow,1).font={bold:true};
+  const sorted=tischIds.slice().sort((a,b)=>parseInt(a)-parseInt(b));
+  let r=startRow+1;
+  for(let kat=1;kat<=8;kat++){
+    const ids=sorted.filter(id=>TISCH_KAT_MAP[id]===kat);
+    if(!ids.length) continue;
+    setCellFill(ws.getCell(r,1),{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}});
+    ws.getCell(r,2).value='Kat '+kat;
+    ws.getCell(r,2).font={bold:true};
+    if(lastCol>3) ws.mergeCells(r,3,r,lastCol);
+    ws.getCell(r,3).value=ids.join(', ');
+    r++;
+  }
 }
 
 function triggerXlsxDownload(buffer,filename){
