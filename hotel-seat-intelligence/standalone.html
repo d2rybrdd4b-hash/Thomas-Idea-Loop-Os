@@ -2994,7 +2994,7 @@ function renderResults(guests,tables,warns){
 
 function renderPlanTable(guests,filter=''){
   const tbl=el('plan-table');
-  const cols=['Tisch','Zone','Zimmer','Gast','PAX','Status','VIP','Grund der Zuweisung'];
+  const cols=['Tisch','Bereich','Zimmer','Gast','PAX','Status','VIP','Grund der Zuweisung'];
   let rows=guests.filter(g=>g.zugewiesener_tisch);
   rows.sort((a,b)=>(a.zugewiesener_tisch||'').localeCompare(b.zugewiesener_tisch||''));
   if(filter){
@@ -3012,9 +3012,10 @@ function renderPlanTable(guests,filter=''){
   <tbody>${rows.map(g=>{
     const zone=g.zugewiesener_tisch?g.zugewiesener_tisch[0]:'';
     const zc=zoneColor[zone]||'var(--dim)';
+    const bereich=tischplanMap[g.zugewiesener_tisch]?.bereich||zone;
     return`<tr>
       <td><b>${esc(g.zugewiesener_tisch)}</b></td>
-      <td><span class="zone-dot" style="background:${zc}"></span>${esc(zone)}</td>
+      <td><span class="zone-dot" style="background:${zc}"></span>${esc(bereich)}</td>
       <td>${esc(g.zimmer)}</td>
       <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.allergie?` <span style="font-size:9px;color:var(--orange)">⚠${esc(g.allergie)}</span>`:''}</td>
       <td>${esc(g.pax)}${g.kinder?` <span style="font-size:9px;color:var(--zb)">+${esc(g.kinder)}K</span>`:''}</td>
