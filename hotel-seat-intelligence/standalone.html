@@ -1245,8 +1245,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
     </div>
     <div id="dl-cards" style="display:none;flex-direction:column;gap:12px">
-      <div id="dl-check" class="warn-strip" style="display:none"></div>
-
       <button class="btn btn-outline big-btn" style="width:100%" onclick="toggleExcelPreview()">
         👁 Excel-Vorschau anzeigen
       </button>
@@ -4137,8 +4135,7 @@ function buildSheetPreviewHtml(ws,range){
   return html;
 }
 
-// Zeigt/verbirgt eine HTML-Vorschau der befüllten Excel-Vorlage, plus Kontrollzeile
-// (wie viele Gäste tatsächlich in die Vorlage übernommen werden konnten).
+// Zeigt/verbirgt eine HTML-Vorschau der befüllten Excel-Vorlage.
 async function toggleExcelPreview(){
   const wrap=el('excel-preview-wrap');
   if(!wrap) return;
@@ -4150,26 +4147,6 @@ async function toggleExcelPreview(){
   const dim=built.ws.dimensions||{top:1,bottom:built.ws.rowCount,right:built.ws.columnCount};
   wrap.innerHTML=buildSheetPreviewHtml(built.ws,dim);
   wrap.style.display='block';
-  updateExportCheck();
-}
-
-// Kontrollzeile: wie viele importierte Gäste wirklich einen Tisch in der Vorlage haben
-function updateExportCheck(){
-  const box=el('dl-check');
-  if(!box) return;
-  if(!calcDone||!tischplanTemplate){box.style.display='none';return;}
-  const total=(assignedGuests||[]).length;
-  const tplTables=new Set(Object.keys(tischplanMap||{}));
-  const matched=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&tplTables.has(String(g.zugewiesener_tisch))).length;
-  const missing=total-matched;
-  box.style.display='flex';
-  if(missing<=0){
-    box.className='warn-strip green';
-    box.innerHTML=`✅ Alle ${total} Gäste aus den Imports wurden korrekt übernommen`;
-  }else{
-    box.className='warn-strip red';
-    box.innerHTML=`⚠️ ${missing} von ${total} Gästen ohne passenden Tisch in der Vorlage — bitte prüfen`;
-  }
 }
 
 function exportExcel(){
@@ -4290,7 +4267,6 @@ function updateDrucklistenState(){
   const cards=el('dl-cards');
   if(noData) noData.style.display=calcDone?'none':'block';
   if(cards) cards.style.display=calcDone?'flex':'none';
-  updateExportCheck();
   updateS5Locked();
 }
 // Gleicher Look & Inhalt wie der rote Balken auf der Startseite (next-action-bar.na-red),
