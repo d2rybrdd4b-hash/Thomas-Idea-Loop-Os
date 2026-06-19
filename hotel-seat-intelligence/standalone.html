@@ -3685,10 +3685,18 @@ function parseTischplanTemplate(buf){
   for(let r=startRow;r<=range.e.r;r++){
     const a=String(cv(r,0)||'').trim();
     const c=String(cv(r,2)||'');
-    // Stop am Summen-/Fußzeilenbereich, damit dortige Tisch-Duplikate nicht übernommen werden
+    // Stop am Summen-/Fußzeilenbereich, damit dortige Tisch-Duplikate nicht übernommen werden.
+    // In manchen Häusern stehen Zwischensummen-Zeilen ("Summe 700er") in derselben Zeile wie
+    // noch echte Tischdaten eines anderen Blocks — daher nur abbrechen, wenn in dieser Zeile
+    // wirklich keine gültige Tisch-ID mehr vorhanden ist.
     const rowVals=[];
     for(let cc=range.s.c;cc<=range.e.c;cc++){const v=cv(r,cc);if(v!=null)rowVals.push(String(v).trim().toLowerCase());}
-    if(rowVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))) break;
+    if(rowVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))){
+      const hasValidId=blocks.length
+        ?blocks.some(block=>/^\d/.test(String(cv(r,block.tischCol)||'').trim()))
+        :/^\d/.test(a);
+      if(!hasValidId) break;
+    }
     // Section detection (falls in manchen Häusern vorhanden)
     if(a.includes('Tischkategorien')){inKat=true;inKombi=false;continue;}
     if(a.includes('Tischkombinationen')){inKombi=true;inKat=false;continue;}
@@ -3923,48 +3931,89 @@ async function buildFilledTischplanSheet(){
       if(g) guestByTable[String(t.tisch_id)]=g;
     }
   });
-  // Spalten (1-basiert): Tisch=1, Zimmer=2, Status=3, Name=4, PAX=5, Priorität Score=6(neu), Extras=7
-  const base=2;
-  const range=insertWsColumn(ws,base+4);
-  // Kopfzeilen "Extras" finden (jetzt nach rechts verschoben) und davor "Priorität Score" beschriften
-  for(let r=range.top;r<=range.bottom;r++){
-    const cell=ws.getCell(r,base+5);
-    if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
-      const scoreCell=ws.getCell(r,base+4);
-      scoreCell.value='Priorität Score';
-      copyCellStyle(scoreCell,ws.getCell(r,base+3));
+  // Führt App-Text und vorhandenen (ggf. handschriftlich vom Hotelier eingetragenen)
+  // Text zusammen, statt den manuellen Inhalt beim Export zu verlieren.
+  const mergeExtras=(appText,existingText)=>{
+    const ex=String(existingText||'').trim();
+    const app=String(appText||'').trim();
+    if(!ex) return app;
+    if(!app) return ex;
+    if(app.toLowerCase().includes(ex.toLowerCase())) return app;
+    return ex+' | '+app;
+  };
+  // Ein oder mehrere Tischblöcke verarbeiten (z.B. "Panorama Restaurant" + "Neue
+  // Restaurants" nebeneinander, oder genau ein Block beim alten Format). Spalten
+  // sind 1-basiert relativ zur jeweiligen Vorlage: Tisch, Zimmer, Status, Name,
+  // PAX, Priorität Score (neu eingefügt), Extras.
+  const useBlocks=(tischplanBlocks&&tischplanBlocks.length)?tischplanBlocks:[null];
+  // Rechts beginnen: das Einfügen einer Spalte in einem Block darf die noch nicht
+  // bearbeiteten, weiter links liegenden Blöcke nicht verschieben.
+  const order=useBlocks.slice().sort((a,b)=>(b?b.tischCol:1)-(a?a.tischCol:1));
+  let lastRange=null;
+  order.forEach(origBlock=>{
+    // Parser liefert 0-basierte Spalten; altes Einzelblock-Format nutzt feste
+    // Spalten A-F als Fallback (Tisch=A, Zimmer=B, Status=C, Name=D, Pax=E, Extras=F).
+    const col=origBlock?{
+      tisch:origBlock.tischCol+1,
+      zimmer:origBlock.zimmerCol!=null?origBlock.zimmerCol+1:null,
+      status:origBlock.statusCol!=null?origBlock.statusCol+1:null,
+      name:origBlock.gastnameCol!=null?origBlock.gastnameCol+1:null,
+      pax:origBlock.paxCol!=null?origBlock.paxCol+1:null,
+      extras:origBlock.extrasCol!=null?origBlock.extrasCol+1:null
+    }:{tisch:1,zimmer:2,status:3,name:4,pax:5,extras:6};
+    if(col.extras==null) return; // keine Extras-Spalte erkannt — Block überspringen
+    const range=insertWsColumn(ws,col.extras);
+    lastRange=range;
+    const scoreCol=col.extras,extrasCol=col.extras+1;
+    // Kopfzeile "Extras" (jetzt nach rechts verschoben) finden und davor "Priorität Score" beschriften
+    for(let r=range.top;r<=range.bottom;r++){
+      const cell=ws.getCell(r,extrasCol);
+      if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
+        const scoreCell=ws.getCell(r,scoreCol);
+        scoreCell.value='Priorität Score';
+        copyCellStyle(scoreCell,ws.getCell(r,col.pax||scoreCol-1));
+      }
     }
-  }
-  Object.entries(tischplanMap).forEach(([tid,{r}])=>{
-    const xlRow=r+1;
-    const g=guestByTable[tid];
-    const kat=TISCH_KAT_MAP[tid];
-    const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
-    if(katFill){
-      setCellFill(ws.getCell(xlRow,base-1),katFill); // Tisch-ID-Zelle
-    }
-    if(g){
-      const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
-        +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
-      const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
-      const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-      const zimmerCell=ws.getCell(xlRow,base);
-      zimmerCell.value=String(g.zimmer||'');
-      if(katFill) setCellFill(zimmerCell,katFill);
-      ws.getCell(xlRow,base+1).value=statusStr;
-      ws.getCell(xlRow,base+2).value=name;
-      ws.getCell(xlRow,base+3).value=g.pax||1;
-      ws.getCell(xlRow,base+4).value=buildScoreBreakdown(g);
-      ws.getCell(xlRow,base+5).value=extras;
-    } else {
-      // Zellen für freie Tische leeren
-      [0,1,2,3,4,5].forEach(d=>{ws.getCell(xlRow,base+d).value=null;});
-    }
+    Object.entries(tischplanMap).forEach(([tid,entry])=>{
+      const belongsToBlock=origBlock?(entry.block===origBlock):!entry.block;
+      if(!belongsToBlock) return;
+      const xlRow=entry.r+1;
+      const g=guestByTable[tid];
+      const existing=entry.existing||{};
+      const kat=TISCH_KAT_MAP[tid];
+      const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
+      if(katFill) setCellFill(ws.getCell(xlRow,col.tisch),katFill); // Tisch-ID-Zelle
+      if(g){
+        const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
+          +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
+        const appExtras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
+        const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
+        if(col.zimmer){
+          const zimmerCell=ws.getCell(xlRow,col.zimmer);
+          zimmerCell.value=String(g.zimmer||'');
+          if(katFill) setCellFill(zimmerCell,katFill);
+        }
+        if(col.status) ws.getCell(xlRow,col.status).value=statusStr;
+        if(col.name) ws.getCell(xlRow,col.name).value=name;
+        if(col.pax) ws.getCell(xlRow,col.pax).value=g.pax||1;
+        ws.getCell(xlRow,scoreCol).value=buildScoreBreakdown(g);
+        ws.getCell(xlRow,extrasCol).value=mergeExtras(appExtras,existing.extras);
+      } else {
+        // Kein von der App zugewiesener Gast: vorhandenen, ggf. handschriftlich vom
+        // Hotelier eingetragenen Inhalt aus der Vorlage beibehalten statt zu leeren.
+        if(col.zimmer) ws.getCell(xlRow,col.zimmer).value=existing.zimmer??null;
+        if(col.status) ws.getCell(xlRow,col.status).value=existing.status??null;
+        if(col.name) ws.getCell(xlRow,col.name).value=existing.name??null;
+        if(col.pax) ws.getCell(xlRow,col.pax).value=existing.pax??null;
+        ws.getCell(xlRow,scoreCol).value=null;
+        ws.getCell(xlRow,extrasCol).value=existing.extras??null;
+      }
+    });
   });
   // Graue Trenn-/Zonenbalken zwischen den Tisch-Blöcken entfernen, um die Tabelle
   // kompakter darzustellen — nur Zeilen oberhalb des letzten erkannten Tisches.
-  // Bereichs-Header (z.B. "RESTAURANT 2", "BAR") werden dabei bewusst NICHT gelöscht,
-  // sonst verschwinden die Abschnittsüberschriften aus dem exportierten Tischplan.
+  // Bereichs-/Block-Header werden dabei bewusst NICHT gelöscht, sonst verschwinden
+  // die Abschnittsüberschriften aus dem exportierten Tischplan.
   const dataRows=new Set(Object.values(tischplanMap).map(o=>o.r+1));
   const bereichXlRows=new Set((tischplanBereichRows||[]).map(r=>r+1));
   const maxTischRow=dataRows.size?Math.max(...dataRows):0;
@@ -3976,8 +4025,9 @@ async function buildFilledTischplanSheet(){
   // Spaltenbreiten an den tatsächlichen Tabelleninhalt anpassen, bevor die Legende
   // angehängt wird — sonst würde die lange Tisch-ID-Liste der Legende Spalte C
   // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
-  autoFitColumns(ws,1,afterDelete.bottom,1,range.right);
-  addKategorienLegende(ws,Object.keys(tischplanMap),range.right);
+  const rightCol=lastRange?lastRange.right:1;
+  autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
+  addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
   return{wb,ws,guestByTable};
 }
 
