@@ -4038,6 +4038,13 @@ async function buildFilledTischplanSheet(){
 // denselben Gästedaten, sortiert nach Zimmernummer — so bleiben beide Blätter immer
 // synchron, ohne dass veraltete oder leere Original-Blätter mit exportiert werden.
 function buildSortierungZimmerSheet(wb,tischplanWs){
+  // Unsichtbare "Ink"-Objekte (z.B. versehentliche Stift-/Touch-Spuren beim Bearbeiten
+  // am Tablet) entfernen — ExcelJS kann diese beim Zurückschreiben nicht korrekt
+  // erhalten (sie werden zu größenlosen, fehlerhaften Bild-Objekten), was die
+  // exportierte Datei beim Öffnen als beschädigt erscheinen lässt. Die Objekte haben
+  // ohnehin keinen sichtbaren Inhalt für den Hotelier.
+  wb.worksheets.forEach(sheet=>{sheet._media=[];});
+  wb.media=[];
   wb.worksheets.slice().forEach(sheet=>{
     if(sheet!==tischplanWs) wb.removeWorksheet(sheet.id);
   });
