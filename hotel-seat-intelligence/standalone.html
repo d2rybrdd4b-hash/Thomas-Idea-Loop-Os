@@ -567,7 +567,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .dash-demo-card:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,168,75,.18)}
 .next-action-bar{background:var(--gold);color:#1A1810;border-radius:13px;
                  padding:14px 22px;display:flex;align-items:center;
-                 justify-content:space-between;margin-top:6px;gap:12px}
+                 justify-content:space-between;margin:6px 0 14px;gap:12px}
 .next-action-bar.na-red{background:var(--red)}
 .next-action-bar .na-txt{font-size:11px;font-weight:600;opacity:.8;flex:1}
 .next-action-bar .na-btn{background:#1A1810;color:var(--gold);border:none;border-radius:8px;
@@ -955,6 +955,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
 
+    <!-- Gleiche Position wie der rote Hinweis-Balken auf der Drucklisten-Seite (s5-locked) -->
+    <div id="next-action-bar" style="display:none"></div>
+
     <!-- Import-Bereich: immer auf der Startseite sichtbar (auch nach Berechnung) -->
     <div id="dash-upload">
 
@@ -1123,7 +1126,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="da-export" style="display:none"></div>
     </div>
     <div id="restore-banner" class="restore-banner" style="display:none"></div>
-    <div id="next-action-bar" style="display:none"></div>
   </div>
 </div>
 
@@ -4160,15 +4162,13 @@ function updateExportCheck(){
   const tplTables=new Set(Object.keys(tischplanMap||{}));
   const matched=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&tplTables.has(String(g.zugewiesener_tisch))).length;
   const missing=total-matched;
-  const reds=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
   box.style.display='flex';
-  if(missing<=0&&reds===0){
+  if(missing<=0){
     box.className='warn-strip green';
     box.innerHTML=`✅ Alle ${total} Gäste aus den Imports wurden korrekt übernommen`;
   }else{
-    box.className='warn-strip '+(missing>0?'red':'yellow');
-    box.innerHTML=(missing>0?`⚠️ ${missing} von ${total} Gästen ohne passenden Tisch in der Vorlage — bitte prüfen`:'')+
-      (reds>0?(missing>0?'<br>':'')+`🔴 ${reds} kritische Hinweise offen`:'');
+    box.className='warn-strip red';
+    box.innerHTML=`⚠️ ${missing} von ${total} Gästen ohne passenden Tisch in der Vorlage — bitte prüfen`;
   }
 }
 
@@ -4301,8 +4301,7 @@ function updateS5Locked(){
   const reds=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
   if(reds>0){
     box.style.display='flex';
-    box.innerHTML=`<span class="na-txt">${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
-      <button class="na-btn" onclick="goTab(0);toggleWarnDetails()">Hinweise prüfen</button>`;
+    box.innerHTML=criticalHinweiseBannerHtml(reds,true);
   } else {
     box.style.display='none';
   }
@@ -4576,6 +4575,13 @@ function updateNextActionBtn(){
     btn.onclick=loadDemoAndCalc;
   }
 }
+// Einzige Quelle für den Text des roten Kritische-Hinweise-Balkens, damit Start- und
+// Drucklisten-Seite nie wieder auseinanderlaufen können.
+function criticalHinweiseBannerHtml(reds,fromOtherTab){
+  const onclick=fromOtherTab?"goTab(0);toggleWarnDetails()":"toggleWarnDetails()";
+  return `<span class="na-txt">Plan bereit — ${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
+    <button class="na-btn" onclick="${onclick}">Hinweise prüfen</button>`;
+}
 function updateNextActionBar(){
   const bar=el('next-action-bar');
   if(!bar) return;
@@ -4584,8 +4590,7 @@ function updateNextActionBar(){
     if(reds>0){
       bar.style.display='flex';
       bar.className='next-action-bar na-red';
-      bar.innerHTML=`<span class="na-txt">Plan bereit — ${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
-        <button class="na-btn" onclick="toggleWarnDetails()">Hinweise prüfen</button>`;
+      bar.innerHTML=criticalHinweiseBannerHtml(reds,false);
     } else {
       bar.style.display='none';
     }
