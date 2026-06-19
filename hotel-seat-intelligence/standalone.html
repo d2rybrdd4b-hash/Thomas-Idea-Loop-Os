@@ -84,6 +84,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
      font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;
      display:inline-flex;align-items:center;gap:8px}
 .btn:disabled{opacity:.3;cursor:not-allowed}
+.inline-ico{display:inline-flex;width:14px;height:14px;vertical-align:-2.5px;margin-right:5px;flex-shrink:0}
+.inline-ico svg{width:100%;height:100%}
 .btn-gold{background:linear-gradient(155deg,rgba(255,255,255,.32),rgba(255,255,255,0)),var(--gold);color:#090F17}
 .btn-gold:not(:disabled):hover{background:linear-gradient(155deg,rgba(255,255,255,.42),rgba(255,255,255,0)),var(--gold);transform:translateY(-1px)}
 .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
@@ -419,6 +421,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   transition:stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)}
 .cockpit-ring-ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:16px;font-weight:800;color:var(--green)}
+.cockpit-ring-ico svg{width:20px;height:20px}
 .cockpit-ring.alert{filter:drop-shadow(0 0 10px rgba(229,85,85,.45))}
 .cockpit-ring.alert .ring-fg{stroke:var(--red)}
 .cockpit-ring.alert .ring-bg{stroke:rgba(229,85,85,.18)}
@@ -434,6 +437,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
 .ckpi.ckpi-green .ckpi-val{color:var(--green)}
 .ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
+.ckpi-ico{display:inline-flex;width:15px;height:15px;margin-bottom:5px;color:var(--dim);opacity:.7}
+.ckpi-ico svg{width:100%;height:100%}
+.ckpi.ckpi-green .ckpi-ico{color:var(--green)}
+.ckpi.ckpi-blue .ckpi-ico{color:#3AB4E0}
 /* Action buttons */
 .cockpit-actions{display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:8px}
 .cockpit-actions-row2{margin-bottom:14px}
@@ -454,7 +461,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .cockpit-solved-body{display:flex;flex-direction:column;gap:5px}
 .cockpit-solved-item{font-size:13px;color:var(--text);display:flex;align-items:flex-start;
   gap:10px;line-height:1.4;padding:3px 0}
-.cockpit-solved-item .csi-ico{flex-shrink:0;font-size:12px;margin-top:2px;width:16px;text-align:center}
+.cockpit-solved-item .csi-ico{flex-shrink:0;display:inline-flex;width:16px;height:16px;margin-top:1px;color:var(--dim)}
+.cockpit-solved-item .csi-ico svg{width:100%;height:100%}
 .cockpit-solved-item.csi-warn .csi-ico{color:var(--orange)}
 .cockpit-solved-item.csi-ok .csi-ico{color:var(--green)}
 /* Druckmappe */
@@ -720,7 +728,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   padding-top:7px;margin-top:4px}
 /* ── TAGESSTART ── */
 .tgst-setup{background:var(--card);border:2px dashed var(--border);border-radius:16px;padding:28px 22px;text-align:center}
-.tgst-setup-ico{font-size:38px;margin-bottom:10px}
+.tgst-setup-ico{width:58px;height:58px;margin:0 auto 12px;border-radius:14px;background:var(--gold-glow);
+  display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.tgst-setup-ico svg{width:28px;height:28px}
 .tgst-setup-tit{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px}
 .tgst-setup-sub{font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.5}
 .tgst-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(46,204,113,.1);
@@ -735,7 +745,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tgst-drop-sub{font-size:11px;color:var(--dim)}
 .tgst-file-loaded{display:flex;align-items:center;gap:10px;background:rgba(46,204,113,.07);
   border:1px solid rgba(46,204,113,.25);border-radius:10px;padding:10px 14px;margin-bottom:10px}
-.tgst-file-ico{font-size:20px}
+.tgst-file-ico{display:inline-flex;width:18px;height:18px;color:var(--green)}
+.tgst-file-ico svg{width:100%;height:100%}
 .tgst-file-name{flex:1;font-size:12px;font-weight:600;color:var(--green)}
 .tgst-file-clear{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:2px 6px}
 .tgst-or{text-align:center;font-size:11px;color:var(--dim);margin:10px 0}
@@ -964,7 +975,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <!-- Phase A: Vorlage noch nicht geladen (einmalige Einrichtung) -->
       <div id="tgst-setup" style="display:none">
         <div class="tgst-setup">
-          <div class="tgst-setup-ico">📋</div>
+          <div class="tgst-setup-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></div>
           <div class="tgst-setup-tit">Einmalig einrichten</div>
           <div class="tgst-setup-sub">
             Lade deine Tischplan-Vorlage hoch — einmalig, dann dauerhaft gespeichert.<br>
@@ -980,7 +991,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <!-- Phase B+C: Vorlage geladen — täglicher Workflow -->
       <div id="tgst-daily" style="display:none">
         <div class="tgst-badge">
-          ✓ Vorlage bereit
+          <span class="inline-ico" style="margin-right:3px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Vorlage bereit
           <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
         </div>
 
@@ -989,10 +1000,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           onchange="quickLoadVortag(this.files[0]);this.value=''">
         <button class="btn btn-gold" id="btn-tgst-vortag" style="width:100%;margin-bottom:10px"
           onclick="el('fi-tgst-vortag').click()">
-          ⬆ Tischplan vom Vortag hochladen
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Tischplan vom Vortag hochladen
         </button>
         <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
-          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
           <span class="tgst-file-name" id="tgst-vortag-fname">—</span>
           <button class="tgst-file-clear" onclick="clearVortagFile()" title="Entfernen">✕</button>
         </div>
@@ -1002,10 +1013,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
         <button class="btn btn-gold" id="btn-tgst-ankuenfte" style="width:100%;margin-bottom:10px"
           onclick="el('fi-tgst-ankuenfte').click()">
-          ⬆ Anreisen hochladen
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Anreisen hochladen
         </button>
         <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
-          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
           <span class="tgst-file-name" id="tgst-ankuenfte-fname">—</span>
           <button class="tgst-file-clear" onclick="clearAnkuenfteFile()" title="Entfernen">✕</button>
         </div>
@@ -1015,10 +1026,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           onchange="quickLoadAbreisen(this.files[0]);this.value=''">
         <button class="btn btn-gold" id="btn-tgst-abreisen" style="width:100%;margin-bottom:10px"
           onclick="el('fi-tgst-abreisen').click()">
-          ⬆ Abreisen hochladen
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Abreisen hochladen
         </button>
         <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:16px">
-          <span class="tgst-file-ico">📄</span>
+          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
           <span class="tgst-file-name" id="tgst-abreisen-fname">—</span>
           <button class="tgst-file-clear" onclick="clearAbreisenFile()" title="Entfernen">✕</button>
         </div>
@@ -1044,7 +1055,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
               <circle class="ring-bg" cx="30" cy="30" r="26"></circle>
               <circle class="ring-fg" id="cockpit-ring-fg" cx="30" cy="30" r="26"></circle>
             </svg>
-            <span class="cockpit-ring-ico" id="cockpit-ring-ico">✓</span>
+            <span class="cockpit-ring-ico" id="cockpit-ring-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </div>
           <div class="cockpit-status-body">
             <div class="cockpit-status-tit">Tischplan fertig</div>
@@ -1053,14 +1064,17 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         </div>
         <div class="cockpit-kpis">
           <div class="ckpi ckpi-green">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
             <div class="ckpi-val" id="ds-gaeste">—</div>
             <div class="ckpi-lbl">Gäste</div>
           </div>
           <div class="ckpi ckpi-blue">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
             <div class="ckpi-val" id="ds-ankuenfte">—</div>
             <div class="ckpi-lbl">Ankünfte</div>
           </div>
           <div class="ckpi">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
             <div class="ckpi-val" id="ds-tische">—</div>
             <div class="ckpi-lbl">Frei</div>
           </div>
@@ -1072,7 +1086,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
         <div class="warn-summary" id="warn-summary"></div>
         <div id="warn-sections"></div>
         <div id="s4-proceed-note" class="hidden">
-          ✅ Alle kritischen Hinweise geklärt.
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Alle kritischen Hinweise geklärt.
         </div>
       </div>
 
@@ -1093,7 +1107,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <div id="cockpit-dl-section" class="cockpit-dl" style="display:none">
         <button class="btn btn-gold cockpit-primary" style="width:100%;font-size:15px;padding:17px"
           onclick="exportToTischplanTemplate()">
-          ⬇ Tischplan herunterladen
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Tischplan herunterladen
         </button>
         <div class="cockpit-dl-hint" id="cockpit-dl-hint">Befüllt deine Tischplan-Vorlage und lädt sie herunter</div>
       </div>
@@ -1104,7 +1118,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <!-- Neuer Tag -->
       <div class="cockpit-actions">
-        <button class="btn cockpit-danger" onclick="clearState()">↺ Neuer Tag starten</button>
+        <button class="btn cockpit-danger" onclick="clearState()"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Neuer Tag starten</button>
       </div>
       <div id="cockpit-btn-view" style="display:none"></div>
 
@@ -1246,21 +1260,21 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
     <div id="dl-cards" style="display:none;flex-direction:column;gap:12px">
       <button class="btn btn-outline big-btn" style="width:100%" onclick="toggleExcelPreview()">
-        👁 Excel-Vorschau anzeigen
+        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>Excel-Vorschau anzeigen
       </button>
       <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:280px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
       <button class="btn btn-gold big-btn" style="width:100%" onclick="exportToTischplanTemplate()">
-        ⬇ Excel-Vorlage herunterladen
+        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Excel-Vorlage herunterladen
       </button>
 
       <button class="btn btn-outline big-btn" style="width:100%" onclick="openPrint('service')">
-        👁 PDF-Vorschau anzeigen
+        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>PDF-Vorschau anzeigen
       </button>
       <button class="btn btn-gold big-btn" style="width:100%" onclick="printAsPDF()">
-        🖨 Als PDF exportieren
+        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Als PDF exportieren
       </button>
     </div>
-    <div id="s5-done" style="display:none">✅ Datei heruntergeladen</div>
+    <div id="s5-done" style="display:none"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Datei heruntergeladen</div>
     <div class="bot">
       <button class="btn btn-ghost" onclick="goTab(0)">← Zurück zum Start</button>
     </div>
@@ -1290,7 +1304,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- PRINT OVERLAY (stubs for JS) -->
 <div id="print-overlay" style="display:none">
   <div id="print-toolbar">
-    <button class="ptool-btn" onclick="window.print()">🖨 Drucken</button>
+    <button class="ptool-btn" onclick="window.print()"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Drucken</button>
     <button class="ptool-btn" onclick="closePrint()" style="margin-left:auto">✕ Schließen</button>
   </div>
   <div id="print-content"></div>
@@ -4683,12 +4697,15 @@ function updateCockpitSolved(){
   }).length;
   const frei=(lastTables||[]).filter(t=>(!t.belegtPax||t.belegtPax===0)&&t.aktiv&&!t.blocked_for).length;
 
+  const icoArrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+  const icoCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const icoWarn='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   const rows=[
-    {ico:'→', cls:'',        val:bleibe,  lbl:`Bleibegast${bleibe===1?'':'gäste'}`},
-    {ico:'→', cls:'',        val:gruppen, lbl:`Gruppe${gruppen===1?'':'n'} (≥ 4 PAX)`},
-    {ico: sonder>0?'⚠':'✓', cls:sonder>0?'csi-warn':'csi-ok', val:sonder,
+    {ico:icoArrow, cls:'',        val:bleibe,  lbl:`Bleibegast${bleibe===1?'':'gäste'}`},
+    {ico:icoArrow, cls:'',        val:gruppen, lbl:`Gruppe${gruppen===1?'':'n'} (≥ 4 PAX)`},
+    {ico: sonder>0?icoWarn:icoCheck, cls:sonder>0?'csi-warn':'csi-ok', val:sonder,
       lbl:`Sonderhinweis${sonder===1?'':'e'}${sonder===0?' — alles klar':''}` },
-    {ico: frei>0?'✓':'→',   cls:frei>0?'csi-ok':'', val:frei,
+    {ico: frei>0?icoCheck:icoArrow,   cls:frei>0?'csi-ok':'', val:frei,
       lbl:`freie${frei===1?' Tisch':' Tische'}${frei===0?' — alle belegt':''}`},
   ];
 
@@ -4752,7 +4769,9 @@ function updateDashboard(){
     const redCount=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
-    const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.textContent=redCount>0?'!':'✓';
+    const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.innerHTML=redCount>0
+      ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+      :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     const ring=el('cockpit-ring');if(ring) ring.classList.toggle('alert',redCount>0);
     el('ds-plan-sub').textContent='Tischplan ansehen →';
     el('ds-export-sub').textContent='Druckmappe öffnen →';
@@ -4779,7 +4798,7 @@ function updateDashboard(){
     const pv=el('ds-plan-val');if(pv) pv.textContent='Kein Plan';
     const ev=el('ds-export-val');if(ev) ev.textContent='Nicht bereit';
     animateRing(0);
-    const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.textContent='○';
+    const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg>';
     updateNextActionBtn();
     updateNextActionBar();
   }
@@ -4875,7 +4894,10 @@ function restoreState(){
       const when=s.savedAt?new Date(s.savedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
       const stale=savedDate&&savedDate<today;
       rb.style.display='flex';
-      rb.innerHTML=`<span class="rb-txt">${stale?'⚠️ Plan vom Vortag ('+savedDate+')':'✓ Plan wiederhergestellt'+( when?' — gespeichert '+when:'')+(isDemoMode?' · Demo':'')} </span><button class="rb-btn" onclick="clearState()">Neu starten</button>`;
+      const rbIco=stale
+        ?'<span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>'
+        :'<span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
+      rb.innerHTML=`<span class="rb-txt">${rbIco}${stale?'Plan vom Vortag ('+savedDate+')':'Plan wiederhergestellt'+( when?' — gespeichert '+when:'')+(isDemoMode?' · Demo':'')} </span><button class="rb-btn" onclick="clearState()">Neu starten</button>`;
       rb.className='restore-banner'+(stale?' rb-stale':'');
     }
     renderWarnings();
