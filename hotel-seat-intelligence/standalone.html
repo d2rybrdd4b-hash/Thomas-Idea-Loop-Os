@@ -553,7 +553,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 /* Grundriss zuerst im Planung-Tab */
 #s3-results{display:flex;flex-direction:column}
 #s3-fp-container{order:-1}
-#s3-warn-strip{order:-2}
 .calc-accord{display:none;align-items:center;gap:8px;padding:9px 14px;
              background:var(--card);border:1px solid var(--border);border-radius:10px;
              font-size:11px;color:var(--dim);cursor:pointer;margin-bottom:10px;
@@ -1070,9 +1069,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           </div>
         </div>
       </div>
-
-      <!-- Kompakter Hinweis-Banner (ersetzt separate Hinweise-Seite) -->
-      <div id="s3-warn-strip" class="warn-strip" style="display:none"></div>
 
       <!-- Aufklappbare Hinweis-Details -->
       <div id="warn-details-wrap" style="display:none;margin-bottom:14px">
@@ -2949,7 +2945,6 @@ function runCalc(){
   applyCalcStepsVisibility();
   setStatus('Tischplan fertig — '+assigned+' Gäste zugewiesen','go');
   el('demo-banner').style.display=isDemoMode?'':'none';
-  updateWarnStrip();
 
   // Update step 4
   renderWarnings();
@@ -3104,7 +3099,6 @@ function toggleWarnDetails(){
   }
 }
 function renderWarnings(){
-  updateWarnStrip();
   const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg));
   const yellows=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg));
   const greens=warnings.filter(w=>w.level==='green');
@@ -4783,27 +4777,6 @@ function toggleOptFiles(btn){
   const d=el('opt-files');
   const open=d.classList.toggle('open');
   btn.classList.toggle('open',open);
-}
-
-function updateWarnStrip(){
-  const strip=el('s3-warn-strip');
-  if(!strip) return;
-  strip.style.display='';
-  const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
-  const yells=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg)).length;
-  if(reds===0&&yells===0){
-    strip.className='warn-strip green';
-    strip.innerHTML='✅ Alles freigegeben — bereit zum Exportieren';
-  } else if(reds>0){
-    strip.className='warn-strip red';
-    strip.innerHTML=`🔴 ${reds} kritische Warnung${reds>1?'en':''}`+
-      (yells?` &nbsp;·&nbsp; 🟡 ${yells} Hinweis${yells>1?'e':''}`:'')+
-      `<span class="ws-spacer"></span><button class="ws-btn" onclick="toggleWarnDetails()">Details & Lösung →</button>`;
-  } else {
-    strip.className='warn-strip yellow';
-    strip.innerHTML=`🟡 ${yells} Hinweis${yells>1?'e':''} — kein Export-Block`+
-      `<span class="ws-spacer"></span><button class="ws-btn" onclick="toggleWarnDetails()">Details →</button>`;
-  }
 }
 
 // Tisch-Verschieben/Freigeben-Popup entfernt (war nur über den Grundriss erreichbar).
