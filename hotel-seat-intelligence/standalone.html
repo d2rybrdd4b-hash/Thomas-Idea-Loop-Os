@@ -3354,8 +3354,10 @@ function unmarkResolved(encodedMsg){
 //  HOTELIER-TISCHPLAN VORLAGE — TAGESSTART
 // ══════════════════════════════════════════════════════════════
 let tischplanTemplate=null;  // ArrayBuffer of uploaded template
-let tischplanMap={};         // tableID → {r, bereich: 'Restaurant 1'|'Bar'|...}
-let tischplanBereichRows=[]; // 0-basierte Zeilen der erkannten Bereichs-Header (z.B. "RESTAURANT 2") — beim Export nicht löschen
+let tischplanMap={};         // tableID → {r, bereich, block, existing:{zimmer,status,name,pax,extras}}
+let tischplanBereichRows=[]; // 0-basierte Strukturzeilen (Bereichs-Header bzw. Block-Kopfzeilen) — beim Export nicht löschen
+let tischplanBlocks=[];      // Mehrblock-Layout (z.B. "Panorama Restaurant" + "Neue Restaurants" nebeneinander):
+                              // [{tischCol,zimmerCol,statusCol,gastnameCol,paxCol,extrasCol,bereich}], 0-basierte Spalten
 let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
 let quickAnkuenfteFileName=''; // filename of loaded Anreisen file
@@ -3536,7 +3538,7 @@ function clearAbreisenFile(){
   setStatus('Abreisen-Datei entfernt','');
 }
 function clearTemplate(){
-  tischplanTemplate=null;tischplanMap={};tischplanBereichRows=[];tischplanKat={};tischplanKombi=[];
+  tischplanTemplate=null;tischplanMap={};tischplanBereichRows=[];tischplanBlocks=[];tischplanKat={};tischplanKombi=[];
   localStorage.removeItem('hsi_tischplan_template_b64');
   const sec=el('export-vorlage-section');if(sec) sec.style.display='none';
   updateTemplateStatus();
@@ -3622,16 +3624,65 @@ function parseTischplanTemplate(buf){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wb.SheetNames[0];
   const ws=wb.Sheets[sheetName];
   const range=XLSX.utils.decode_range(ws['!ref']||'A1:N99');
-  tischplanMap={};tischplanKat={};tischplanKombi=[];
+  tischplanMap={};tischplanKat={};tischplanKombi=[];tischplanBlocks=[];
   let inKat=false,inKombi=false;
   // Erster Tischblock einer Vorlage hat oft keine eigene Abschnitts-Überschrift
   // (steht ggf. in Zeile 1-3, die hier nicht gescannt wird) — daher Default "Restaurant 1".
   let currentBereich='Restaurant 1';
-  const bereichRows=[]; // 0-basierte Zeilen der erkannten Bereichs-Header — beim Export erhalten
+  const bereichRows=[]; // 0-basierte Strukturzeilen (Bereichs-Header bzw. Block-Kopfzeilen) — beim Export erhalten
   const cv=(r,c)=>{const cell=ws[XLSX.utils.encode_cell({r,c})];return cell!=null?cell.v:null;};
+  const norm=s=>String(s||'').trim().toLowerCase();
   const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
-  // Datenbereich beginnt ab Zeile 4 (Index 3) — Zeilen 1-3 sind Titel/Header/Sektionsmarker
-  for(let r=3;r<=range.e.r;r++){
+
+  // ── Mehrblock-Layout erkennen (mehrere Tischplan-Blöcke nebeneinander, z.B.
+  // "Panorama Restaurant" + "Neue Restaurants") — Kopfzeile suchen, in der
+  // mindestens eine Zelle wörtlich "Tisch" enthält; die übrigen Feldspalten
+  // (Zimmer/Status/Gastname/Pax/Extras) werden relativ dazu in derselben Zeile
+  // gesucht, der Bereichsname steht typischerweise eine Zeile darüber an der
+  // Extras-Spalte (z.B. G1 "Panorama Restaurant" über der Extras-Spalte G3).
+  const FIELD_LABELS={zimmer:'zimmer',status:'status',gastname:'gastname',pax:'pax',extras:'extras'};
+  let headerRow=-1;
+  for(let r=0;r<Math.min(6,range.e.r+1);r++){
+    let found=false;
+    for(let c=range.s.c;c<=range.e.c;c++){ if(norm(cv(r,c))==='tisch'){found=true;break;} }
+    if(found){headerRow=r;break;}
+  }
+  const blocks=[];
+  if(headerRow>=0){
+    for(let c=range.s.c;c<=range.e.c;c++){
+      if(norm(cv(headerRow,c))!=='tisch') continue;
+      const block={tischCol:c};
+      for(let cc=c+1;cc<=Math.min(c+8,range.e.c);cc++){
+        const label=norm(cv(headerRow,cc));
+        // Bei mehreren Blöcken kann derselbe Spaltenname (z.B. "Zimmer") weiter rechts
+        // erneut auftauchen (nächster Block) — erster Treffer gewinnt, kein Überschreiben.
+        for(const key in FIELD_LABELS){ if(label===FIELD_LABELS[key]&&block[key+'Col']==null) block[key+'Col']=cc; }
+      }
+      const labelCol=block.extrasCol??block.paxCol??block.gastnameCol??block.statusCol??block.zimmerCol??c;
+      // Bereichsname steht oberhalb der Kopfzeile, ggf. mit einer leeren Trennzeile
+      // dazwischen — daher von der Kopfzeile aufwärts den ersten gefüllten Wert nehmen.
+      let bereichLabel='';
+      for(let rr=headerRow-1;rr>=0;rr--){
+        const v=String(cv(rr,labelCol)||'').trim();
+        if(v){bereichLabel=v;break;}
+      }
+      block.bereich=bereichLabel||`Bereich ${blocks.length+1}`;
+      blocks.push(block);
+    }
+  }
+  tischplanBlocks=blocks;
+  if(blocks.length){
+    // Kopfzeile ("Tisch/Zimmer/Status/...") liegt im Datenbereich der Export-Bereinigung
+    // (ab Excel-Zeile 3) und muss deshalb explizit vor dem Löschen geschützt werden.
+    // Die Bereichsbeschriftung selbst (Zeile 1) liegt außerhalb dieses Bereichs und
+    // ist dadurch automatisch sicher.
+    bereichRows.push(headerRow);
+  }
+
+  // Datenbereich: im Mehrblock-Modus direkt unterhalb der Kopfzeile, sonst ab Zeile 4 (Index 3,
+  // klassisches Format mit Titel/Header/Sektionsmarker in Zeile 1-3)
+  const startRow=blocks.length?headerRow+1:3;
+  for(let r=startRow;r<=range.e.r;r++){
     const a=String(cv(r,0)||'').trim();
     const c=String(cv(r,2)||'');
     // Stop am Summen-/Fußzeilenbereich, damit dortige Tisch-Duplikate nicht übernommen werden
@@ -3642,10 +3693,6 @@ function parseTischplanTemplate(buf){
     if(a.includes('Tischkategorien')){inKat=true;inKombi=false;continue;}
     if(a.includes('Tischkombinationen')){inKombi=true;inKat=false;continue;}
     if(a.includes('Ausschl')){inKat=false;inKombi=false;}
-    // Bereichs-Header erkennen (z.B. "RESTAURANT 2", "BAR") — eigene Zeile, nur Spalte A gefüllt
-    if(a&&!inKat&&!inKombi&&!/^\d/.test(a)&&rowVals.length<=1){
-      currentBereich=a;bereichRows.push(r);continue;
-    }
     // Kategorien
     if(inKat&&/^Kat\s*\d/.test(c)){
       const kat=parseInt(c.replace(/[^0-9]/g,''));
@@ -3667,8 +3714,40 @@ function parseTischplanTemplate(buf){
       }
       continue;
     }
-    // Tisch-Position: ein Spaltenblock, Tisch-ID in Spalte 0 (z.B. "611")
-    if(/^\d/.test(a)) tischplanMap[a]={r,bereich:currentBereich};
+    if(blocks.length){
+      // Mehrblock-Modus: pro Block eigene Tisch-ID-Spalte; vorhandene (ggf. manuell
+      // gepflegte) Zellinhalte werden gesichert, damit sie beim späteren Export
+      // erhalten bzw. mit den App-Daten zusammengeführt werden können, statt
+      // kommentarlos überschrieben zu werden.
+      blocks.forEach(block=>{
+        const tid=String(cv(r,block.tischCol)||'').trim();
+        if(!/^\d/.test(tid)) return;
+        tischplanMap[tid]={
+          r,bereich:block.bereich,block,
+          existing:{
+            zimmer:block.zimmerCol!=null?cv(r,block.zimmerCol):null,
+            status:block.statusCol!=null?cv(r,block.statusCol):null,
+            name:block.gastnameCol!=null?cv(r,block.gastnameCol):null,
+            pax:block.paxCol!=null?cv(r,block.paxCol):null,
+            extras:block.extrasCol!=null?cv(r,block.extrasCol):null
+          }
+        };
+      });
+      continue;
+    }
+    // Altes Einzelblock-Format (Fallback): Bereichs-Header erkennen (z.B. "RESTAURANT 2",
+    // "BAR") — eigene Zeile, nur Spalte A gefüllt
+    if(a&&!inKat&&!inKombi&&!/^\d/.test(a)&&rowVals.length<=1){
+      currentBereich=a;bereichRows.push(r);continue;
+    }
+    // Tisch-Position: ein Spaltenblock, Tisch-ID in Spalte 0 (z.B. "611"); Spalten B-F
+    // (Zimmer/Status/Name/Pax/Extras) gelten als feste Offsets — siehe buildFilledTischplanSheet()
+    if(/^\d/.test(a)){
+      tischplanMap[a]={
+        r,bereich:currentBereich,
+        existing:{zimmer:cv(r,1),status:cv(r,2),name:cv(r,3),pax:cv(r,4),extras:cv(r,5)}
+      };
+    }
   }
   tischplanBereichRows=bereichRows;
   saveTemplateToStorage(buf);
