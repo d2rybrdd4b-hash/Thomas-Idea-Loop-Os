@@ -440,8 +440,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
 .ckpi.ckpi-green .ckpi-val{color:var(--green)}
 .ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
-.ckpi.ckpi-warns{cursor:pointer;transition:background .15s}
-.ckpi.ckpi-warns:hover{background:rgba(46,204,113,.06)}
 /* Action buttons */
 .cockpit-actions{display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:8px}
 .cockpit-actions-row2{margin-bottom:14px}
@@ -1070,10 +1068,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
             <div class="ckpi-val" id="ds-tische">—</div>
             <div class="ckpi-lbl">Frei</div>
           </div>
-          <div class="ckpi ckpi-warns" onclick="toggleWarnDetails()" style="cursor:pointer" title="Hinweise anzeigen">
-            <div class="ckpi-val" id="ds-warns">—</div>
-            <div class="ckpi-lbl">Hinweise</div>
-          </div>
         </div>
       </div>
 
@@ -1131,7 +1125,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <span id="ds-gaeste-sub" style="display:none"></span>
       <span id="ds-ankuenfte-sub" style="display:none"></span>
       <span id="ds-tische-sub" style="display:none"></span>
-      <span id="ds-warns-sub" style="display:none"></span>
       <span id="ds-plan-val" style="display:none"></span>
       <span id="ds-plan-sub" style="display:none"></span>
       <span id="ds-export-val" style="display:none"></span>
@@ -4747,9 +4740,6 @@ function updateDashboard(){
     animateNumber('ds-tische',fr);
     el('ds-tische-sub').textContent=fr===1?'Tisch frei':'Tische frei';
     const redCount=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
-    const yellowCount=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg)).length;
-    animateNumber('ds-warns',redCount+yellowCount);
-    el('ds-warns-sub').textContent=redCount>0?`${redCount} kritisch`:(yellowCount>0?'zur Prüfung':'Alles OK ✓');
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
     const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.textContent=redCount>0?'!':'✓';
@@ -4765,15 +4755,13 @@ function updateDashboard(){
     const emptyVals={
       'ds-gaeste':'Keine Daten',
       'ds-ankuenfte':'—',
-      'ds-tische':'Kein Plan',
-      'ds-warns':'—'
+      'ds-tische':'Kein Plan'
     };
     Object.entries(emptyVals).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
     const subs={
       'ds-gaeste-sub':'Demo starten oder PMS-Export laden',
       'ds-ankuenfte-sub':'Erscheint nach Datenladen',
       'ds-tische-sub':'Restaurantplan nach Laden',
-      'ds-warns-sub':'Automatisch nach Prüfung',
       'ds-plan-sub':'Demo starten →',
       'ds-export-sub':'Nach Planung verfügbar'
     };
