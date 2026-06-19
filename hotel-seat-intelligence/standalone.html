@@ -1248,7 +1248,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       <button class="btn btn-outline big-btn" style="width:100%" onclick="toggleExcelPreview()">
         👁 Excel-Vorschau anzeigen
       </button>
-      <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:360px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
+      <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:280px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
       <button class="btn btn-gold big-btn" style="width:100%" onclick="exportToTischplanTemplate()">
         ⬇ Excel-Vorlage herunterladen
       </button>
@@ -4121,13 +4121,13 @@ function fillToCss(fill){
 
 // Baut eine einfache HTML-Tabellen-Vorschau des befüllten Sheets (inkl. Zellfarben)
 function buildSheetPreviewHtml(ws,range){
-  let html='<table style="border-collapse:collapse;font-size:11px">';
+  let html='<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">';
   for(let r=range.top;r<=range.bottom;r++){
     html+='<tr>';
     for(let c=1;c<=range.right;c++){
       const cell=ws.getCell(r,c);
       const v=cell.value==null?'':String(cell.value);
-      html+=`<td style="border:1px solid #ccc;padding:2px 4px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
+      html+=`<td style="border:1px solid #ccc;padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
     }
     html+='</tr>';
   }
