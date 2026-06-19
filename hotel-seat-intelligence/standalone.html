@@ -248,12 +248,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                  color:var(--dim);margin-bottom:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 #s4 .bot{display:flex;justify-content:space-between;align-items:center;
          max-width:860px;margin:24px auto 0;gap:12px}
-/* Dashboard conflict bar */
-.ds-conflict-bar{padding:12px 16px;border-radius:10px;font-size:11px;font-weight:600;
-                 margin-top:16px;display:none;cursor:pointer;transition:opacity .2s;line-height:1.5}
-.ds-conflict-bar:hover{opacity:.85}
-.ds-conflict-bar.red{background:rgba(238,85,85,.1);color:var(--red);border:1px solid rgba(238,85,85,.25)}
-.ds-conflict-bar.yellow{background:rgba(232,132,58,.1);color:var(--orange);border:1px solid rgba(232,132,58,.25)}
 /* S5 locked */
 #s5-locked{background:rgba(238,85,85,.08);border:1px solid rgba(238,85,85,.25);border-radius:12px;
            padding:16px 20px;margin-bottom:20px;display:none;font-size:12px;line-height:1.6}
@@ -1147,7 +1141,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
     </div>
     <div id="restore-banner" class="restore-banner" style="display:none"></div>
     <div id="next-action-bar" style="display:none"></div>
-    <div id="ds-conflict-bar" class="ds-conflict-bar" onclick="toggleWarnDetails()"></div>
   </div>
 </div>
 
@@ -4686,7 +4679,6 @@ function updateCockpitSolved(){
     return ALLERGIE_DEFS.some(d=>d.test.test(txt))||SPECIAL_DEFS.some(d=>d.test.test(txt));
   }).length;
   const frei=(lastTables||[]).filter(t=>(!t.belegtPax||t.belegtPax===0)&&t.aktiv&&!t.blocked_for).length;
-  const offen=(warnings||[]).filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length;
 
   const rows=[
     {ico:'→', cls:'',        val:bleibe,  lbl:`Bleibegast${bleibe===1?'':'gäste'}`},
@@ -4695,8 +4687,6 @@ function updateCockpitSolved(){
       lbl:`Sonderhinweis${sonder===1?'':'e'}${sonder===0?' — alles klar':''}` },
     {ico: frei>0?'✓':'→',   cls:frei>0?'csi-ok':'', val:frei,
       lbl:`freie${frei===1?' Tisch':' Tische'}${frei===0?' — alle belegt':''}`},
-    {ico: offen>0?'⚠':'✓',  cls:offen>0?'csi-warn':'csi-ok', val:offen,
-      lbl:`offene Entscheidung${offen===1?'':'en'}${offen===0?' — nichts offen':' — bitte prüfen'}`},
   ];
 
   sl.innerHTML=rows.map(({ico,cls,val,lbl})=>
@@ -4770,20 +4760,6 @@ function updateDashboard(){
     const ev=el('ds-export-val');if(ev) ev.textContent='PDF bereit';
     updateNextActionBtn();
     updateNextActionBar();
-    const cb=el('ds-conflict-bar');
-    if(cb){
-      if(redCount>0){
-        cb.style.display='block';
-        cb.className='ds-conflict-bar red';
-        cb.innerHTML=`⚠️ ${redCount} Hinweis${redCount===1?'':' e'} offen — vor dem Drucken bitte prüfen. <u>Jetzt ansehen →</u>`;
-      } else if(yellowCount>0){
-        cb.style.display='block';
-        cb.className='ds-conflict-bar yellow';
-        cb.innerHTML=`⚠️ ${yellowCount} Hinweis${yellowCount===1?' zur Prüfung':'e zur Prüfung'} offen. <u>Jetzt prüfen →</u>`;
-      } else {
-        cb.style.display='none';
-      }
-    }
   } else {
     // Empty states — no plan calculated yet
     const emptyVals={
@@ -4804,7 +4780,6 @@ function updateDashboard(){
     Object.entries(subs).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
     const pv=el('ds-plan-val');if(pv) pv.textContent='Kein Plan';
     const ev=el('ds-export-val');if(ev) ev.textContent='Nicht bereit';
-    const cb=el('ds-conflict-bar');if(cb) cb.style.display='none';
     animateRing(0);
     const ringIco=el('cockpit-ring-ico');if(ringIco) ringIco.textContent='○';
     updateNextActionBtn();
