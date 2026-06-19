@@ -4120,14 +4120,43 @@ function fillToCss(fill){
 }
 
 // Baut eine einfache HTML-Tabellen-Vorschau des befüllten Sheets (inkl. Zellfarben)
+// Zerlegt eine Bereichsadresse wie "A1:G1" in Zeilen-/Spaltennummern (1-basiert)
+function parseMergeRef(ref){
+  const [start,end]=ref.split(':');
+  const parse=addr=>{
+    const m=/^([A-Z]+)(\d+)$/.exec(addr);
+    let col=0;
+    for(const ch of m[1]) col=col*26+(ch.charCodeAt(0)-64);
+    return{r:parseInt(m[2]),c:col};
+  };
+  const s=parse(start),e=parse(end||start);
+  return{r1:s.r,c1:s.c,r2:e.r,c2:e.c};
+}
+
+// Baut eine HTML-Tabellen-Vorschau des befüllten Sheets (inkl. Zellfarben). Verschmolzene
+// Zellen (z.B. Kopfzeile oder Kategorien-Legende) werden wie in echtem Excel als eine
+// breite Zelle (colspan/rowspan) dargestellt, statt den Inhalt in jeder Spalte zu wiederholen.
 function buildSheetPreviewHtml(ws,range){
+  const merges=(ws.model.merges||[]).map(parseMergeRef);
+  const skip=new Set();
+  const spanAt={};
+  merges.forEach(m=>{
+    spanAt[`${m.r1},${m.c1}`]={rowSpan:m.r2-m.r1+1,colSpan:m.c2-m.c1+1};
+    for(let r=m.r1;r<=m.r2;r++) for(let c=m.c1;c<=m.c2;c++){
+      if(r===m.r1&&c===m.c1) continue;
+      skip.add(`${r},${c}`);
+    }
+  });
   let html='<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">';
   for(let r=range.top;r<=range.bottom;r++){
     html+='<tr>';
     for(let c=1;c<=range.right;c++){
+      if(skip.has(`${r},${c}`)) continue;
       const cell=ws.getCell(r,c);
       const v=cell.value==null?'':String(cell.value);
-      html+=`<td style="border:1px solid #ccc;padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
+      const span=spanAt[`${r},${c}`];
+      const spanAttr=span?` colspan="${span.colSpan}" rowspan="${span.rowSpan}"`:'';
+      html+=`<td${spanAttr} style="border:1px solid #ccc;padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
     }
     html+='</tr>';
   }
