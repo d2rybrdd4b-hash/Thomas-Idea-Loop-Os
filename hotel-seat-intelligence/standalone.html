@@ -3666,10 +3666,17 @@ function parseTischplanTemplate(buf){
         const v=String(cv(rr,labelCol)||'').trim();
         if(v){bereichLabel=v;break;}
       }
-      block.bereich=bereichLabel||`Bereich ${blocks.length+1}`;
+      block.bereich=bereichLabel; // ggf. leer, wird unten final aufgelöst
       blocks.push(block);
     }
   }
+  // Fallback-Bezeichnung erst auflösen, wenn die Gesamtanzahl Blöcke feststeht:
+  // bei genau einem Block (klassisches Einzelblock-Format ohne Bereichsname über
+  // der Kopfzeile) "Restaurant 1" wie bisher, sonst "Bereich 1", "Bereich 2", ...
+  blocks.forEach((block,i)=>{
+    if(!block.bereich) block.bereich=blocks.length===1?'Restaurant 1':`Bereich ${i+1}`;
+  });
+  if(blocks.length===1) currentBereich=blocks[0].bereich;
   tischplanBlocks=blocks;
   if(blocks.length){
     // Kopfzeile ("Tisch/Zimmer/Status/...") liegt im Datenbereich der Export-Bereinigung
@@ -3722,8 +3729,9 @@ function parseTischplanTemplate(buf){
       }
       continue;
     }
-    if(blocks.length){
-      // Mehrblock-Modus: pro Block eigene Tisch-ID-Spalte; vorhandene (ggf. manuell
+    if(blocks.length>1){
+      // Mehrblock-Modus (mehrere Blöcke nebeneinander, z.B. "Panorama Restaurant" +
+      // "Neue Restaurants"): pro Block eigene Tisch-ID-Spalte; vorhandene (ggf. manuell
       // gepflegte) Zellinhalte werden gesichert, damit sie beim späteren Export
       // erhalten bzw. mit den App-Daten zusammengeführt werden können, statt
       // kommentarlos überschrieben zu werden.
@@ -3743,7 +3751,34 @@ function parseTischplanTemplate(buf){
       });
       continue;
     }
-    // Altes Einzelblock-Format (Fallback): Bereichs-Header erkennen (z.B. "RESTAURANT 2",
+    if(blocks.length===1){
+      // Genau ein Block erkannt: kann ein echtes Einzelblock-Layout sein, das aber
+      // (wie das alte Format) scattered Bereichs-Header-Zeilen zwischen den Tischzeilen
+      // hat (z.B. eine Zeile mit nur "Restaurant 2" oder "BAR" in Spalte A). Diese
+      // Zeilen müssen wie im alten Fallback erkannt und vor dem Löschen geschützt werden,
+      // sonst verschwinden die Abschnittsüberschriften beim Export.
+      const block=blocks[0];
+      const tid=String(cv(r,block.tischCol)||'').trim();
+      if(!/^\d/.test(tid)){
+        if(a&&!inKat&&!inKombi&&rowVals.length<=1){
+          currentBereich=a;bereichRows.push(r);
+        }
+        continue;
+      }
+      tischplanMap[tid]={
+        r,bereich:currentBereich,block,
+        existing:{
+          zimmer:block.zimmerCol!=null?cv(r,block.zimmerCol):null,
+          status:block.statusCol!=null?cv(r,block.statusCol):null,
+          name:block.gastnameCol!=null?cv(r,block.gastnameCol):null,
+          pax:block.paxCol!=null?cv(r,block.paxCol):null,
+          extras:block.extrasCol!=null?cv(r,block.extrasCol):null
+        }
+      };
+      continue;
+    }
+    // Altes Einzelblock-Format (Fallback, kein "Tisch"-Header in Zeile 0-5 gefunden):
+    // Bereichs-Header erkennen (z.B. "RESTAURANT 2",
     // "BAR") — eigene Zeile, nur Spalte A gefüllt
     if(a&&!inKat&&!inKombi&&!/^\d/.test(a)&&rowVals.length<=1){
       currentBereich=a;bereichRows.push(r);continue;
