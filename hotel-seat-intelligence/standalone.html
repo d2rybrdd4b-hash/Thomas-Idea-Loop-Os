@@ -942,6 +942,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 <!-- ─── SCHRITT 0: Dashboard ─── -->
 <div class="page act" id="s0">
   <div class="dash-wrap">
+    <!-- Höchste Priorität: steht vor allem anderen, auch vor dem Titel -->
+    <div id="next-action-bar" style="display:none"></div>
+
     <div class="dash-hotel">
       <h2 id="dash-hotel-title">Hotel Seat Intelligence</h2>
       <div class="dash-meta">
@@ -954,9 +957,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
       <div id="dash-date-display" style="font-size:11px;color:var(--dim);margin-top:2px;text-align:center"></div>
     </div>
-
-    <!-- Gleiche Position wie der rote Hinweis-Balken auf der Drucklisten-Seite (s5-locked) -->
-    <div id="next-action-bar" style="display:none"></div>
 
     <!-- Import-Bereich: immer auf der Startseite sichtbar (auch nach Berechnung) -->
     <div id="dash-upload">
@@ -4579,7 +4579,8 @@ function updateNextActionBtn(){
 // Drucklisten-Seite nie wieder auseinanderlaufen können.
 function criticalHinweiseBannerHtml(reds,fromOtherTab){
   const onclick=fromOtherTab?"goTab(0);toggleWarnDetails()":"toggleWarnDetails()";
-  return `<span class="na-txt">Plan bereit — ${reds} kritischer Hinweis${reds>1?'e':''} offen</span>
+  const noun=reds>1?'kritische Hinweise':'kritischer Hinweis';
+  return `<span class="na-txt">${reds} ${noun} offen — vor Export prüfen</span>
     <button class="na-btn" onclick="${onclick}">Hinweise prüfen</button>`;
 }
 function updateNextActionBar(){
