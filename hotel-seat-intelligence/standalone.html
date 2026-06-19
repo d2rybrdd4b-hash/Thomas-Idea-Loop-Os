@@ -321,6 +321,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .pgroup-hdr{background:var(--card);padding:9px 12px;font-weight:700;font-size:11px;
             border-left:3px solid var(--gold);margin-top:14px;
             border-radius:4px 4px 0 0;color:var(--gold)}
+.pgroup-bereich-hdr{background:var(--hdr);color:#fff;font-weight:800;font-size:13px;
+            letter-spacing:.5px;text-transform:uppercase;padding:10px 14px;
+            margin-top:24px;border-radius:6px}
+.pgroup-bereich-hdr:first-of-type{margin-top:0}
 .sonder-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
              padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:16px}
 .sonder-card .sc-zimmer{font-size:22px;font-weight:700;color:var(--gold);min-width:50px}
@@ -3349,7 +3353,7 @@ function unmarkResolved(encodedMsg){
 //  HOTELIER-TISCHPLAN VORLAGE — TAGESSTART
 // ══════════════════════════════════════════════════════════════
 let tischplanTemplate=null;  // ArrayBuffer of uploaded template
-let tischplanMap={};         // tableID → {r, side:'left'|'right'}
+let tischplanMap={};         // tableID → {r, bereich: 'Restaurant 1'|'Bar'|...}
 let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
 let quickAnkuenfteFileName=''; // filename of loaded Anreisen file
@@ -3618,6 +3622,9 @@ function parseTischplanTemplate(buf){
   const range=XLSX.utils.decode_range(ws['!ref']||'A1:N99');
   tischplanMap={};tischplanKat={};tischplanKombi=[];
   let inKat=false,inKombi=false;
+  // Erster Tischblock einer Vorlage hat oft keine eigene Abschnitts-Überschrift
+  // (steht ggf. in Zeile 1-3, die hier nicht gescannt wird) — daher Default "Restaurant 1".
+  let currentBereich='Restaurant 1';
   const cv=(r,c)=>{const cell=ws[XLSX.utils.encode_cell({r,c})];return cell!=null?cell.v:null;};
   const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
   // Datenbereich beginnt ab Zeile 4 (Index 3) — Zeilen 1-3 sind Titel/Header/Sektionsmarker
@@ -3632,6 +3639,10 @@ function parseTischplanTemplate(buf){
     if(a.includes('Tischkategorien')){inKat=true;inKombi=false;continue;}
     if(a.includes('Tischkombinationen')){inKombi=true;inKat=false;continue;}
     if(a.includes('Ausschl')){inKat=false;inKombi=false;}
+    // Bereichs-Header erkennen (z.B. "RESTAURANT 2", "BAR") — eigene Zeile, nur Spalte A gefüllt
+    if(a&&!inKat&&!inKombi&&!/^\d/.test(a)&&rowVals.length<=1){
+      currentBereich=a;continue;
+    }
     // Kategorien
     if(inKat&&/^Kat\s*\d/.test(c)){
       const kat=parseInt(c.replace(/[^0-9]/g,''));
@@ -3654,7 +3665,7 @@ function parseTischplanTemplate(buf){
       continue;
     }
     // Tisch-Position: ein Spaltenblock, Tisch-ID in Spalte 0 (z.B. "611")
-    if(/^\d/.test(a)) tischplanMap[a]={r};
+    if(/^\d/.test(a)) tischplanMap[a]={r,bereich:currentBereich};
   }
   saveTemplateToStorage(buf);
   updateTemplateStatus();
@@ -4192,41 +4203,57 @@ function renderServiceList(){
     byTable[g.zugewiesener_tisch].push(g);
   });
   const zc=zoneColors();
-  return Object.keys(byTable).sort().map(tid=>{
-    const zone=tid[0];
-    const col=zc[zone]||zc.dim;
-    const statusBadge=s=>{
-      if(!s||s==='BL') return'';
-      const c={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'}[s]||'#888';
-      return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${esc(s)}</span>`;
-    };
-    const rows=byTable[tid].map(g=>`<tr>
-      <td>${esc(g.zimmer)}</td>
-      <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
-      <td>${statusBadge(g.status)}</td>
-      <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
-      <td>${renderBadgesHtml(g)}</td>
-      <td>${esc(g.essen_zeit||'—')}</td>
-      <td>${esc(g.bemerkung||'—')}</td>
-    </tr>`).join('');
-    return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${esc(tid)} — Zone ${esc(zone)}</div>
-    <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
-    <tbody>${rows}</tbody></table>`;
+  const statusBadge=s=>{
+    if(!s||s==='BL') return'';
+    const c={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'}[s]||'#888';
+    return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${esc(s)}</span>`;
+  };
+  // Gruppierung nach Bereich (Restaurant 1-4, Bar, ...) aus der Tischplan-Vorlage,
+  // damit Service/Rezeption sofort sehen, welcher Bereich gerade angezeigt wird.
+  const tids=Object.keys(byTable).sort();
+  const groups={};
+  tids.forEach(tid=>{
+    const bereich=tischplanMap[tid]?.bereich||'Tische';
+    if(!groups[bereich]) groups[bereich]=[];
+    groups[bereich].push(tid);
+  });
+  return Object.keys(groups).map(bereich=>{
+    const tableBlocks=groups[bereich].map(tid=>{
+      const zone=tid[0];
+      const col=zc[zone]||zc.dim;
+      const rows=byTable[tid].map(g=>`<tr>
+        <td>${esc(g.zimmer)}</td>
+        <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
+        <td>${statusBadge(g.status)}</td>
+        <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
+        <td>${renderBadgesHtml(g)}</td>
+        <td>${esc(g.essen_zeit||'—')}</td>
+        <td>${esc(g.bemerkung||'—')}</td>
+      </tr>`).join('');
+      return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${esc(tid)}</div>
+      <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+    }).join('');
+    return`<div class="pgroup-bereich-hdr">${esc(bereich)}</div>${tableBlocks}`;
   }).join('');
 }
 function renderReceptionList(){
   const rows=[...assignedGuests].sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0));
-  const trs=rows.map(g=>`<tr>
+  const trs=rows.map(g=>{
+    const bereich=tischplanMap[g.zugewiesener_tisch]?.bereich||'—';
+    return`<tr>
     <td><b>${esc(g.zimmer)}</b></td>
     <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
     <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
     <td>${esc(g.zugewiesener_tisch||'—')}</td>
+    <td>${esc(bereich)}</td>
     <td>${esc(g.status||'—')}</td>
     <td>${renderBadgesHtml(g)}</td>
     <td>${esc(g.essen_zeit||'—')}</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
   return`<table class="ptbl"><thead><tr>
-    <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Status</th><th>Allergie</th><th>Zeit</th>
+    <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Bereich</th><th>Status</th><th>Allergie</th><th>Zeit</th>
   </tr></thead><tbody>${trs}</tbody></table>`;
 }
 function renderSpecialList(){
