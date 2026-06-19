@@ -4028,7 +4028,31 @@ async function buildFilledTischplanSheet(){
   const rightCol=lastRange?lastRange.right:1;
   autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
   addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
+  buildSortierungZimmerSheet(wb,ws);
   return{wb,ws,guestByTable};
+}
+
+// Entfernt alle Arbeitsblätter der Hotelier-Datei außer dem befüllten Tischplan-Blatt
+// (z.B. alte Verwaltungs-Blätter wie "Kontrollblatt", "Konflikte", "Kombinationen",
+// "Parameter") und baut stattdessen ein frisches "Sortierung Zimmer"-Blatt aus
+// denselben Gästedaten, sortiert nach Zimmernummer — so bleiben beide Blätter immer
+// synchron, ohne dass veraltete oder leere Original-Blätter mit exportiert werden.
+function buildSortierungZimmerSheet(wb,tischplanWs){
+  wb.worksheets.slice().forEach(sheet=>{
+    if(sheet!==tischplanWs) wb.removeWorksheet(sheet.id);
+  });
+  const ws2=wb.addWorksheet('Sortierung Zimmer');
+  const headers=['Zimmer','Nachname','Vorname','PAX','Kinder','Tisch','Status','VIP','Allergie','Bemerkung'];
+  ws2.addRow(headers);
+  ws2.getRow(1).font={bold:true};
+  const rows=(assignedGuests||[]).slice().sort((a,b)=>(parseInt(a.zimmer)||9999)-(parseInt(b.zimmer)||9999));
+  rows.forEach(g=>{
+    const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
+    ws2.addRow([g.zimmer||'',g.nachname||'',g.vorname||'',g.pax||1,g.kinder||0,
+      g.zugewiesener_tisch||'—',statusStr,g.vip?'VIP':'',g.allergie||'',g.bemerkung||'']);
+  });
+  autoFitColumns(ws2,1,ws2.rowCount,1,headers.length);
+  return ws2;
 }
 
 // Fügt unterhalb des gesamten Tabellenblatts eine Legende "Tischkategorien" mit
