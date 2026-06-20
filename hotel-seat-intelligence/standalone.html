@@ -1153,7 +1153,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
     <!-- Bereit-Banner -->
     <div id="cfg-ready-banner" style="display:none;background:rgba(46,204,113,.1);border:1.5px solid rgba(46,204,113,.3);border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-      <div style="color:var(--green);font-size:13px;font-weight:700">✓ Alles eingerichtet</div>
+      <div style="color:var(--green);font-size:13px;font-weight:700;display:flex;align-items:center"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Alles eingerichtet</div>
       <button class="btn btn-gold btn-sm" onclick="goTab(0)">Zum Start →</button>
     </div>
     <div id="cfg-missing-banner" style="background:rgba(231,76,60,.07);border:1.5px solid rgba(231,76,60,.2);border-radius:12px;padding:11px 16px;margin-bottom:14px;font-size:12px;color:var(--red)">
@@ -1165,7 +1165,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <!-- Hotelname -->
       <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
-        <div style="width:18px;color:var(--green);font-size:15px;font-weight:700;flex-shrink:0">✓</div>
+        <div style="width:18px;height:18px;color:var(--green);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Hotelname</div>
         <input type="text" id="hotel-name-input" placeholder="z.B. Grand Hotel Vienna"
           oninput="syncHotelName(this.value)"
@@ -1174,7 +1174,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <!-- Sprache -->
       <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
-        <div style="width:18px;color:var(--green);font-size:15px;font-weight:700;flex-shrink:0">✓</div>
+        <div style="width:18px;height:18px;color:var(--green);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div style="flex:0 0 100px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">Sprache</div>
         <select id="lang-sel" onchange="saveLangPref(this.value)"
           style="flex:1;background:transparent;color:var(--text);border:none;border-bottom:1px solid var(--border);padding:3px 0;font-size:13px;outline:none;min-width:0">
@@ -2621,14 +2621,14 @@ function detectGroups(guests){
   });
   Object.entries(byFull).forEach(([name,gs])=>{
     if(gs.length>1&&gs[0].nachname){
-      warns.push({level:'red',msg:`🔴 Doppelname: "${gs[0].vorname} ${gs[0].nachname}" kommt ${gs.length}× vor — Zimmer: ${gs.map(g=>g.zimmer).join(', ')}`});
+      warns.push({level:'red',msg:`Doppelname: "${gs[0].vorname} ${gs[0].nachname}" kommt ${gs.length}× vor — Zimmer: ${gs.map(g=>g.zimmer).join(', ')}`});
     }
   });
   Object.entries(byLast).forEach(([last,gs])=>{
     if(gs.length>1&&!byFull[gs.map(g=>(g.vorname+' '+last).trim().toLowerCase()).join(',')]){
       const zimmer=[...new Set(gs.map(g=>g.zimmer))];
       if(zimmer.length>1){
-        warns.push({level:'yellow',msg:`⚠️ Gleicher Nachname "${gs[0].nachname}" in Zimmer ${zimmer.join(', ')} — mögliche Gruppe`});
+        warns.push({level:'yellow',msg:`Gleicher Nachname "${gs[0].nachname}" in Zimmer ${zimmer.join(', ')} — mögliche Gruppe`});
       }
     }
   });
@@ -2749,7 +2749,7 @@ function runCalc(){
   active.forEach(g=>{
     const zimNr=parseInt(g.zimmer);
     if(g.zimmer&&!ZIMMERSTAMM.has(zimNr)){
-      warns.push({level:'yellow',msg:`⚠️ Zimmer ${g.zimmer} (${g.nachname}) nicht im Zimmerstamm — bitte prüfen`});
+      warns.push({level:'yellow',msg:`Zimmer ${g.zimmer} (${g.nachname}) nicht im Zimmerstamm — bitte prüfen`});
     }
   });
 
@@ -2776,9 +2776,9 @@ function runCalc(){
       const confliktT=ts.find(t=>t.tisch_id===g.vorheriger_tisch);
       if(confliktT) confliktT.konflikt=true;
       if(confliktT&&confliktT.belegtPax>0){
-        warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} bereits belegt`});
+        warns.push({level:'red',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} bereits belegt`});
       } else if(!confliktT){
-        warns.push({level:'red',msg:`🔴 Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} nicht gefunden`});
+        warns.push({level:'red',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} nicht gefunden`});
       }
     }
   });
@@ -2812,9 +2812,9 @@ function runCalc(){
         prefT.zukunft_belegt=true;
         prefT.zukunft_info={name:(g.vorname?g.vorname+' ':'')+g.nachname,zimmer:g.zimmer,check_in:g.check_in,check_out:g.check_out,pax:g.pax,vip:g.vip};
         progReserved++;
-        if(g.vip) warns.push({level:'yellow',msg:`📅 Tisch ${prefT.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} ab ${g.check_in} freigehalten`});
+        if(g.vip) warns.push({level:'yellow',msg:`Tisch ${prefT.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} ab ${g.check_in} freigehalten`});
       } else {
-        warns.push({level:'red',msg:`🔴 Prognose: ${g.vorname} ${g.nachname} (Ankunft ${g.check_in}, ${g.pax} PAX) — kein Tisch für gesamten Aufenthalt frei`});
+        warns.push({level:'red',msg:`Prognose: ${g.vorname} ${g.nachname} (Ankunft ${g.check_in}, ${g.pax} PAX) — kein Tisch für gesamten Aufenthalt frei`});
       }
     });
   if(el('cs5-res')) el('cs5-res').textContent=progReserved+' Prognose-Tische reserviert';
@@ -2858,7 +2858,7 @@ function runCalc(){
         });
         groupsPlaced++;
       } else {
-        warns.push({level:'yellow',msg:`⚠️ Gruppe ${name} (${gs.length} Zimmer, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
+        warns.push({level:'yellow',msg:`Gruppe ${name} (${gs.length} Zimmer, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
       }
     });
 
@@ -2892,7 +2892,7 @@ function runCalc(){
       if(override.tisch){
         const t=ts.find(t=>t.tisch_id===override.tisch&&!t.blocked_for&&t.aktiv&&t.kapazitaet-t.belegtPax>=g.pax);
         if(t){targetTisch=t;ruleApplied++;}
-        else warns.push({level:'red',msg:`🔴 Sonderregel Zimmer ${g.zimmer}: Tisch ${override.tisch} nicht verfügbar oder voll`});
+        else warns.push({level:'red',msg:`Sonderregel Zimmer ${g.zimmer}: Tisch ${override.tisch} nicht verfügbar oder voll`});
       } else if(override.zone){
         targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
         if(targetTisch) ruleApplied++;
@@ -2909,7 +2909,7 @@ function runCalc(){
     } else {
       unassigned++;
       g.begruendung='Kein Tisch verfügbar';
-      warns.push({level:'red',msg:`🔴 ${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX): Kein passender Tisch verfügbar`});
+      warns.push({level:'red',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX): Kein passender Tisch verfügbar`});
     }
   });
 
@@ -2937,7 +2937,7 @@ function runCalc(){
       const upgrade=emptyPremium.find(t=>!usedUpgrades.has(t.tisch_id)&&t.kapazitaet-t.belegtPax>=g.pax);
       if(upgrade){
         usedUpgrades.add(upgrade.tisch_id);
-        warns.push({level:'yellow',msg:`⬆️ Hochstufung möglich: ${g.nachname} Zi.${g.zimmer} von Tisch ${g.zugewiesener_tisch} → ${upgrade.tisch_id} (Kat.${upgrade.kategorie})`});
+        warns.push({level:'yellow',msg:`Hochstufung möglich: ${g.nachname} Zi.${g.zimmer} von Tisch ${g.zugewiesener_tisch} → ${upgrade.tisch_id} (Kat.${upgrade.kategorie})`});
       }
     });
   }
@@ -3003,10 +3003,10 @@ function renderPlanTable(guests,filter=''){
       <td><b>${esc(g.zugewiesener_tisch)}</b></td>
       <td><span class="zone-dot" style="background:${zc}"></span>${esc(bereich)}</td>
       <td>${esc(g.zimmer)}</td>
-      <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.allergie?` <span style="font-size:9px;color:var(--orange)">⚠${esc(g.allergie)}</span>`:''}</td>
+      <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.allergie?` <span style="font-size:9px;color:var(--orange)"><span class="inline-ico" style="width:10px;height:10px;margin-right:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>${esc(g.allergie)}</span>`:''}</td>
       <td>${esc(g.pax)}${g.kinder?` <span style="font-size:9px;color:var(--zb)">+${esc(g.kinder)}K</span>`:''}</td>
       <td>${statusBadge(g.status)}</td>
-      <td>${g.vip?'⭐':''}</td>
+      <td>${g.vip?'<span class="inline-ico" style="width:12px;height:12px;margin-right:0;color:var(--gold)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>':''}</td>
       <td style="font-size:10px;color:var(--dim);max-width:200px;line-height:1.3">${esc(g.begruendung||'—')}</td>
     </tr>`;
   }).join('')}
@@ -3128,36 +3128,43 @@ function renderWarnings(){
     </div>
   `;
 
+  // Wiederverwendete Icons (gleicher Stil wie Start/Drucklisten)
+  const icoLock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  const icoTriangle='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  const icoCheckCircle='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  const icoDot='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>';
+
   // Status banner
   let statusBar='';
   if(reds.length>0){
-    statusBar=`<div class="w-status-bar red">🔒 ${reds.length} kritische${reds.length===1?'r':''} Punkt${reds.length===1?' muss':' e müssen'} gelöst werden — Export ist gesperrt, bis alle roten Punkte geklärt sind.</div>`;
+    const noun=reds.length===1?'kritischer Punkt muss':'kritische Punkte müssen';
+    statusBar=`<div class="w-status-bar red"><span class="inline-ico">${icoLock}</span>${reds.length} ${noun} gelöst werden — Export ist gesperrt, bis alle roten Punkte geklärt sind.</div>`;
   } else if(yellows.length>0){
-    statusBar=`<div class="w-status-bar yellow">⚠️ ${yellows.length} Hinweis${yellows.length===1?' zur Prüfung':'e zur Prüfung'} — bitte einzeln bestätigen oder ignorieren.</div>`;
+    statusBar=`<div class="w-status-bar yellow"><span class="inline-ico">${icoTriangle}</span>${yellows.length} Hinweis${yellows.length===1?' zur Prüfung':'e zur Prüfung'} — bitte einzeln bestätigen oder ignorieren.</div>`;
   } else {
-    statusBar=`<div class="w-status-bar green">✅ Alle Punkte geprüft — Export und Druck sind freigegeben.</div>`;
+    statusBar=`<div class="w-status-bar green"><span class="inline-ico">${icoCheckCircle}</span>Alle Punkte geprüft — Export und Druck sind freigegeben.</div>`;
   }
 
   // Sections
   let html=statusBar;
   if(reds.length>0){
-    html+=`<div class="warn-section"><h3>🔴 Kritisch — vor dem Export lösen</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoDot}</span>Kritisch — vor dem Export lösen</h3>
     <div class="warn-list">${reds.map(w=>warnItem(w,'red')).join('')}</div></div>`;
   }
   if(yellows.length>0){
-    html+=`<div class="warn-section"><h3>⚠️ Hinweise — prüfen und bestätigen</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoTriangle}</span>Hinweise — prüfen und bestätigen</h3>
     <div class="warn-list">${yellows.map(w=>warnItem(w,'yellow')).join('')}</div></div>`;
   }
   if(resolvedList.length>0){
-    html+=`<div class="warn-section"><h3>✅ Geprüft — werden im Übergabebericht dokumentiert</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>Geprüft — werden im Übergabebericht dokumentiert</h3>
     <div class="warn-list">${resolvedList.map(w=>warnItem(w,'',true)).join('')}</div></div>`;
   }
   if(greens.length>0){
-    html+=`<div class="warn-section"><h3>✅ Automatisch gelöst</h3>
-    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="witem-hdr"><span class="wico">✅</span><span class="wbadge green">Auto-Fix</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>Automatisch gelöst</h3>
+    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="witem-hdr"><span class="wico">${icoCheckCircle}</span><span class="wbadge green">Auto-Fix</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
   }
   if(reds.length===0&&yellows.length===0&&greens.length===0&&resolvedList.length===0){
-    html+=`<div style="text-align:center;padding:40px;color:var(--green);font-size:14px">✅ Keine Warnungen — alles in Ordnung!</div>`;
+    html+=`<div style="text-align:center;padding:40px;color:var(--green);font-size:14px"><span class="inline-ico">${icoCheckCircle}</span>Keine Warnungen — alles in Ordnung!</div>`;
   }
 
   el('warn-sections').innerHTML=html;
@@ -3277,7 +3284,13 @@ function enrichWarning(w){
 
 function warnItem(w,cls,resolved=false){
   const ew=enrichWarning(w);
-  const ico={'red':'🔴','yellow':'⚠️','green':'✅','':'ℹ️'}[cls]||'ℹ️';
+  const icoMap={
+    red:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>',
+    yellow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    green:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    '':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  const ico=icoMap[cls]||icoMap[''];
   const badgeLabel={'red':'Kritisch','yellow':'Hinweis','green':'Erledigt','':'Geprüft'}[cls]||(resolved?'Geprüft':'Info');
   const id=btoa(encodeURIComponent(w.msg)).slice(0,12);
   const enc=encodeURIComponent(w.msg);
@@ -3297,13 +3310,13 @@ function warnItem(w,cls,resolved=false){
   let actions='';
   if(!resolved){
     if(ew.autofix){
-      actions+=`<button class="btn-autofix" onclick="${ew.autofix.fn}('${enc}')">⚡ ${ew.autofix.label}</button>`;
+      actions+=`<button class="btn-autofix" onclick="${ew.autofix.fn}('${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>${ew.autofix.label}</button>`;
     }
     if(cls==='red'){
-      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')">✓ Als geprüft markieren</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Als geprüft markieren</button>`;
     }
     if(cls==='yellow'){
-      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')">✓ Bestätigen</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Bestätigen</button>`;
       actions+=`<button class="btn btn-ghost btn-sm" style="color:var(--dim);font-size:9px" onclick="markResolved('${id}','${enc}')">Für heute ignorieren</button>`;
     }
   } else {
@@ -3312,7 +3325,7 @@ function warnItem(w,cls,resolved=false){
 
   return`<div class="witem ${resolved?'resolved':cls}" id="wi-${id}">
     <div class="witem-hdr">
-      <span class="wico">${resolved?'✅':ico}</span>
+      <span class="wico">${resolved?icoMap.green:ico}</span>
       <span class="wbadge ${badgeCls}">${resolved?'Geprüft':badgeLabel}</span>
       <span class="wtitle">${ew.title}</span>
     </div>
