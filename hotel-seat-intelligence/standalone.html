@@ -762,10 +762,17 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tgst-upload-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
 @media(max-width:560px){.tgst-upload-row{grid-template-columns:1fr}}
 .tgst-upload-col{display:flex;flex-direction:column}
-.tgst-upload-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
-  width:100%;padding:16px 8px;font-size:12px;line-height:1.35;text-align:center;min-height:90px}
-.tgst-upload-btn-ico{display:inline-flex;width:22px;height:22px}
-.tgst-upload-btn-ico svg{width:100%;height:100%}
+.tgst-upload-btn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  width:100%;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px 14px 14px;font-size:13px;text-align:left;min-height:108px;color:var(--text);
+  font-family:inherit;cursor:pointer;transition:border-color .18s}
+.tgst-upload-btn:hover{border-color:var(--gold)}
+.tgst-upload-btn-ico{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border-radius:50%;background:var(--gold-glow);color:var(--gold);flex-shrink:0}
+.tgst-upload-btn-ico svg{width:17px;height:17px}
+.tgst-upload-btn-chev{position:absolute;top:14px;right:14px;color:var(--dim);font-size:15px;line-height:1}
+.tgst-upload-btn-tit{display:block;font-weight:700;font-size:13px;line-height:1.3;color:var(--text)}
+.tgst-upload-btn-sub{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:4px}
 .tgst-upload-col .tgst-file-loaded{flex-direction:column;text-align:center;gap:6px;padding:12px 10px;margin-bottom:0}
 .tgst-upload-col .tgst-file-name{font-size:11px;word-break:break-word}
 .tgst-or{text-align:center;font-size:11px;color:var(--dim);margin:10px 0}
@@ -1026,10 +1033,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
             <!-- Tischplan vom Vortag: liefert die Bleibegast-Zuordnung (welcher Gast saß wo) -->
             <input type="file" id="fi-tgst-vortag" accept=".csv,.xlsx,.xls" style="display:none"
               onchange="quickLoadVortag(this.files[0]);this.value=''">
-            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-vortag"
+            <button class="tgst-upload-btn" id="btn-tgst-vortag"
               onclick="el('fi-tgst-vortag').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-              <span>Tischplan vom Vortag hochladen</span>
+              <span class="tgst-upload-btn-chev">›</span>
+              <span class="tgst-upload-btn-tit">Tischplan vom Vortag hochladen</span>
+              <span class="tgst-upload-btn-sub">Datei hochladen</span>
             </button>
             <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1042,10 +1051,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
             <!-- Anreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
             <input type="file" id="fi-tgst-ankuenfte" accept=".csv,.xlsx,.xls" style="display:none"
               onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
-            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-ankuenfte"
+            <button class="tgst-upload-btn" id="btn-tgst-ankuenfte"
               onclick="el('fi-tgst-ankuenfte').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-              <span>Anreisen hochladen</span>
+              <span class="tgst-upload-btn-chev">›</span>
+              <span class="tgst-upload-btn-tit">Anreisen hochladen</span>
+              <span class="tgst-upload-btn-sub">Datei hochladen</span>
             </button>
             <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1058,10 +1069,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
             <!-- Abreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
             <input type="file" id="fi-tgst-abreisen" accept=".csv,.xlsx,.xls" style="display:none"
               onchange="quickLoadAbreisen(this.files[0]);this.value=''">
-            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-abreisen"
+            <button class="tgst-upload-btn" id="btn-tgst-abreisen"
               onclick="el('fi-tgst-abreisen').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-              <span>Abreisen hochladen</span>
+              <span class="tgst-upload-btn-chev">›</span>
+              <span class="tgst-upload-btn-tit">Abreisen hochladen</span>
+              <span class="tgst-upload-btn-sub">Datei hochladen</span>
             </button>
             <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
