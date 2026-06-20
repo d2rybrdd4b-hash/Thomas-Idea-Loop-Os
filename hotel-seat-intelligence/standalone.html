@@ -48,8 +48,17 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .theme-pill-thumb{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.65);transition:transform .25s,background .25s}
 [data-theme="day"] .theme-pill-track{background:rgba(155,107,26,.15);border-color:rgba(155,107,26,.35)}
 [data-theme="day"] .theme-pill-thumb{transform:translateX(16px);background:var(--gold)}
-.logo{font-size:14px;font-weight:300;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.8)}
+.logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:300;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.8)}
 .logo em{color:var(--gold);font-style:normal;font-weight:600}
+.logo-ico{width:24px;height:24px;border-radius:6px;display:block;flex-shrink:0}
+/* ── SPLASH SCREEN ── */
+#app-splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  transition:opacity .5s ease,visibility .5s ease}
+#app-splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 34px rgba(0,0,0,.45)}
+#app-splash .splash-tit{font-size:14px;font-weight:300;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.85)}
+#app-splash .splash-tit em{color:var(--gold);font-style:normal;font-weight:600}
+#app-splash.hide{opacity:0;visibility:hidden;pointer-events:none}
 #hdr-steps{display:none}
 .hstep{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;
        letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.35);
@@ -749,6 +758,16 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tgst-file-ico svg{width:100%;height:100%}
 .tgst-file-name{flex:1;font-size:12px;font-weight:600;color:var(--green)}
 .tgst-file-clear{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:2px 6px}
+/* ── Tagesdateien nebeneinander (Vortag / Anreisen / Abreisen) ── */
+.tgst-upload-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+@media(max-width:560px){.tgst-upload-row{grid-template-columns:1fr}}
+.tgst-upload-col{display:flex;flex-direction:column}
+.tgst-upload-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  width:100%;padding:16px 8px;font-size:12px;line-height:1.35;text-align:center;min-height:90px}
+.tgst-upload-btn-ico{display:inline-flex;width:22px;height:22px}
+.tgst-upload-btn-ico svg{width:100%;height:100%}
+.tgst-upload-col .tgst-file-loaded{flex-direction:column;text-align:center;gap:6px;padding:12px 10px;margin-bottom:0}
+.tgst-upload-col .tgst-file-name{font-size:11px;word-break:break-word}
 .tgst-or{text-align:center;font-size:11px;color:var(--dim);margin:10px 0}
 /* Cockpit download highlight */
 .cockpit-dl{background:rgba(46,204,113,.07);border:1.5px solid rgba(46,204,113,.25);
@@ -908,9 +927,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 </head>
 <body>
 
+<!-- ══════════════════════ SPLASH SCREEN ══════════════════════ -->
+<div id="app-splash">
+  <img src="icon-512.png" alt="Hotel Seat Intelligence">
+  <div class="splash-tit">Hotel <em>Seat</em> Intelligence</div>
+</div>
+
 <!-- ══════════════════════ HEADER ══════════════════════ -->
 <div id="hdr">
-  <div class="logo">Hotel <em>Seat</em> Intelligence</div>
+  <div class="logo"><img src="icon-192.png" class="logo-ico" alt="">Hotel <em>Seat</em> Intelligence</div>
   <div id="hdr-steps">
     <div class="hstep act" data-step="0" onclick="goStep(0)" title="Dashboard">
       <div class="snum">⌂</div>
@@ -995,43 +1020,55 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
         </div>
 
-        <!-- Tischplan vom Vortag: liefert die Bleibegast-Zuordnung (welcher Gast saß wo) -->
-        <input type="file" id="fi-tgst-vortag" accept=".csv,.xlsx,.xls" style="display:none"
-          onchange="quickLoadVortag(this.files[0]);this.value=''">
-        <button class="btn btn-gold" id="btn-tgst-vortag" style="width:100%;margin-bottom:10px"
-          onclick="el('fi-tgst-vortag').click()">
-          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Tischplan vom Vortag hochladen
-        </button>
-        <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
-          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-          <span class="tgst-file-name" id="tgst-vortag-fname">—</span>
-          <button class="tgst-file-clear" onclick="clearVortagFile()" title="Entfernen">✕</button>
-        </div>
+        <!-- Tagesdateien: Vortag / Anreisen / Abreisen nebeneinander in einer Reihe -->
+        <div class="tgst-upload-row">
+          <div class="tgst-upload-col">
+            <!-- Tischplan vom Vortag: liefert die Bleibegast-Zuordnung (welcher Gast saß wo) -->
+            <input type="file" id="fi-tgst-vortag" accept=".csv,.xlsx,.xls" style="display:none"
+              onchange="quickLoadVortag(this.files[0]);this.value=''">
+            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-vortag"
+              onclick="el('fi-tgst-vortag').click()">
+              <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+              <span>Tischplan vom Vortag hochladen</span>
+            </button>
+            <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none">
+              <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+              <span class="tgst-file-name" id="tgst-vortag-fname">—</span>
+              <button class="tgst-file-clear" onclick="clearVortagFile()" title="Entfernen">✕</button>
+            </div>
+          </div>
 
-        <!-- Anreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
-        <input type="file" id="fi-tgst-ankuenfte" accept=".csv,.xlsx,.xls" style="display:none"
-          onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
-        <button class="btn btn-gold" id="btn-tgst-ankuenfte" style="width:100%;margin-bottom:10px"
-          onclick="el('fi-tgst-ankuenfte').click()">
-          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Anreisen hochladen
-        </button>
-        <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:10px">
-          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-          <span class="tgst-file-name" id="tgst-ankuenfte-fname">—</span>
-          <button class="tgst-file-clear" onclick="clearAnkuenfteFile()" title="Entfernen">✕</button>
-        </div>
+          <div class="tgst-upload-col">
+            <!-- Anreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
+            <input type="file" id="fi-tgst-ankuenfte" accept=".csv,.xlsx,.xls" style="display:none"
+              onchange="quickLoadAnkuenfte(this.files[0]);this.value=''">
+            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-ankuenfte"
+              onclick="el('fi-tgst-ankuenfte').click()">
+              <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+              <span>Anreisen hochladen</span>
+            </button>
+            <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none">
+              <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+              <span class="tgst-file-name" id="tgst-ankuenfte-fname">—</span>
+              <button class="tgst-file-clear" onclick="clearAnkuenfteFile()" title="Entfernen">✕</button>
+            </div>
+          </div>
 
-        <!-- Abreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
-        <input type="file" id="fi-tgst-abreisen" accept=".csv,.xlsx,.xls" style="display:none"
-          onchange="quickLoadAbreisen(this.files[0]);this.value=''">
-        <button class="btn btn-gold" id="btn-tgst-abreisen" style="width:100%;margin-bottom:10px"
-          onclick="el('fi-tgst-abreisen').click()">
-          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Abreisen hochladen
-        </button>
-        <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none;margin-bottom:16px">
-          <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-          <span class="tgst-file-name" id="tgst-abreisen-fname">—</span>
-          <button class="tgst-file-clear" onclick="clearAbreisenFile()" title="Entfernen">✕</button>
+          <div class="tgst-upload-col">
+            <!-- Abreisen: eigener Import, gleicher Stil wie Tischplan-Vorlage -->
+            <input type="file" id="fi-tgst-abreisen" accept=".csv,.xlsx,.xls" style="display:none"
+              onchange="quickLoadAbreisen(this.files[0]);this.value=''">
+            <button class="btn btn-gold tgst-upload-btn" id="btn-tgst-abreisen"
+              onclick="el('fi-tgst-abreisen').click()">
+              <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+              <span>Abreisen hochladen</span>
+            </button>
+            <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none">
+              <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+              <span class="tgst-file-name" id="tgst-abreisen-fname">—</span>
+              <button class="tgst-file-clear" onclick="clearAbreisenFile()" title="Entfernen">✕</button>
+            </div>
+          </div>
         </div>
 
         <!-- Berechnen-Button (Phase C) -->
@@ -1326,6 +1363,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 //  UTILS
 // ══════════════════════════════════════════════════════════════
 const el=id=>document.getElementById(id);
+// Splash-Logo beim Start kurz zeigen, dann sanft ausblenden
+setTimeout(()=>{ const sp=el('app-splash'); if(sp) sp.classList.add('hide'); },1400);
 function esc(v){
   return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
