@@ -296,61 +296,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
          border-radius:12px;padding:16px;text-align:center;font-size:11px;
          color:var(--green);margin-top:16px;display:none}
 #s5 .bot{display:flex;justify-content:flex-start;max-width:760px;margin:24px auto 0}
-.print-btns{display:flex;gap:8px;flex-wrap:wrap;max-width:760px;margin:0 auto 20px}
-
-/* ── PRINT OVERLAY ── */
-#print-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;
-               flex-direction:column;display:none}
-#print-toolbar{height:52px;background:var(--hdr);border-bottom:1px solid rgba(255,255,255,.1);
-               display:flex;align-items:center;padding:0 20px;gap:8px;flex-shrink:0}
-.ptool-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
-           color:rgba(255,255,255,.75);padding:6px 14px;border-radius:6px;
-           font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
-.ptool-btn.active,.ptool-btn:hover{background:var(--gold);color:#090F17;border-color:var(--gold)}
-#print-content{flex:1;overflow-y:auto;padding:40px;background:var(--bg)}
-.pview-hdr{text-align:center;margin-bottom:28px;padding-bottom:20px;
-           border-bottom:2px solid var(--gold)}
-.pview-hdr h1{font-family:var(--font-display);font-size:20px;font-weight:300;letter-spacing:1px}
-.pview-hdr h1 em{color:var(--gold);font-style:normal}
-.pview-hdr p{font-size:11px;color:var(--dim);margin-top:6px}
-.ptbl{width:100%;border-collapse:collapse;font-size:11px}
-.ptbl th{background:var(--panel);padding:7px 10px;text-align:left;font-size:9px;
-         font-weight:700;letter-spacing:1px;text-transform:uppercase;
-         border-bottom:2px solid var(--gold);color:var(--dim)}
-.ptbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
-.ptbl tr:last-child td{border-bottom:none}
-.pgroup-hdr{background:var(--card);padding:9px 12px;font-weight:700;font-size:11px;
-            border-left:3px solid var(--gold);margin-top:14px;
-            border-radius:4px 4px 0 0;color:var(--gold)}
-.pgroup-bereich-hdr{background:var(--hdr);color:#fff;font-weight:800;font-size:13px;
-            letter-spacing:.5px;text-transform:uppercase;padding:10px 14px;
-            margin-top:24px;border-radius:6px}
-.pgroup-bereich-hdr:first-of-type{margin-top:0}
-.sonder-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
-             padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:16px}
-.sonder-card .sc-zimmer{font-size:22px;font-weight:700;color:var(--gold);min-width:50px}
-.sonder-card .sc-body{flex:1}
-.sonder-card .sc-name{font-size:13px;font-weight:600;margin-bottom:6px}
-.sonder-card .sc-tisch{font-size:10px;color:var(--dim);margin-bottom:6px}
-.sc-tags{display:flex;gap:6px;flex-wrap:wrap}
-.sc-tag{padding:3px 10px;border-radius:10px;font-size:9px;font-weight:700;
-        letter-spacing:.5px;text-transform:uppercase}
-.sc-tag.allergy{background:rgba(192,64,48,.15);color:#C04030;border:1px solid rgba(192,64,48,.3)}
-.sc-tag.vip{background:rgba(200,168,75,.2);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
-.sc-tag.kids{background:rgba(58,180,224,.2);color:#3AB4E0;border:1px solid rgba(58,180,224,.3)}
-.pb-badge{display:inline-block;padding:2px 5px;border-radius:3px;font-size:7pt;font-weight:700;
-          color:#fff;margin:1px 2px 1px 0;vertical-align:middle;line-height:1.3;letter-spacing:.3px}
-.pb-allg{background:#C04030}
-@media print{
-  #hdr,#tab-bar,#print-toolbar{display:none!important}
-  #print-overlay{position:static!important;display:block!important;z-index:auto!important}
-  #print-content{overflow:visible!important;padding:24px!important;font-size:10pt!important}
-  #main{display:none!important}
-  body{overflow:visible!important;height:auto!important;background:#fff!important;color:#000!important}
-  .sc-row{page-break-inside:avoid}
-  .print-section{page-break-before:auto}
-  @page{margin:15mm;size:A4}
-}
 
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
@@ -601,13 +546,15 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
                           white-space:nowrap;transition:opacity .18s;flex-shrink:0}
 .next-action-bar .na-btn:hover{opacity:.82}
 /* Dezenter Hinweise-Indikator (ersetzt die große rote Warnbox auf Drucklisten) */
-.dl-hinweise-pill{position:relative;display:none;align-items:center;gap:8px;
+/* Gleiche Formsprache wie .cockpit-secondary auf der Startseite: Rundung/Padding/Schrift angeglichen */
+.dl-hinweise-pill{position:relative;display:none;align-items:center;justify-content:center;gap:8px;
   background:var(--card);border:1.5px solid var(--border);color:var(--text);
-  border-radius:12px;padding:11px 14px;font-size:12px;font-weight:600;cursor:pointer;
+  border-radius:14px;padding:16px 14px;font-size:13px;font-weight:600;cursor:pointer;
   width:100%;margin-bottom:4px;transition:border-color .18s}
 .dl-hinweise-pill:hover{border-color:var(--gold);color:var(--gold)}
 .dl-hinweise-pill .inline-ico{width:16px;height:16px;flex-shrink:0}
 .dl-hinweise-pill .dash-badge{position:static;display:flex;margin-left:auto}
+.dl-action-btn{width:100%;border-radius:14px;padding:16px 14px;font-size:13px;font-weight:600;justify-content:center}
 .restore-banner{background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);
                 color:var(--green);border-radius:10px;padding:10px 14px;margin-bottom:8px;
                 display:flex;align-items:center;gap:10px;font-size:11px}
@@ -826,10 +773,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .fp-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
 .fp-leg-dot{display:inline-flex;align-items:center;justify-content:center;
             width:20px;height:20px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0}
-/* Print: floor plan HTML section */
-.fp-print-section .fp-zones-wrap{overflow:visible}
-.fp-print-section .fp-zone-col{min-width:130px;page-break-inside:avoid}
-@media print{.fp-zones-wrap{overflow:visible}}
 /* Fullscreen mode */
 #s3-fp-container.fp-fs{position:fixed;inset:0;z-index:150;border-radius:0!important;
   border:none!important;margin:0!important;padding:0!important;background:var(--bg)!important;
@@ -1367,19 +1310,12 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
       </div>
     </div>
     <div id="dl-cards" style="display:none;flex-direction:column;gap:12px">
-      <button class="btn btn-outline big-btn" style="width:100%" onclick="toggleExcelPreview()">
+      <button class="btn btn-outline dl-action-btn" onclick="toggleExcelPreview()">
         <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>Excel-Vorschau anzeigen
       </button>
       <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:280px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
-      <button class="btn btn-gold big-btn" style="width:100%" onclick="exportToTischplanTemplate()">
+      <button class="btn btn-gold dl-action-btn" onclick="exportToTischplanTemplate()">
         <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Excel-Vorlage herunterladen
-      </button>
-
-      <button class="btn btn-outline big-btn" style="width:100%" onclick="openPrint('service')">
-        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>PDF-Vorschau anzeigen
-      </button>
-      <button class="btn btn-gold big-btn" style="width:100%" onclick="printAsPDF()">
-        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Als PDF exportieren
       </button>
     </div>
     <div id="s5-done" style="display:none"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Datei heruntergeladen</div>
@@ -1407,15 +1343,6 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   </button>
   <!-- Hidden stub for JS tab reference (Planungsmodul entfernt) -->
   <button id="tab-1" style="display:none"></button>
-</div>
-
-<!-- PRINT OVERLAY (stubs for JS) -->
-<div id="print-overlay" style="display:none">
-  <div id="print-toolbar">
-    <button class="ptool-btn" onclick="window.print()"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Drucken</button>
-    <button class="ptool-btn" onclick="closePrint()" style="margin-left:auto">✕ Schließen</button>
-  </div>
-  <div id="print-content"></div>
 </div>
 
 <!-- ══════════════════════ MODALS ══════════════════════ -->
@@ -3172,15 +3099,6 @@ function toggleTheme(){
   html.setAttribute('data-theme',isNight?'day':'night');
   localStorage.setItem('hsi_theme',isNight?'day':'night');
 }
-function printAsPDF(){
-  const incFP=el('exp-include-fp')?.checked!==false;
-  openPrint('service');
-  if(el('chk-fp-print')) el('chk-fp-print').checked=incFP;
-  setTimeout(()=>{
-    renderPrintView(activePrintView||'service');
-    window.print();
-  },400);
-}
 function exportFPasPNG(dateStr){
   // Floor plan is HTML-based — PNG export requires html2canvas (not loaded).
   // Inform user to use the PDF print option with "Grundriss" checkbox instead.
@@ -4455,7 +4373,7 @@ function exportExcel(){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  PRINT SYSTEM
+//  DRUCKLISTEN / EXPORT
 // ══════════════════════════════════════════════════════════════
 function updateDrucklistenState(){
   const noData=el('dl-no-data');
@@ -4465,27 +4383,6 @@ function updateDrucklistenState(){
   updateHinweiseBadge();
 }
 
-let activePrintView='service';
-function openPrint(type){
-  if(!calcDone){alert('Bitte erst den Tischplan berechnen (Schritt 3).');return;}
-  activePrintView=type;
-  renderPrintView(type);
-  el('print-overlay').style.display='flex';
-  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
-    b.classList.toggle('active',b.dataset.view===type);
-  });
-}
-function closePrint(){el('print-overlay').style.display='none';}
-function switchPrint(type){
-  activePrintView=type;
-  renderPrintView(type);
-  document.querySelectorAll('.ptool-btn[data-view]').forEach(b=>{
-    b.classList.toggle('active',b.dataset.view===type);
-  });
-}
-function getHotelName(){
-  return localStorage.getItem('hsi_hotel')||el('export-hotel')?.value||'Hotel';
-}
 function syncHotelName(v){
   if(v===undefined) v=localStorage.getItem('hsi_hotel')||'';
   if(!v) return;
@@ -4495,144 +4392,7 @@ function syncHotelName(v){
   const ht=el('dash-hotel-name');if(ht) ht.textContent=v;
   const fsh=el('fp-fs-hotel');if(fsh) fsh.textContent=v;
 }
-function getSlotLabel(){
-  const v=el('slot-sel')?.value||el('dash-meal')?.value||'fruehstueck';
-  return{fruehstueck:'Frühstück',mittag:'Mittagessen',abend:'Abendessen'}[v]||v;
-}
-function renderPrintView(type){
-  const hotel=getHotelName();
-  const hdr=`<div class="pview-hdr"><h1>${esc(hotel)} — <em>${
-    {service:'Service-Liste',reception:'Rezeptionsliste',special:'Sonderhinweise'}[type]
-  }</em></h1><p>${refDate} | ${getSlotLabel()} | Erstellt: ${new Date().toLocaleTimeString('de-DE')}</p></div>`;
-
-  let body='';
-  if(type==='service') body=renderServiceList();
-  else if(type==='reception') body=renderReceptionList();
-  else body=renderSpecialList();
-
-  // Include floor plan HTML if checkbox is checked
-  let fpSection='';
-  if(el('chk-fp-print')?.checked){
-    const fpWrap=el('fp-render')?.querySelector('.fp-zones-wrap');
-    if(fpWrap){
-      const clone=fpWrap.cloneNode(true);
-      clone.style.cssText='display:flex;flex-wrap:wrap;gap:10px;overflow:visible;padding:10px;box-sizing:border-box;align-items:stretch';
-      fpSection=`<div class="fp-print-section" style="margin-bottom:20px;page-break-after:avoid">
-        <div class="pgroup-hdr" style="border-color:#9B6B1A;color:#9B6B1A">Grundriss — ${esc(hotel)}</div>
-        <div style="background:#F5EFE3;border-radius:8px;padding:10px;margin-top:6px">${clone.outerHTML}</div>
-      </div><div style="page-break-before:always"></div>`;
-    }
-  }
-
-  el('print-content').innerHTML=hdr+fpSection+body;
-}
 function gAllText(g){return(g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')+' '+(g.gast_typ||'');}
-function renderBadgesHtml(g){
-  const txt=gAllText(g);
-  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(txt)).map(d=>
-    `<span class="pb-badge pb-allg">${d.label}</span>`);
-  const sb=SPECIAL_DEFS.filter(d=>d.test.test(txt)).map(d=>
-    `<span class="pb-badge" style="background:${d.col}">${d.label}</span>`);
-  return ab.concat(sb).join('')||'—';
-}
-function renderSpecialBadgesForCard(g){
-  const txt=gAllText(g);
-  const ab=ALLERGIE_DEFS.filter(d=>d.test.test(txt)).map(d=>
-    `<span class="sc-tag allergy">${d.label}</span>`);
-  const sb=SPECIAL_DEFS.filter(d=>d.test.test(txt)).map(d=>
-    `<span class="sc-tag" style="background:${d.col}20;color:${d.col};border-color:${d.col}55">${d.label}</span>`);
-  return ab.concat(sb).join('');
-}
-function renderServiceList(){
-  const byTable={};
-  assignedGuests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
-    if(!byTable[g.zugewiesener_tisch]) byTable[g.zugewiesener_tisch]=[];
-    byTable[g.zugewiesener_tisch].push(g);
-  });
-  const zc=zoneColors();
-  const statusBadge=s=>{
-    if(!s||s==='BL') return'';
-    const c={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'}[s]||'#888';
-    return`<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:${c}20;color:${c};border:1px solid ${c}55">${esc(s)}</span>`;
-  };
-  // Gruppierung nach Bereich (Restaurant 1-4, Bar, ...) aus der Tischplan-Vorlage,
-  // damit Service/Rezeption sofort sehen, welcher Bereich gerade angezeigt wird.
-  const tids=Object.keys(byTable).sort();
-  const groups={};
-  tids.forEach(tid=>{
-    const bereich=tischplanMap[tid]?.bereich||'Tische';
-    if(!groups[bereich]) groups[bereich]=[];
-    groups[bereich].push(tid);
-  });
-  return Object.keys(groups).map(bereich=>{
-    const tableBlocks=groups[bereich].map(tid=>{
-      const zone=tid[0];
-      const col=zc[zone]||zc.dim;
-      const rows=byTable[tid].map(g=>`<tr>
-        <td>${esc(g.zimmer)}</td>
-        <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
-        <td>${statusBadge(g.status)}</td>
-        <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
-        <td>${renderBadgesHtml(g)}</td>
-        <td>${esc(g.essen_zeit||'—')}</td>
-        <td>${esc(g.bemerkung||'—')}</td>
-      </tr>`).join('');
-      return`<div class="pgroup-hdr" style="border-color:${col};color:${col}">Tisch ${esc(tid)}</div>
-      <table class="ptbl"><thead><tr><th>Zimmer</th><th>Gast</th><th>Status</th><th>PAX</th><th>Allergie</th><th>Zeit</th><th>Bemerkung</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
-    }).join('');
-    return`<div class="pgroup-bereich-hdr">${esc(bereich)}</div>${tableBlocks}`;
-  }).join('');
-}
-function renderReceptionList(){
-  const rows=[...assignedGuests].sort((a,b)=>(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0));
-  const trs=rows.map(g=>{
-    const bereich=tischplanMap[g.zugewiesener_tisch]?.bereich||'—';
-    return`<tr>
-    <td><b>${esc(g.zimmer)}</b></td>
-    <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.vip?' ⭐':''}</td>
-    <td>${esc(g.pax)}${g.kinder?'+'+esc(g.kinder)+'K':''}</td>
-    <td>${esc(g.zugewiesener_tisch||'—')}</td>
-    <td>${esc(bereich)}</td>
-    <td>${esc(g.status||'—')}</td>
-    <td>${renderBadgesHtml(g)}</td>
-    <td>${esc(g.essen_zeit||'—')}</td>
-  </tr>`;
-  }).join('');
-  return`<table class="ptbl"><thead><tr>
-    <th>Zimmer</th><th>Gast</th><th>PAX</th><th>Tisch</th><th>Bereich</th><th>Status</th><th>Allergie</th><th>Zeit</th>
-  </tr></thead><tbody>${trs}</tbody></table>`;
-}
-function renderSpecialList(){
-  const isSpecial=g=>g.allergie||g.bemerkung||g.vip||g.kinder>0
-    ||g.status==='AN'||g.status==='AB'||g.status==='AN·AB';
-  const special=assignedGuests.filter(isSpecial);
-  if(!special.length) return'<p style="color:var(--dim);text-align:center;padding:40px">Keine Sonderhinweise vorhanden.</p>';
-  const statusColors2={AN:'#1F7A45',AB:'#C05C10','AN·AB':'#9B6B1A'};
-  return special.sort((a,b)=>{
-    // Sort order: AN first, then AN·AB, then AB, then rest by room
-    const ord={AN:0,'AN·AB':1,AB:2};
-    const oa=ord[a.status]??3, ob=ord[b.status]??3;
-    if(oa!==ob) return oa-ob;
-    return(parseInt(a.zimmer)||0)-(parseInt(b.zimmer)||0);
-  }).map(g=>{
-    const sc=statusColors2[g.status];
-    const statusTag=sc?`<span class="sc-tag" style="background:${sc}20;color:${sc};border-color:${sc}55;font-weight:800">${esc(g.status)}</span>`:'';
-    return`<div class="sonder-card">
-      <div class="sc-zimmer">${esc(g.zimmer)}</div>
-      <div class="sc-body">
-        <div class="sc-name">${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}</div>
-        <div class="sc-tisch">Tisch: ${esc(g.zugewiesener_tisch||'—')} | ${esc(g.pax)} PAX${g.essen_zeit?' | '+esc(g.essen_zeit):''}</div>
-        <div class="sc-tags">
-          ${statusTag}
-          ${renderSpecialBadgesForCard(g)}
-          ${g.vip?'<span class="sc-tag vip">VIP</span>':''}
-          ${g.kinder>0?`<span class="sc-tag kids">${g.kinder} Kind${g.kinder>1?'er':''}</span>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 // ══════════════════════════════════════════════════════════════
 //  NAVIGATION
