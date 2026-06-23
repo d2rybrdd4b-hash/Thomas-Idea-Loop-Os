@@ -1441,6 +1441,12 @@ function parseDate(s){
     const[dd,mm,yyyy]=s.split('.');
     return`${yyyy}-${mm}-${dd}`;
   }
+  // DD.MM.YY (z.B. Panorama-Abreiseliste: "26.06.26")
+  if(/^\d{2}\.\d{2}\.\d{2}$/.test(s)){
+    const[dd,mm,yy]=s.split('.');
+    const yyyy=(parseInt(yy,10)<70?'20':'19')+yy;
+    return`${yyyy}-${mm}-${dd}`;
+  }
   // MM/DD/YYYY
   if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){
     const[mm,dd,yyyy]=s.split('/');
@@ -1775,26 +1781,62 @@ S01,C,12,1,8`;
 //  CSV PARSER
 // ══════════════════════════════════════════════════════════════
 // ── PANORAMA HOTEL: Vortags-Tischplan Doppelspalten-Parser ──
+// Erkennt Einzelblock- ("Tischplan Neu", Spalten Tisch/Zimmer/Status/Name/PAX/Extras
+// direkt ab Zeile 2) UND Mehrblock-Layout (z.B. "Panorama Restaurant" + "Neue
+// Restaurants" nebeneinander, Kopfzeile variabel je nach Anzahl Titel-/Leerzeilen
+// davor) — Kopfzeile wird dynamisch gesucht statt fest auf Zeile 2 anzunehmen,
+// da reale Exporte unterschiedlich viele Vorspann-Zeilen haben.
+const VORTAG_FIELD_LABELS={
+  zimmer:['zimmer'],
+  status:['status'],
+  gastname:['gastname','name'],
+  pax:['pax','pax-summe','personen'],
+  extras:['extras','bemerkung']
+};
 function parseVortagPanorama(wb){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()));
   if(!sheetName) return null;
   const ws=wb.Sheets[sheetName];
   const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-  // Row 2 (index 1) muss 'Tisch' enthalten (echtes Panorama-Format: ein Spaltenblock A-F)
-  const hdr=aoa[1]||[];
-  const tischCount=hdr.filter(c=>c&&String(c).trim()==='Tisch').length;
-  if(tischCount<1) return null;
+  const norm=v=>String(v||'').trim().toLowerCase();
+
+  let headerRow=-1;
+  for(let r=0;r<Math.min(8,aoa.length);r++){
+    if((aoa[r]||[]).some(c=>norm(c)==='tisch')){headerRow=r;break;}
+  }
+  if(headerRow<0) return null;
+
+  const headerCells=aoa[headerRow]||[];
+  const blocks=[];
+  headerCells.forEach((c,ci)=>{
+    if(norm(c)!=='tisch') return;
+    const block={tischCol:ci};
+    for(let cc=ci+1;cc<=Math.min(ci+8,headerCells.length-1);cc++){
+      const label=norm(headerCells[cc]);
+      for(const key in VORTAG_FIELD_LABELS){
+        if(block[key+'Col']==null&&VORTAG_FIELD_LABELS[key].includes(label)) block[key+'Col']=cc;
+      }
+    }
+    blocks.push(block);
+  });
+  if(blocks.length===0) return null;
 
   const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
   const rows=[];
-  for(let i=3;i<aoa.length;i++){
+  for(let i=headerRow+1;i<aoa.length;i++){
     const row=aoa[i]||[];
-    // Check stop condition
-    const allVals=row.filter(c=>c!=null).map(c=>String(c).trim().toLowerCase());
-    if(allVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))) break;
-    // Ein Spaltenblock: Tisch=0, Zimmer=1, Status=2, Name=3, PAX=4, Extras=5
-    const r1=buildVortagRow(row,0,1,2,3,4,5);
-    if(r1) rows.push(r1);
+    const rowVals=row.filter(c=>c!=null).map(c=>String(c).trim().toLowerCase());
+    // Stop am Summen-/Fußzeilenbereich — aber nur, wenn in dieser Zeile in KEINEM
+    // Spaltenblock mehr eine gültige Tisch-ID steht. Sonst gehen bei Mehrblock-Layouts
+    // echte Gäste-Zeilen verloren, nur weil im Nachbarblock z.B. "Summe 700er" steht.
+    if(rowVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))){
+      const hasValidId=blocks.some(b=>/^\d/.test(String(row[b.tischCol]||'').trim()));
+      if(!hasValidId) break;
+    }
+    blocks.forEach(b=>{
+      const r1=buildVortagRow(row,b.tischCol,b.zimmerCol,b.statusCol,b.gastnameCol,b.paxCol,b.extrasCol);
+      if(r1) rows.push(r1);
+    });
   }
   return rows.length>0?{headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows}:null;
 }
@@ -1808,6 +1850,36 @@ function buildVortagRow(row,tc,zc,sc,nc,pc,ec){
   const pax=row[pc]!=null?String(row[pc]).trim():'2';
   const extras=row[ec]!=null?String(row[ec]).trim():'';
   return{Tisch:tisch,Zimmernummer:zimmer,Status:status,Nachname:nachname,AnzahlPersonen:pax||'2',Extras:extras};
+}
+
+// Wandelt Vortags-Tischplan-Zeilen in eine Hausgästeliste für heute um.
+// Ausgeschlossen werden: Satelliten-Zeilen ("zu 612"), externe Tagesgäste
+// (Zimmer == "EXT") sowie Gäste, die laut Vortags-Status bereits abgereist
+// sind (Status "AB") oder am Vortag an- und wieder abgereist sind ("AN/AB").
+// "AN"-Zeilen (gestern angereist, bleibt) werden übernommen, aber ohne den
+// Status-Tag — sonst würde calcStatus() sie über den GastTyp-Fallback dauerhaft
+// wieder als "heute angereist" einstufen.
+function buildInhausFromVortag(rows){
+  return rows
+    .filter(r=>{
+      const z=String(r.Zimmernummer||'').trim();
+      const n=String(r.Nachname||'').trim();
+      if(!r.Nachname||!z) return false;
+      if(/^zu\s/i.test(z)) return false;
+      if(/^zu\s/i.test(n)) return false;
+      if(/^ext$/i.test(z)) return false;
+      const st=String(r.Status||'').trim().toUpperCase().replace(/\s+/g,'').replace('·','/');
+      if(st==='AB'||st==='AN/AB') return false;
+      return true;
+    })
+    .map(r=>({
+      Nachname:String(r.Nachname||'').trim(),
+      Zimmernummer:String(r.Zimmernummer||'').trim(),
+      AnzahlPersonen:r.AnzahlPersonen||'2',
+      Bemerkung:r.Extras||'',
+      VorherigerTisch:r.Tisch||'',
+      GastTyp:''
+    }));
 }
 
 // Baut Tischkonfiguration aus Vortags-Zeilen (Panorama-Format)
@@ -1904,7 +1976,82 @@ function parsePanoramaArrival(wb){
   return{
     headers:['Zimmernummer','Nachname','Vorname','CheckIn','CheckOut','AnzahlPersonen','Bemerkung','GastTyp'],
     rows,
-    _source:'panorama_arrival'
+    _source:'panorama_arrival',
+    _arrivalDate:arrivalDate
+  };
+}
+
+// ── Panorama "Abreiseliste" parser ─────────────────────────────
+// Gleiches Blatt-Schema wie die Anreisen-Liste (DynamicListReport_*, "Vom:"-Datum
+// in den ersten Zeilen), aber eigene Spaltenpositionen: B=Zimmer, C=Gastname(n),
+// F=Anreise, H=Abreise, I=Nächte, K=Kat., L=Personen, N=Res.-Status, O=Res.-Nr.,
+// R=Bemerk., S=Bemerk. (Zi.)
+function parsePanoramaDeparture(wb){
+  const sheetName=wb.SheetNames.find(n=>n.includes('DynamicListReport'));
+  if(!sheetName) return null;
+  const ws=wb.Sheets[sheetName];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+
+  // Nur eine Abreiseliste akzeptieren (nicht versehentlich eine Anreisen-Datei
+  // mit demselben Blattnamen-Schema verarbeiten)
+  const titleVals=aoa.slice(0,7).flat().filter(Boolean).map(v=>String(v).toLowerCase());
+  if(!titleVals.some(v=>v.includes('abreise'))) return null;
+
+  let departureDate=null;
+  for(let r=0;r<Math.min(8,aoa.length)&&!departureDate;r++){
+    for(const cell of(aoa[r]||[])){
+      if(!cell) continue;
+      const m=String(cell).match(/Vom:\s*(\d{2})\.(\d{2})\.(\d{4})/);
+      if(m){departureDate=`${m[3]}-${m[2]}-${m[1]}`;break;}
+    }
+  }
+
+  const hdr=aoa[6]||[];
+  const hasZimmer=hdr.some(c=>c&&String(c).trim()==='Zimmer');
+  if(!hasZimmer) return null;
+
+  const STOP_WORDS=['summe','gesamt','total'];
+  const rows=[];
+  for(let i=7;i<aoa.length;i++){
+    const row=aoa[i]||[];
+    const zimmerRaw=String(row[1]||'').trim();
+    const nameRaw=String(row[2]||'').trim();
+    if(!zimmerRaw&&!nameRaw) continue;
+    if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
+
+    const anreiseRaw=String(row[5]||'').trim();
+    const abreiseRaw=String(row[7]||'').trim();
+    const pax=parseInt(row[11])||1;
+    const resStatus=String(row[13]||'').trim();
+    const bemerkung=[String(row[17]||'').trim(),String(row[18]||'').trim()].filter(Boolean).join(' / ');
+
+    // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
+    const firstPerson=(nameRaw.split(',')[0]||'').trim();
+    const parts=firstPerson.split(/\s+/);
+    const nachname=parts[0]||nameRaw;
+    const vorname=parts.slice(1).join(' ');
+
+    const checkIn=parseDate(anreiseRaw)||'';
+    const checkOut=parseDate(abreiseRaw)||departureDate||'';
+
+    rows.push({
+      Zimmernummer:zimmerRaw,
+      Nachname:nachname,
+      Vorname:vorname,
+      CheckIn:checkIn,
+      CheckOut:checkOut,
+      AnzahlPersonen:String(pax),
+      Bemerkung:bemerkung,
+      GastTyp:'AB',
+      ResStatus:resStatus
+    });
+  }
+  if(rows.length===0) return null;
+  return{
+    headers:['Zimmernummer','Nachname','Vorname','CheckIn','CheckOut','AnzahlPersonen','Bemerkung','GastTyp'],
+    rows,
+    _source:'panorama_departure',
+    _departureDate:departureDate
   };
 }
 
@@ -2030,19 +2177,7 @@ function handleFile(key,input){
           }
           // Convert Vortag guest rows to inhaus guest list if no real inhaus loaded
           if(!fileStatus.inhaus){
-            const inhausRows=panorama.rows
-              .filter(r=>{
-                const z=String(r.Zimmernummer||'').trim();
-                return r.Nachname&&z&&!/^zu\s/i.test(z)&&z!=='';
-              })
-              .map(r=>({
-                Nachname:String(r.Nachname||'').trim(),
-                Zimmernummer:String(r.Zimmernummer||'').trim(),
-                AnzahlPersonen:r.AnzahlPersonen||'2',
-                Bemerkung:r.Extras||'',
-                VorherigerTisch:r.Tisch||'',
-                GastTyp:r.Status||''
-              }));
+            const inhausRows=buildInhausFromVortag(panorama.rows);
             if(inhausRows.length>0){
               parsedFiles.inhaus={headers:['Nachname','Zimmernummer','AnzahlPersonen','Bemerkung','VorherigerTisch','GastTyp'],rows:inhausRows};
               fileStatus.inhaus=true;
@@ -2221,9 +2356,13 @@ function renderMapRows(){
 }
 
 function getMappedRows(){
-  // Combine inhaus + ankuenfte + abreisen, dedupe by GastID or Nachname+Zimmer
+  // Combine inhaus + ankuenfte + abreisen, dedupe by GastID oder Nachname+Zimmer.
+  // Quellen werden bei gleichem Schlüssel ZUSAMMENGEFÜHRT statt verworfen: sonst
+  // gewinnt z.B. immer die Vortags-Übernahme (ohne Abreisedatum) gegen die fachlich
+  // genauere Abreisen-Zeile desselben Gasts, und der Gast würde nie als "AB" erkannt.
   const sources=['inhaus','ankuenfte','abreisen'];
-  let allRows=[];
+  const byKey=new Map();
+  const order=[];
   sources.forEach(key=>{
     if(!parsedFiles[key]) return;
     parsedFiles[key].rows.forEach(row=>{
@@ -2235,16 +2374,19 @@ function getMappedRows(){
       Object.keys(row).forEach(k=>{
         if(!mapped[k]) mapped[k]=row[k];
       });
-      allRows.push(mapped);
+      const zimmer=String(mapped.Zimmernummer||'').trim().toLowerCase();
+      const nachname=String(mapped.Nachname||'').trim().toLowerCase();
+      const key2=(mapped.GastID||'')+'|'+zimmer+'|'+nachname;
+      if(byKey.has(key2)){
+        const existing=byKey.get(key2);
+        Object.entries(mapped).forEach(([k,v])=>{ if(v!=null&&v!=='') existing[k]=v; });
+      }else{
+        byKey.set(key2,mapped);
+        order.push(key2);
+      }
     });
   });
-  // Dedupe
-  const seen=new Set();
-  return allRows.filter(r=>{
-    const key=(r.GastID||'')+'|'+(r.Zimmernummer||'')+'|'+(r.Nachname||'');
-    if(seen.has(key)) return false;
-    seen.add(key);return true;
-  });
+  return order.map(k=>byKey.get(k));
 }
 
 function getVortag(){
@@ -3460,19 +3602,7 @@ function quickLoadVortag(file){
         extra+=', '+parsedFiles.tische.rows.length+' Tische';
       }
       if(!fileStatus.inhaus){
-        const inhausRows=parsed.rows
-          .filter(r=>{
-            const z=String(r.Zimmernummer||'').trim();
-            return r.Nachname&&z&&!/^zu\s/i.test(z);
-          })
-          .map(r=>({
-            Nachname:String(r.Nachname||'').trim(),
-            Zimmernummer:String(r.Zimmernummer||'').trim(),
-            AnzahlPersonen:r.AnzahlPersonen||'2',
-            Bemerkung:r.Extras||'',
-            VorherigerTisch:r.Tisch||'',
-            GastTyp:r.Status||''
-          }));
+        const inhausRows=buildInhausFromVortag(parsed.rows);
         if(inhausRows.length>0){
           parsedFiles.inhaus={headers:['Nachname','Zimmernummer','AnzahlPersonen','Bemerkung','VorherigerTisch','GastTyp'],rows:inhausRows};
           fileStatus.inhaus=true;
@@ -3510,6 +3640,20 @@ function clearVortagFile(){
 }
 
 // ── Anreisen Import (Tagesstart) ───────────────────────────────
+// Übernimmt das aus einer Panorama-Datei erkannte Datum als Referenzdatum
+// (Tagesgeschäft-Dashboard + interne refDate-Variable), sofern es vom aktuell
+// gesetzten Datum abweicht. Gibt eine kurze Statusergänzung zurück.
+function applyDetectedRefDate(dateStr,label){
+  if(!dateStr) return'';
+  const dm=el('dash-date');
+  if(dm&&dm.value===dateStr) return'';
+  if(dm) dm.value=dateStr;
+  const rd=el('ref-date');if(rd) rd.value=dateStr;
+  refDate=dateStr;
+  if(typeof updateDashboard==='function') updateDashboard();
+  return' — Datum automatisch aus '+label+' übernommen: '+dateStr;
+}
+
 function quickLoadAnkuenfte(file){
   if(!file) return;
   quickAnkuenfteFileName=file.name;
@@ -3522,7 +3666,8 @@ function quickLoadAnkuenfte(file){
     fileStatus.ankuenfte=true;
     demoFileKeys.delete('ankuenfte');
     autoMap();
-    setStatus(parsed.rows.length+' Anreisen eingelesen — bereit zur Berechnung','go');
+    const dateMsg=applyDetectedRefDate(parsed._arrivalDate,'Anreisen-Datei');
+    setStatus(parsed.rows.length+' Anreisen eingelesen'+dateMsg+' — bereit zur Berechnung','go');
     updateStartPhase();
   };
   if(ext==='xlsx'||ext==='xls'){
@@ -3558,8 +3703,7 @@ function quickLoadAbreisen(file){
   setStatus('Lese Abreisen…','spin');
   const ext=file.name.split('.').pop().toLowerCase();
   const reader=new FileReader();
-  const apply=csv=>{
-    const parsed=parseCSV(csv);
+  const apply=parsed=>{
     if(!parsed||!parsed.rows.length){setStatus('Keine Abreisen-Daten gefunden','err');return;}
     // Gäste aus dieser Datei sind per Definition Abreisende — GastTyp setzen, falls nicht vorhanden
     parsed.rows.forEach(r=>{if(!r.GastTyp) r.GastTyp='AB';});
@@ -3567,7 +3711,19 @@ function quickLoadAbreisen(file){
     fileStatus.abreisen=true;
     demoFileKeys.delete('abreisen');
     autoMap();
-    setStatus(parsed.rows.length+' Abreisen eingelesen — bereit zur Berechnung','go');
+    // Abreisedatum sollte dem Folgetag des aktuellen Referenzdatums entsprechen
+    // (Abreisen wird für den darauffolgenden Tag hochgeladen) — bei Widerspruch warnen,
+    // statt das Referenzdatum stillschweigend zu überschreiben.
+    let dateMsg='',level='go';
+    if(parsed._departureDate){
+      const dm=el('dash-date');
+      const expected=dm&&dm.value?addDays(dm.value,1):null;
+      if(expected&&expected!==parsed._departureDate){
+        dateMsg=' — Achtung: Abreisedatum ('+parsed._departureDate+') passt nicht zum Folgetag des aktuellen Datums ('+expected+')';
+        level='err';
+      }
+    }
+    setStatus(parsed.rows.length+' Abreisen eingelesen'+dateMsg+' — bereit zur Berechnung',level);
     updateStartPhase();
   };
   if(ext==='xlsx'||ext==='xls'){
@@ -3575,13 +3731,15 @@ function quickLoadAbreisen(file){
     reader.onload=e=>{
       try{
         const wb=XLSX.read(e.target.result,{type:'array'});
+        const departure=parsePanoramaDeparture(wb);
+        if(departure){apply(departure);return;}
         const ws=wb.Sheets[wb.SheetNames[0]];
-        apply(XLSX.utils.sheet_to_csv(ws));
+        apply(parseCSV(XLSX.utils.sheet_to_csv(ws)));
       }catch(ex){setStatus('Fehler beim Lesen: '+ex.message,'err');}
     };
   }else{
     reader.readAsText(file,'UTF-8');
-    reader.onload=e=>apply(e.target.result);
+    reader.onload=e=>apply(parseCSV(e.target.result));
   }
 }
 function clearAbreisenFile(){
