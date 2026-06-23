@@ -3569,6 +3569,9 @@ let tischplanBlocks=[];      // Mehrblock-Layout (z.B. "Panorama Restaurant" + "
                               // [{tischCol,zimmerCol,statusCol,gastnameCol,paxCol,extrasCol,bereich}], 0-basierte Spalten
 let tischplanKat={};         // tableID → kategorie (1–8)
 let tischplanKombi=[];       // [{tables,min,max}]
+let tischplanDupes=[];       // [{id,zeilen:[excelRow,...]}] — Tisch-IDs, die mehrfach in der Vorlage vorkommen
+                              // (z.B. gleiche Nummer in zwei Blöcken) — spätere Vorkommen überschreiben
+                              // frühere in tischplanMap, daher hier zur Warnung erfasst statt still zu verlieren.
 let quickAnkuenfteFileName=''; // filename of loaded Anreisen file
 let quickAbreisenFileName='';  // filename of loaded Abreisen file
 let quickVortagFileName='';    // filename of loaded Vortags-Tischplan file
@@ -3849,7 +3852,7 @@ function parseTischplanTemplate(buf){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wb.SheetNames[0];
   const ws=wb.Sheets[sheetName];
   const range=XLSX.utils.decode_range(ws['!ref']||'A1:N99');
-  tischplanMap={};tischplanKat={};tischplanKombi=[];tischplanBlocks=[];
+  tischplanMap={};tischplanKat={};tischplanKombi=[];tischplanBlocks=[];tischplanDupes=[];
   let inKat=false,inKombi=false;
   // Erster Tischblock einer Vorlage hat oft keine eigene Abschnitts-Überschrift
   // (steht ggf. in Zeile 1-3, die hier nicht gescannt wird) — daher Default "Restaurant 1".
@@ -3857,7 +3860,16 @@ function parseTischplanTemplate(buf){
   const bereichRows=[]; // 0-basierte Strukturzeilen (Bereichs-Header bzw. Block-Kopfzeilen) — beim Export erhalten
   const cv=(r,c)=>{const cell=ws[XLSX.utils.encode_cell({r,c})];return cell!=null?cell.v:null;};
   const norm=s=>String(s||'').trim().toLowerCase();
-  const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
+  // Registriert eine Tisch-ID in tischplanMap; merkt sich Kollisionen (gleiche ID an
+  // zweiter Stelle in der Vorlage) statt sie still zu überschreiben — siehe tischplanDupes.
+  const regTisch=(tid,entry)=>{
+    if(tischplanMap[tid]){
+      let dupe=tischplanDupes.find(d=>d.id===tid);
+      if(!dupe){dupe={id:tid,zeilen:[tischplanMap[tid].r+1]};tischplanDupes.push(dupe);}
+      dupe.zeilen.push(entry.r+1);
+    }
+    tischplanMap[tid]=entry;
+  };
 
   // ── Mehrblock-Layout erkennen (mehrere Tischplan-Blöcke nebeneinander, z.B.
   // "Panorama Restaurant" + "Neue Restaurants") — Kopfzeile suchen, in der
@@ -3917,18 +3929,16 @@ function parseTischplanTemplate(buf){
   for(let r=startRow;r<=range.e.r;r++){
     const a=String(cv(r,0)||'').trim();
     const c=String(cv(r,2)||'');
-    // Stop am Summen-/Fußzeilenbereich, damit dortige Tisch-Duplikate nicht übernommen werden.
-    // In manchen Häusern stehen Zwischensummen-Zeilen ("Summe 700er") in derselben Zeile wie
-    // noch echte Tischdaten eines anderen Blocks — daher nur abbrechen, wenn in dieser Zeile
-    // wirklich keine gültige Tisch-ID mehr vorhanden ist.
+    // Summen-/Fußzeilen (z.B. "Summe 700er") NICHT als globalen Abbruch behandeln:
+    // bei mehreren Blöcken nebeneinander kann ein Block seine Zwischensumme in einer
+    // Zeile haben, in der ein anderer Block noch echte, weiter unten fortgesetzte
+    // Tischdaten hat (reale Hotelier-Dateien zeigen sogar einzelne Tischzeilen NACH
+    // der eigenen Zwischensumme). Schutz vor falsch gelesenen Summen-Zahlen als
+    // Tisch-ID kommt bereits über die spaltengenaue Tisch-ID-Prüfung weiter unten
+    // (`/^\d/.test(tid)` auf der jeweiligen Tisch-Spalte) — ein zusätzlicher,
+    // blockübergreifender Abbruch hier würde sonst echte Tische verlieren.
     const rowVals=[];
     for(let cc=range.s.c;cc<=range.e.c;cc++){const v=cv(r,cc);if(v!=null)rowVals.push(String(v).trim().toLowerCase());}
-    if(rowVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))){
-      const hasValidId=blocks.length
-        ?blocks.some(block=>/^\d/.test(String(cv(r,block.tischCol)||'').trim()))
-        :/^\d/.test(a);
-      if(!hasValidId) break;
-    }
     // Section detection (falls in manchen Häusern vorhanden)
     if(a.includes('Tischkategorien')){inKat=true;inKombi=false;continue;}
     if(a.includes('Tischkombinationen')){inKombi=true;inKat=false;continue;}
@@ -3963,7 +3973,7 @@ function parseTischplanTemplate(buf){
       blocks.forEach(block=>{
         const tid=String(cv(r,block.tischCol)||'').trim();
         if(!/^\d/.test(tid)) return;
-        tischplanMap[tid]={
+        regTisch(tid,{
           r,bereich:block.bereich,block,
           existing:{
             zimmer:block.zimmerCol!=null?cv(r,block.zimmerCol):null,
@@ -3972,7 +3982,7 @@ function parseTischplanTemplate(buf){
             pax:block.paxCol!=null?cv(r,block.paxCol):null,
             extras:block.extrasCol!=null?cv(r,block.extrasCol):null
           }
-        };
+        });
       });
       continue;
     }
@@ -3990,7 +4000,7 @@ function parseTischplanTemplate(buf){
         }
         continue;
       }
-      tischplanMap[tid]={
+      regTisch(tid,{
         r,bereich:currentBereich,block,
         existing:{
           zimmer:block.zimmerCol!=null?cv(r,block.zimmerCol):null,
@@ -3999,7 +4009,7 @@ function parseTischplanTemplate(buf){
           pax:block.paxCol!=null?cv(r,block.paxCol):null,
           extras:block.extrasCol!=null?cv(r,block.extrasCol):null
         }
-      };
+      });
       continue;
     }
     // Altes Einzelblock-Format (Fallback, kein "Tisch"-Header in Zeile 0-5 gefunden):
@@ -4011,10 +4021,10 @@ function parseTischplanTemplate(buf){
     // Tisch-Position: ein Spaltenblock, Tisch-ID in Spalte 0 (z.B. "611"); Spalten B-F
     // (Zimmer/Status/Name/Pax/Extras) gelten als feste Offsets — siehe buildFilledTischplanSheet()
     if(/^\d/.test(a)){
-      tischplanMap[a]={
+      regTisch(a,{
         r,bereich:currentBereich,
         existing:{zimmer:cv(r,1),status:cv(r,2),name:cv(r,3),pax:cv(r,4),extras:cv(r,5)}
-      };
+      });
     }
   }
   tischplanBereichRows=bereichRows;
@@ -4053,12 +4063,24 @@ function updateTemplateStatus(){
   const nC=tischplanKombi.length;
   if(box){
     if(!nT){box.innerHTML='<span style="color:var(--dim)">Keine Vorlage geladen</span>';}
-    else{box.innerHTML=`<div style="color:var(--green);font-weight:700;font-size:11px">✓ Vorlage erkannt — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen</div>`;}
+    else{
+      let html=`<div style="color:var(--green);font-weight:700;font-size:11px">✓ Vorlage erkannt — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen</div>`;
+      if(tischplanDupes.length){
+        const list=tischplanDupes.map(d=>`Tisch-ID ${d.id} (Zeile ${d.zeilen.join(' & ')})`).join(', ');
+        html+=`<div style="color:var(--red);font-weight:700;font-size:11px;margin-top:4px">⚠ Tisch-ID mehrfach vergeben: ${list} — bitte in der Excel-Datei prüfen, sonst gehen Daten verloren.</div>`;
+      }
+      box.innerHTML=html;
+    }
   }
   // Show export section in Drucklisten
   const sec=el('export-vorlage-section');
   if(sec) sec.style.display=nT>0?'block':'none';
-  if(nT>0) setStatus(`Tischplan-Vorlage geladen — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen erkannt`,'go');
+  if(nT>0){
+    setStatus(tischplanDupes.length
+      ?`Tischplan-Vorlage geladen — ⚠ ${tischplanDupes.length} doppelte Tisch-ID(s) gefunden, bitte prüfen`
+      :`Tischplan-Vorlage geladen — ${nT} Tische, ${nK} Kategorien, ${nC} Kombinationen erkannt`,
+      tischplanDupes.length?'':'go');
+  }
   updateSettingsStatus();
 }
 
@@ -4288,8 +4310,45 @@ async function buildFilledTischplanSheet(){
   const rightCol=lastRange?lastRange.right:1;
   autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
   addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
+  stampExportZeit(ws);
   buildSortierungZimmerSheet(wb,ws);
   return{wb,ws,guestByTable};
+}
+
+// Die Kopfzeile der Hotelier-Vorlage enthält pro Block ein Kürzel + eine Excel-
+// Uhrzeit-Dezimalzahl (z.B. "LH" + 0,3418 = 8:12 Uhr), die festhält, wer die Datei
+// zuletzt gespeichert hat. Dieser Wert wird unverändert durchgereicht, obwohl unsere
+// App den Tischplan gerade neu befüllt hat — daher hier durch den aktuellen Export-
+// Zeitpunkt ersetzen und als lesbare Uhrzeit statt Dezimalzahl formatieren.
+// Liest eine Excel-Uhrzeit-artige Zelle aus — als reine Dezimalzahl (0..1), als von
+// ExcelJS in ein Date-Objekt umgewandelter Zeitwert, oder als Formel mit gecachtem
+// Ergebnis (z.B. "=NOW()-TODAY()", wie es manche Hotelier-Vorlagen verwenden).
+function timeFracFromValue(v){
+  if(typeof v==='number') return(v>0&&v<1)?v:null;
+  if(v&&typeof v.getUTCHours==='function'){
+    const frac=(v.getUTCHours()*3600+v.getUTCMinutes()*60+v.getUTCSeconds())/86400;
+    return(frac>0&&frac<1)?frac:null;
+  }
+  if(v&&typeof v==='object'&&'result' in v) return timeFracFromValue(v.result);
+  return null;
+}
+function stampExportZeit(ws){
+  const now=new Date();
+  const timeFrac=(now.getHours()*60+now.getMinutes()+now.getSeconds()/60)/1440;
+  const row=1;
+  for(let c=1;c<ws.columnCount;c++){
+    const cell=ws.getCell(row,c);
+    const v=cell.value;
+    if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){
+      const next=ws.getCell(row,c+1);
+      if(timeFracFromValue(next.value)!=null){
+        cell.value='APP';
+        cell.note='Tischplan automatisch erstellt durch die Tischplan-App (kein manuelles Bearbeiter-Kürzel, da kein Login). Zeit rechts = Erstellungszeitpunkt dieser Export-Datei.';
+        next.value=timeFrac;
+        next.numFmt='hh:mm';
+      }
+    }
+  }
 }
 
 // Entfernt alle Arbeitsblätter der Hotelier-Datei außer dem befüllten Tischplan-Blatt
@@ -4339,7 +4398,13 @@ function addKategorienLegende(ws,tischIds,lastCol){
     ws.getCell(r,2).value='Kat '+kat;
     ws.getCell(r,2).font={bold:true};
     if(lastCol>3) ws.mergeCells(r,3,r,lastCol);
-    ws.getCell(r,3).value=ids.join(', ');
+    // Schrift/Ausrichtung explizit setzen statt sie vom evtl. an dieser Position
+    // in der Vorlage vorhandenen Rest-Styling erben zu lassen (sonst sehen Kat-Zeilen
+    // je nach hochgeladener Datei unterschiedlich aus).
+    const idsCell=ws.getCell(r,3);
+    idsCell.value=ids.join(', ');
+    idsCell.font={bold:false,size:9};
+    idsCell.alignment={horizontal:'left',vertical:'middle'};
     r++;
   }
 }
