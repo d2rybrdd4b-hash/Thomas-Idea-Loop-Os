@@ -10,6 +10,14 @@ Projektspezifische Regeln für die App `standalone.html`. Gilt zusätzlich zur �
 - Live-URL der App, die der Hotelier nutzt:
   https://d2rybrdd4b-hash.github.io/Thomas-Idea-Loop-Os/hotel-seat-intelligence/standalone.html
 
+## Standing-Freigabe: immer auf main pushen
+
+Thomas hat am 2026-06-23 ausdrücklich festgelegt: **jede freigegebene Code-Änderung an
+`standalone.html` soll automatisch auch nach `main` gemergt/gepusht werden**, damit die
+Live-Seite immer den aktuellen Stand zeigt. Die normale Freigabe für die Code-Änderung
+selbst (Kontrollfrage gemäß Oberste Regel) gilt weiterhin — der zusätzliche Schritt
+"nach main pushen" braucht danach **keine separate Einzelfreigabe mehr**.
+
 ## Pflicht nach jedem Merge nach `main`
 
 Sobald eine Änderung erfolgreich nach `main` gepusht wurde, **immer** die obige Live-URL erneut mitteilen, damit klar ist:
