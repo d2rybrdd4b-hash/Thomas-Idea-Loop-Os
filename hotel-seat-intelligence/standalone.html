@@ -4304,6 +4304,10 @@ async function buildFilledTischplanSheet(){
     if(!dataRows.has(r)&&!bereichXlRows.has(r)) sepRows.push(r);
   }
   const afterDelete=deleteWsRows(ws,sepRows);
+  // Bereits vorhandene Tischkategorien-Legende entfernen (z.B. aus der hochgeladenen
+  // Vorlage oder einem früheren Export), bevor unten eine neue angehängt wird — sonst
+  // sammeln sich bei jedem erneuten Export weitere Kopien der Legende an.
+  stripExistingLegende(ws);
   // Spaltenbreiten an den tatsächlichen Tabelleninhalt anpassen, bevor die Legende
   // angehängt wird — sonst würde die lange Tisch-ID-Liste der Legende Spalte C
   // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
@@ -4379,6 +4383,32 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
   });
   autoFitColumns(ws2,1,ws2.rowCount,1,headers.length);
   return ws2;
+}
+
+// Sucht ab der ersten Zeile eine Zelle mit dem Text "Tischkategorien" in Spalte A
+// (Kennzeichen des Legenden-Starts, egal ob aus der hochgeladenen Vorlage oder einem
+// früheren Export) und leert alle Zellen ab dieser Zeile bis zum Blattende, inkl.
+// Auflösen betroffener verbundener Zellen — sonst hängt addKategorienLegende() eine
+// weitere Kopie unterhalb der bereits vorhandenen an.
+function stripExistingLegende(ws){
+  const dim=ws.dimensions;
+  if(!dim) return;
+  let foundRow=null;
+  for(let r=dim.top;r<=dim.bottom;r++){
+    const v=ws.getCell(r,1).value;
+    if(typeof v==='string'&&v.trim().toLowerCase()==='tischkategorien'){foundRow=r;break;}
+  }
+  if(foundRow==null) return;
+  const re=/^[A-Z]+(\d+):[A-Z]+(\d+)$/;
+  (ws.model.merges||[]).filter(m=>{
+    const mm=re.exec(m);
+    return mm&&+mm[1]>=foundRow;
+  }).forEach(m=>ws.unMergeCells(m));
+  for(let r=foundRow;r<=dim.bottom;r++){
+    for(let c=dim.left;c<=dim.right;c++){
+      const cell=ws.getCell(r,c);cell.value=null;cell.style={};
+    }
+  }
 }
 
 // Fügt unterhalb des gesamten Tabellenblatts eine Legende "Tischkategorien" mit
