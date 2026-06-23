@@ -1863,8 +1863,10 @@ function buildInhausFromVortag(rows){
   return rows
     .filter(r=>{
       const z=String(r.Zimmernummer||'').trim();
+      const n=String(r.Nachname||'').trim();
       if(!r.Nachname||!z) return false;
       if(/^zu\s/i.test(z)) return false;
+      if(/^zu\s/i.test(n)) return false;
       if(/^ext$/i.test(z)) return false;
       const st=String(r.Status||'').trim().toUpperCase().replace(/\s+/g,'').replace('·','/');
       if(st==='AB'||st==='AN/AB') return false;
