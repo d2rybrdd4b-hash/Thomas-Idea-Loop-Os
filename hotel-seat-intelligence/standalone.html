@@ -4609,7 +4609,7 @@ function updateDashboard(){
   const dd=el('dash-date-display');
   if(dd) dd.textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   if(calcDone){
-    animateNumber('ds-gaeste',assignedGuests.length);
+    animateNumber('ds-gaeste',assignedGuests.reduce((s,g)=>s+(g.pax||1),0));
     el('ds-gaeste-sub').textContent='Gäste mit Tisch';
     const ank=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
     animateNumber('ds-ankuenfte',ank);
