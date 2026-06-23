@@ -390,6 +390,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .ckpi:last-child{border-right:none}
 .ckpi-val{font-size:26px;font-weight:800;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
 .ckpi-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.ckpi-pax{font-size:8.5px;color:var(--dim);opacity:.65;margin-top:1px}
 .ckpi.ckpi-green .ckpi-val{color:var(--green)}
 .ckpi.ckpi-blue .ckpi-val{color:#3AB4E0}
 .ckpi-ico{display:inline-flex;width:15px;height:15px;margin-bottom:5px;color:var(--dim);opacity:.7}
@@ -1083,11 +1084,13 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
             <div class="ckpi-val" id="ds-ankuenfte">—</div>
             <div class="ckpi-lbl">Ankünfte</div>
+            <div class="ckpi-pax" id="ds-ankuenfte-pax"></div>
           </div>
           <div class="ckpi">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 7 15 12 10 17"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
             <div class="ckpi-val" id="ds-abreisen">—</div>
             <div class="ckpi-lbl">Abreisen</div>
+            <div class="ckpi-pax" id="ds-abreisen-pax"></div>
           </div>
           <div class="ckpi">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
@@ -4778,14 +4781,20 @@ function updateDashboard(){
   if(calcDone){
     animateNumber('ds-gaeste',assignedGuests.reduce((s,g)=>s+(g.pax||1),0));
     el('ds-gaeste-sub').textContent='Gäste mit Tisch';
-    const ank=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    const ankRows=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB');
+    const ank=ankRows.length;
+    const ankPax=ankRows.reduce((s,g)=>s+(g.pax||1),0);
     animateNumber('ds-ankuenfte',ank);
     el('ds-ankuenfte-sub').textContent=ank===1?'Anreise heute':'Anreisen heute';
+    const ankPaxEl=el('ds-ankuenfte-pax');if(ankPaxEl) ankPaxEl.textContent=ankPax+(ankPax===1?' Gast':' Gäste');
     const fr=lastTables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
     animateNumber('ds-tische',fr);
     el('ds-tische-sub').textContent=fr===1?'Tisch frei':'Tische frei';
-    const abr=assignedGuests.filter(g=>g.status==='AB'||g.status==='AN·AB').length;
+    const abrRows=assignedGuests.filter(g=>g.status==='AB'||g.status==='AN·AB');
+    const abr=abrRows.length;
+    const abrPax=abrRows.reduce((s,g)=>s+(g.pax||1),0);
     animateNumber('ds-abreisen',abr);
+    const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=abrPax+(abrPax===1?' Gast':' Gäste');
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
     el('ds-plan-sub').textContent='Tischplan ansehen →';
@@ -4802,6 +4811,7 @@ function updateDashboard(){
       'ds-tische':'Kein Plan'
     };
     Object.entries(emptyVals).forEach(([id,txt])=>{const e=el(id);if(e)e.textContent=txt;});
+    ['ds-ankuenfte-pax','ds-abreisen-pax'].forEach(id=>{const e=el(id);if(e)e.textContent='';});
     const subs={
       'ds-gaeste-sub':'Demo starten oder PMS-Export laden',
       'ds-ankuenfte-sub':'Erscheint nach Datenladen',
