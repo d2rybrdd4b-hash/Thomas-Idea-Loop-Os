@@ -3879,7 +3879,7 @@ function parseTischplanTemplate(buf){
   // Extras-Spalte (z.B. G1 "Panorama Restaurant" über der Extras-Spalte G3).
   const FIELD_LABELS={zimmer:'zimmer',status:'status',gastname:'gastname',pax:'pax',extras:'extras'};
   let headerRow=-1;
-  for(let r=0;r<Math.min(6,range.e.r+1);r++){
+  for(let r=0;r<Math.min(20,range.e.r+1);r++){
     let found=false;
     for(let c=range.s.c;c<=range.e.c;c++){ if(norm(cv(r,c))==='tisch'){found=true;break;} }
     if(found){headerRow=r;break;}
@@ -3889,7 +3889,7 @@ function parseTischplanTemplate(buf){
     for(let c=range.s.c;c<=range.e.c;c++){
       if(norm(cv(headerRow,c))!=='tisch') continue;
       const block={tischCol:c};
-      for(let cc=c+1;cc<=Math.min(c+8,range.e.c);cc++){
+      for(let cc=c+1;cc<=Math.min(c+15,range.e.c);cc++){
         const label=norm(cv(headerRow,cc));
         // Bei mehreren Blöcken kann derselbe Spaltenname (z.B. "Zimmer") weiter rechts
         // erneut auftauchen (nächster Block) — erster Treffer gewinnt, kein Überschreiben.
@@ -4439,7 +4439,8 @@ function stripExistingLegende(ws){
 // wird über die restlichen Spalten gemerged, damit sie auch bei vielen Tischen
 // vollständig sichtbar ist, ohne die schmale Status-Spalte der Haupttabelle zu verbreitern.
 function addKategorienLegende(ws,tischIds,lastCol){
-  const startRow=ws.dimensions.bottom+2;
+  const dim=ws.dimensions;
+  const startRow=(dim?dim.bottom:ws.rowCount)+2;
   ws.getCell(startRow,1).value='Tischkategorien';
   ws.getCell(startRow,1).font={bold:true};
   const sorted=tischIds.slice().sort((a,b)=>parseInt(a)-parseInt(b));
