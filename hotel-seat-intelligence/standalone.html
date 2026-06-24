@@ -4244,16 +4244,39 @@ async function buildFilledTischplanSheet(){
       extras:origBlock.extrasCol!=null?origBlock.extrasCol+1:null
     }:{tisch:1,zimmer:2,status:3,name:4,pax:5,extras:6};
     if(col.extras==null) return; // keine Extras-Spalte erkannt — Block überspringen
-    const range=insertWsColumn(ws,col.extras);
-    lastRange=range;
-    const scoreCol=col.extras,extrasCol=col.extras+1;
-    // Kopfzeile "Extras" (jetzt nach rechts verschoben) finden und davor "Priorität Score" beschriften
-    for(let r=range.top;r<=range.bottom;r++){
-      const cell=ws.getCell(r,extrasCol);
-      if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
-        const scoreCell=ws.getCell(r,scoreCol);
-        scoreCell.value='Priorität Score';
-        copyCellStyle(scoreCell,ws.getCell(r,col.pax||scoreCol-1));
+    // Prüfen, ob "Priorität Score"-Spalte bereits in der Vorlage existiert (z.B. aus
+    // einem früheren Export). Falls ja → vorhandene Spalte wiederverwenden statt eine
+    // neue einzufügen; sonst wächst die Datei bei jedem Re-Export um eine Spalte.
+    let existingScoreCol=null;
+    if(col.pax!=null){
+      const wsDim=ws.dimensions;
+      const scanBottom=wsDim?Math.min(wsDim.bottom,6):6;
+      outer:for(let r=1;r<=scanBottom;r++){
+        for(let c=col.pax+1;c<col.extras;c++){
+          const v=ws.getCell(r,c).value;
+          if(v&&String(v).trim().toLowerCase()==='priorität score'){existingScoreCol=c;break outer;}
+        }
+      }
+    }
+    let range,scoreCol,extrasCol;
+    if(existingScoreCol!==null){
+      const wsDim=ws.dimensions||{top:1,bottom:ws.rowCount,right:ws.columnCount};
+      range={top:wsDim.top,bottom:wsDim.bottom,right:wsDim.right};
+      lastRange=range;
+      scoreCol=existingScoreCol;
+      extrasCol=col.extras;
+    }else{
+      range=insertWsColumn(ws,col.extras);
+      lastRange=range;
+      scoreCol=col.extras;extrasCol=col.extras+1;
+      // Kopfzeile "Extras" (jetzt nach rechts verschoben) finden und davor "Priorität Score" beschriften
+      for(let r=range.top;r<=range.bottom;r++){
+        const cell=ws.getCell(r,extrasCol);
+        if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
+          const scoreCell=ws.getCell(r,scoreCol);
+          scoreCell.value='Priorität Score';
+          copyCellStyle(scoreCell,ws.getCell(r,col.pax||scoreCol-1));
+        }
       }
     }
     Object.entries(tischplanMap).forEach(([tid,entry])=>{
