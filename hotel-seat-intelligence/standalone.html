@@ -4336,6 +4336,10 @@ async function buildFilledTischplanSheet(){
   // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
   const rightCol=lastRange?lastRange.right:1;
   autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
+  // Zimmer-Spalten aller Blöcke auf max. 9 Einheiten deckeln (Zimmernummern brauchen nie mehr)
+  (tischplanBlocks||[]).forEach(b=>{
+    if(b.zimmerCol!=null){const ec=b.zimmerCol+1;const col=ws.getColumn(ec);if((col.width||0)>9)col.width=9;}
+  });
   addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
   stampExportZeit(ws);
   buildSortierungZimmerSheet(wb,ws);
@@ -4405,6 +4409,8 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
       g.zugewiesener_tisch||'—',statusStr,g.vip?'VIP':'',g.allergie||'',g.bemerkung||'']);
   });
   autoFitColumns(ws2,1,ws2.rowCount,1,headers.length);
+  // Zimmer-Spalte (col 1) auf max. 9 Einheiten deckeln
+  const zc=ws2.getColumn(1);if((zc.width||0)>9)zc.width=9;
   return ws2;
 }
 
@@ -4509,6 +4515,18 @@ function parseMergeRef(ref){
 // Baut eine HTML-Tabellen-Vorschau des befüllten Sheets (inkl. Zellfarben). Verschmolzene
 // Zellen (z.B. Kopfzeile oder Kategorien-Legende) werden wie in echtem Excel als eine
 // breite Zelle (colspan/rowspan) dargestellt, statt den Inhalt in jeder Spalte zu wiederholen.
+function fmtCellValue(cell){
+  const raw=cell.value;
+  if(raw==null) return '';
+  // Formelzellen: nur das berechnete Ergebnis anzeigen
+  if(typeof raw==='object'&&raw!==null&&'result' in raw) return String(raw.result??'');
+  // Zeitwerte (Excel-Bruchzahl 0–1 mit hh:mm-Format) → lesbare Uhrzeit
+  if(typeof raw==='number'&&raw>=0&&raw<1&&cell.numFmt&&/^hh?:mm/i.test(cell.numFmt)){
+    const tot=Math.round(raw*1440);
+    return `${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
+  }
+  return String(raw);
+}
 function buildSheetPreviewHtml(ws,range){
   const merges=(ws.model.merges||[]).map(parseMergeRef);
   const skip=new Set();
@@ -4520,13 +4538,20 @@ function buildSheetPreviewHtml(ws,range){
       skip.add(`${r},${c}`);
     }
   });
-  let html='<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">';
+  // Spaltenbreiten aus dem Workbook übernehmen (1 Excel-Einheit ≈ 7 px)
+  let colgroup='<colgroup>';
+  for(let c=1;c<=range.right;c++){
+    const w=ws.getColumn(c).width;
+    colgroup+=w?`<col style="width:${Math.round(w*7)}px">`:'<col>';
+  }
+  colgroup+='</colgroup>';
+  let html=`<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">${colgroup}`;
   for(let r=range.top;r<=range.bottom;r++){
     html+='<tr>';
     for(let c=1;c<=range.right;c++){
       if(skip.has(`${r},${c}`)) continue;
       const cell=ws.getCell(r,c);
-      const v=cell.value==null?'':String(cell.value);
+      const v=fmtCellValue(cell);
       const span=spanAt[`${r},${c}`];
       const spanAttr=span?` colspan="${span.colSpan}" rowspan="${span.rowSpan}"`:'';
       html+=`<td${spanAttr} style="border:1px solid #ccc;padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
