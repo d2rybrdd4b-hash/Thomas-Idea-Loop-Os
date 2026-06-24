@@ -2106,6 +2106,13 @@ function enrichFromBemerkung(g){
   // STAMM → Stammgast (eigene Kategorie, kein automatischer VIP)
   if(/\bstamm\b/i.test(bem)) g.stammgast=true;
 
+  // "zu #NNNNN" → verlinkte Reservierungen (z.B. Familien-/Paarzimmer nebeneinander)
+  const zuRefs=[];
+  const zuRe=/\bzu\s*#\s*(\d{3,8})\b/gi;
+  let zuM;
+  while((zuM=zuRe.exec(bem))!==null) zuRefs.push(zuM[1]);
+  if(zuRefs.length) g.verlinkteRefs=zuRefs;
+
   return g;
 }
 
@@ -2827,6 +2834,44 @@ function applyZimmerRegeln(g){
   return null;
 }
 
+// Erkennt verlinkte Reservierungen anhand von "zu #NNNNN"-Verweisen in der Bemerkung.
+// Zwei Strategien:
+//   1. Gleiche Referenz: Zimmer A und B sagen beide "zu #12345" → Gruppe
+//   2. Gegenseitige Referenz: Zimmer A (Res.#23393) sagt "zu #23394",
+//      Zimmer B (Res.#23394) sagt "zu #23393" → per Union-Find verknüpft
+function buildLinkedGruppen(guests){
+  const idMap={};
+  guests.forEach((g,i)=>{
+    if(g.id&&!/^G\d+$/.test(String(g.id))) idMap[String(g.id)]=i;
+  });
+  const par=guests.map((_,i)=>i);
+  const root=i=>{if(par[i]!==i) par[i]=root(par[i]);return par[i];};
+  const join=(i,j)=>{const ri=root(i),rj=root(j);if(ri!==rj) par[ri]=rj;};
+  const refToIdx={};
+  guests.forEach((g,i)=>{
+    if(!g.verlinkteRefs) return;
+    g.verlinkteRefs.forEach(ref=>{
+      // Strategie 2: ref entspricht g.id eines anderen Gastes → direkt verbinden
+      if(idMap[ref]!==undefined) join(i,idMap[ref]);
+      // Strategie 1: alle Gäste die dieselbe Referenz nennen sammeln
+      if(!refToIdx[ref]) refToIdx[ref]=[];
+      refToIdx[ref].push(i);
+    });
+  });
+  // Strategie 1 anwenden: alle die dieselbe Nummer nennen zusammenlegen
+  Object.values(refToIdx).forEach(idxs=>{
+    for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);
+  });
+  const groups={};
+  guests.forEach((g,i)=>{
+    if(!g.verlinkteRefs) return;
+    const key=root(i);
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(g);
+  });
+  return Object.values(groups).filter(gs=>gs.length>1);
+}
+
 function detectGroups(guests){
   const warns=[];
   const byFull={};
@@ -3055,6 +3100,32 @@ function runCalc(){
   const groupAssigned=new Set();
   let assigned=0,groupsPlaced=0;
 
+  // Pass 1a: Verlinkte Reservierungen (zu #NNNNN) — höchste Priorität vor Nachnamen-Gruppen
+  buildLinkedGruppen(neu.filter(g=>!groupAssigned.has(g.id))).forEach(gs=>{
+    const totalPax=gs.reduce((s,g)=>s+g.pax,0);
+    const refs=[...new Set(gs.flatMap(g=>g.verlinkteRefs||[]))].join('/');
+    const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
+    const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
+    const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
+    const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+    if(groupTable){
+      groupTable.belegtPax+=totalPax;
+      if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
+      groupTable.gast_id=gs[0].id;
+      addStayToCalendar(tableCalendar,groupTable.tisch_id,ci,co);
+      gs.forEach(g=>{
+        g.zugewiesener_tisch=groupTable.tisch_id;
+        g.begruendung=`Verlinkung Res.#${refs} — gemeinsam Tisch ${groupTable.tisch_id}`;
+        groupAssigned.add(g.id);
+        assigned++;
+      });
+      groupsPlaced++;
+    } else {
+      warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
+    }
+  });
+
+  // Pass 1b: Gleicher Nachname, verschiedene Zimmer → Familiengruppe
   Object.values(neuByLast)
     .filter(gs=>[...new Set(gs.map(g=>String(g.zimmer)))].length>1)
     .sort((a,b)=>b.reduce((s,g)=>s+g.pax,0)-a.reduce((s,g)=>s+g.pax,0)) // largest groups first
