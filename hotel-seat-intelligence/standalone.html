@@ -4542,8 +4542,35 @@ async function toggleExcelPreview(){
   const wrap=el('excel-preview-wrap');
   if(!wrap) return;
   if(wrap.style.display==='block'){wrap.style.display='none';return;}
-  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
+  if(!tischplanTemplate){
+    // Demo-Modus: synthetische Vorschau aus lastTables + assignedGuests
+    const guestByTisch={};
+    (assignedGuests||[]).forEach(g=>{if(g.zugewiesener_tisch) guestByTisch[g.zugewiesener_tisch]=g;});
+    const cols=['Tisch','Status','Zimmer','Gastname','PAX'];
+    let html='<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">';
+    html+='<tr>'+cols.map(c=>`<th style="border:1px solid #999;padding:2px 5px;background:#eee;font-weight:bold">${c}</th>`).join('')+'</tr>';
+    (lastTables||[]).forEach(t=>{
+      const g=guestByTisch[t.tisch_id];
+      const kat=TISCH_KAT_MAP[String(t.tisch_id)]||0;
+      const bg=kat&&KAT_FARBEN[kat]?`background-color:#${KAT_FARBEN[kat]}`:'';
+      const status=!t.aktiv?'Inaktiv':t.blocked_for?'Blockiert':t.belegtPax>0?'Belegt':'Frei';
+      const zimmer=g?String(g.zimmer||''):'';
+      const name=g?[g.vorname,g.nachname].filter(Boolean).join(' '):'';
+      const pax=t.belegtPax>0?String(t.belegtPax):'';
+      html+=`<tr>
+        <td style="border:1px solid #ccc;padding:1px 4px;${bg}">${t.tisch_id}</td>
+        <td style="border:1px solid #ccc;padding:1px 4px">${status}</td>
+        <td style="border:1px solid #ccc;padding:1px 4px">${zimmer}</td>
+        <td style="border:1px solid #ccc;padding:1px 4px">${name}</td>
+        <td style="border:1px solid #ccc;padding:1px 4px;text-align:center">${pax}</td>
+      </tr>`;
+    });
+    html+='</table>';
+    wrap.innerHTML=html;
+    wrap.style.display='block';
+    return;
+  }
   const built=await buildFilledTischplanSheet();
   if(!built) return;
   const dim=built.ws.dimensions||{top:1,bottom:built.ws.rowCount,right:built.ws.columnCount};
