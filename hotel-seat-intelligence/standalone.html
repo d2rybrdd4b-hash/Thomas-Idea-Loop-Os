@@ -1959,6 +1959,11 @@ function parsePanoramaArrival(wb){
     const pax=parseInt(row[7])||1;
     const bemerkung=String(row[8]||'').trim();
     const resStatus=String(row[14]||'').trim();
+    // Col A (index 0) enthält in vielen PMS-Exporten die Reservierungsnummer —
+    // nur übernehmen wenn der Wert numerisch ist (3–8 Stellen), damit Row-Counter
+    // oder leere Zellen nicht als Res.-Nr. fehlinterpretiert werden.
+    const colA=String(row[0]||'').trim();
+    const gastId=/^\d{3,8}$/.test(colA)?colA:'';
 
     // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
     const firstPerson=(nameRaw.split(',')[0]||'').trim();
@@ -1973,6 +1978,7 @@ function parsePanoramaArrival(wb){
     const checkOut=cout.toISOString().slice(0,10);
 
     rows.push({
+      ...(gastId?{GastID:gastId}:{}),
       Zimmernummer:zimmerRaw,
       Nachname:nachname,
       Vorname:vorname,
@@ -1986,7 +1992,7 @@ function parsePanoramaArrival(wb){
   }
   if(rows.length===0) return null;
   return{
-    headers:['Zimmernummer','Nachname','Vorname','CheckIn','CheckOut','AnzahlPersonen','Bemerkung','GastTyp'],
+    headers:['GastID','Zimmernummer','Nachname','Vorname','CheckIn','CheckOut','AnzahlPersonen','Bemerkung','GastTyp'],
     rows,
     _source:'panorama_arrival',
     _arrivalDate:arrivalDate
@@ -2035,6 +2041,8 @@ function parsePanoramaDeparture(wb){
     const abreiseRaw=String(row[7]||'').trim();
     const pax=parseInt(row[11])||1;
     const resStatus=String(row[13]||'').trim();
+    const resNrDep=String(row[14]||'').trim();
+    const gastIdDep=/^\d{3,8}$/.test(resNrDep)?resNrDep:'';
     const bemerkung=[String(row[17]||'').trim(),String(row[18]||'').trim()].filter(Boolean).join(' / ');
 
     // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
@@ -2047,6 +2055,7 @@ function parsePanoramaDeparture(wb){
     const checkOut=parseDate(abreiseRaw)||departureDate||'';
 
     rows.push({
+      ...(gastIdDep?{GastID:gastIdDep}:{}),
       Zimmernummer:zimmerRaw,
       Nachname:nachname,
       Vorname:vorname,
