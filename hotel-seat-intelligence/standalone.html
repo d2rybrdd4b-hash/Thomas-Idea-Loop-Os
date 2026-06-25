@@ -1950,6 +1950,8 @@ function parsePanoramaArrival(wb){
   const findCol=labels=>hdr.findIndex(c=>c&&labels.some(l=>String(c).trim().toLowerCase()===l.toLowerCase()));
   const colResNr=findCol(['res.-nr.','res.nr.','res-nr','res-nr.','res. nr.','reservierungsnr','buchungsnr.','buchungsnummer','conf.nr.','bestätigungsnummer','res.-nr','resnr','resnr.','reservierungsnummer','buchungs-nr.','buchungs-nr','conf. nr.','konfirmationsnr.','konfirmationsnr','res_nr','buchungs_nr','res.nr','reserv.-nr.','reserv.nr.']);
   const colBemZi=findCol(['bemerk. (zi.)','bemerk.(zi.)','bemerk (zi.)','bemerk.zi.','bemerkung (zimmer)','bemerk. zi.']);
+  // Haupt-Bemerkungsspalte dynamisch erkennen (Fallback: hardcodierter Index 8)
+  const colBemHaupt=findCol(['bemerk.','bemerkung','bemerkungen','anmerkung','anmerkungen','remarks','remark','notiz','hinweis']);
 
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
@@ -1964,7 +1966,7 @@ function parsePanoramaArrival(wb){
     const naechte=parseInt(row[5])||1;
     const pax=parseInt(row[7])||1;
     // Beide Bemerkungsspalten zusammenführen (Bemerk. + Bemerk. (Zi.))
-    const bemHaupt=String(row[8]||'').trim();
+    const bemHaupt=colBemHaupt>=0?String(row[colBemHaupt]||'').trim():String(row[8]||'').trim();
     const bemZi=colBemZi>=0?String(row[colBemZi]||'').trim():'';
     const bemerkung=[bemHaupt,bemZi].filter(Boolean).join(' / ');
     const resStatus=String(row[14]||'').trim();
@@ -4492,7 +4494,9 @@ function timeFracFromValue(v){
 }
 function stampExportZeit(ws){
   const now=new Date();
-  const timeFrac=(now.getHours()*60+now.getMinutes()+now.getSeconds()/60)/1440;
+  // Als Date-Objekt schreiben: ExcelJS-Standard für Uhrzeiten in XLSX.
+  // UTC-Stunden/-Minuten = lokale Anzeigezeit (ExcelJS-Konvention).
+  const timeDate=new Date(Date.UTC(1899,11,30,now.getHours(),now.getMinutes(),0));
   const row=1;
   for(let c=1;c<ws.columnCount;c++){
     const cell=ws.getCell(row,c);
@@ -4502,7 +4506,7 @@ function stampExportZeit(ws){
       if(timeFracFromValue(next.value)!=null){
         cell.value='APP';
         cell.note='Tischplan automatisch erstellt durch die Tischplan-App (kein manuelles Bearbeiter-Kürzel, da kein Login). Zeit rechts = Erstellungszeitpunkt dieser Export-Datei.';
-        next.value=timeFrac;
+        next.value=timeDate;
         next.numFmt='hh:mm';
       }
     }
@@ -4645,10 +4649,13 @@ function parseMergeRef(ref){
 function fmtCellValue(cell){
   const raw=cell.value;
   if(raw==null) return '';
-  // Formelzellen: nur das berechnete Ergebnis anzeigen
   if(typeof raw==='object'&&raw!==null&&'result' in raw) return String(raw.result??'');
-  // Zeitwerte (Excel-Bruchzahl 0–1 mit hh:mm-Format) → lesbare Uhrzeit
-  // numFmt kann direkt oder über cell.style kommen; lokalisierte Prefixe wie [$-407] erlauben keinen ^ Anker
+  // Date-Objekt: ExcelJS parst XLSX-Zeitzellen als Date; UTC-Stunden/Minuten = Anzeigezeit
+  if(raw instanceof Date&&!isNaN(raw)){
+    const h=raw.getUTCHours(),m=raw.getUTCMinutes();
+    if(h>0||m>0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  // Zeitbruchzahl 0–1 mit hh:mm-Format (Fallback für direkt geschriebene Fraktionen)
   const nf=(cell.numFmt||(cell.style&&cell.style.numFmt)||'');
   if(typeof raw==='number'&&raw>=0&&raw<1&&nf&&/hh?:mm/i.test(nf)){
     const tot=Math.round(raw*1440);
