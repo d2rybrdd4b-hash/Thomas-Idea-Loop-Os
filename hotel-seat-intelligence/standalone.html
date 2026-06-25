@@ -3163,8 +3163,16 @@ function runCalc(){
     const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
     const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
     const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
-    const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+    let groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+    if(!groupTable){
+      // Fallback: verlinkte Buchungen auf den Tisch mit meisten freien Plätzen setzen,
+      // damit sie zusammenbleiben auch wenn kein Tisch exakt die Kapazität hat
+      groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt&&
+        !(tableCalendar&&ci&&co&&!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(tableCalendar,t.tisch_id,ci,co)))
+        .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax))[0]||null;
+    }
     if(groupTable){
+      const overfill=totalPax>groupTable.kapazitaet-groupTable.belegtPax;
       groupTable.belegtPax+=totalPax;
       if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
       groupTable.gast_id=gs[0].id;
@@ -3176,8 +3184,9 @@ function runCalc(){
         assigned++;
       });
       groupsPlaced++;
+      if(overfill) warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX) — Tisch ${groupTable.tisch_id} knapp, aber Gruppe zusammengehalten`});
     } else {
-      warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
+      warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein Tisch verfügbar, wird aufgeteilt`});
     }
   });
 
@@ -4359,6 +4368,7 @@ async function buildFilledTischplanSheet(){
   // bearbeiteten, weiter links liegenden Blöcke nicht verschieben.
   const order=useBlocks.slice().sort((a,b)=>(b?b.tischCol:1)-(a?a.tischCol:1));
   let lastRange=null;
+  const actualZimmerCols=[];
   order.forEach(origBlock=>{
     // Parser liefert 0-basierte Spalten; altes Einzelblock-Format nutzt feste
     // Spalten A-F als Fallback (Tisch=A, Zimmer=B, Status=C, Name=D, Pax=E, Extras=F).
@@ -4370,6 +4380,9 @@ async function buildFilledTischplanSheet(){
       pax:origBlock.paxCol!=null?origBlock.paxCol+1:null,
       extras:origBlock.extrasCol!=null?origBlock.extrasCol+1:null
     }:{tisch:1,zimmer:2,status:3,name:4,pax:5,extras:6};
+    // Zimmer-Spalte jetzt (vor der Einfügung der Score-Spalte) festhalten — danach
+    // könnten später verarbeitete (linkere) Blöcke alle bisherigen Positionen verschieben.
+    if(col.zimmer!=null) actualZimmerCols.push({c:col.zimmer});
     if(col.extras==null) return; // keine Extras-Spalte erkannt — Block überspringen
     // Prüfen, ob "Priorität Score"-Spalte bereits in der Vorlage existiert (z.B. aus
     // einem früheren Export). Falls ja → vorhandene Spalte wiederverwenden statt eine
@@ -4405,6 +4418,10 @@ async function buildFilledTischplanSheet(){
           copyCellStyle(scoreCell,ws.getCell(r,col.pax||scoreCol-1));
         }
       }
+      // Eine neue Spalte wurde bei col.extras eingefügt: alle bereits gespeicherten
+      // Zimmer-Positionen, die rechts davon liegen (= frühere Blöcke, weiter rechts),
+      // um +1 verschieben — sonst trifft der Cap-Code später die falsche Spalte.
+      for(const entry of actualZimmerCols) if(entry.c>=col.extras) entry.c++;
     }
     Object.entries(tischplanMap).forEach(([tid,entry])=>{
       const belongsToBlock=origBlock?(entry.block===origBlock):!entry.block;
@@ -4465,9 +4482,11 @@ async function buildFilledTischplanSheet(){
   // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
   const rightCol=lastRange?lastRange.right:1;
   autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
-  // Zimmer-Spalten aller Blöcke auf max. 9 Einheiten deckeln (Zimmernummern brauchen nie mehr)
-  (tischplanBlocks||[]).forEach(b=>{
-    if(b.zimmerCol!=null){const ec=b.zimmerCol+1;const col=ws.getColumn(ec);if((col.width||0)>9)col.width=9;}
+  // Zimmer-Spalten aller Blöcke auf max. 9 Einheiten deckeln (Zimmernummern brauchen nie mehr).
+  // Verwendet die während der Block-Verarbeitung nachgeführten tatsächlichen ExcelJS-Spaltennummern
+  // (statt der originalen 0-basierten Indizes aus tischplanBlocks, die nach Einfügungen veraltet sind).
+  actualZimmerCols.forEach(({c})=>{
+    if(c!=null){const wc=ws.getColumn(c);if((wc.width||0)>9)wc.width=9;}
   });
   addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
   stampExportZeit(ws);
@@ -4494,20 +4513,21 @@ function timeFracFromValue(v){
 }
 function stampExportZeit(ws){
   const now=new Date();
-  // Als Date-Objekt schreiben: ExcelJS-Standard für Uhrzeiten in XLSX.
-  // UTC-Stunden/-Minuten = lokale Anzeigezeit (ExcelJS-Konvention).
-  const timeDate=new Date(Date.UTC(1899,11,30,now.getHours(),now.getMinutes(),0));
+  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const row=1;
   for(let c=1;c<ws.columnCount;c++){
     const cell=ws.getCell(row,c);
     const v=cell.value;
     if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){
       const next=ws.getCell(row,c+1);
-      if(timeFracFromValue(next.value)!=null){
+      const nv=next.value;
+      // Erkennt: Excel-Zeitbruchzahl (0..1), Date-Objekt, oder bereits ein "HH:MM"-String
+      // (z.B. bei Re-Export einer vorher exportierten Datei)
+      const isTime=timeFracFromValue(nv)!=null||(typeof nv==='string'&&/^\d{1,2}:\d{2}$/.test(nv.trim()));
+      if(isTime){
         cell.value='APP';
         cell.note='Tischplan automatisch erstellt durch die Tischplan-App (kein manuelles Bearbeiter-Kürzel, da kein Login). Zeit rechts = Erstellungszeitpunkt dieser Export-Datei.';
-        next.value=timeDate;
-        next.numFmt='hh:mm';
+        next.value=timeStr;
       }
     }
   }
