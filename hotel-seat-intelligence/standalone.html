@@ -4491,7 +4491,7 @@ async function buildFilledTischplanSheet(){
   addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
   stampExportZeit(ws);
   buildSortierungZimmerSheet(wb,ws);
-  return{wb,ws,guestByTable};
+  return{wb,ws,guestByTable,zimmerCols:[...actualZimmerCols]};
 }
 
 // Die Kopfzeile der Hotelier-Vorlage enthält pro Block ein Kürzel + eine Excel-
@@ -4636,7 +4636,30 @@ async function exportToTischplanTemplate(){
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
   const ds=new Date().toISOString().slice(0,10);
-  const buffer=await built.wb.xlsx.writeBuffer();
+  let buffer=await built.wb.xlsx.writeBuffer();
+  // ExcelJS 4.4.0 schreibt ws.getColumn(c).width-Änderungen bei aus Templates geladenen
+  // Spalten nicht zuverlässig in den XLSX-Buffer zurück (Serialisierungsfehler).
+  // Workaround: Buffer mit SheetJS nachladen, Zimmer-Spalten auf max. 9 erzwingen, neu schreiben.
+  const zimmerCols=(built.zimmerCols||[]).map(z=>z.c).filter(c=>c!=null);
+  if(zimmerCols.length){
+    try{
+      const wb2=XLSX.read(new Uint8Array(buffer),{type:'array'});
+      const sheetName=wb2.SheetNames.find(n=>/^Tischplan/i.test(n))||wb2.SheetNames[0];
+      if(sheetName){
+        const ws2=wb2.Sheets[sheetName];
+        if(ws2){
+          if(!ws2['!cols']) ws2['!cols']=[];
+          const maxCol=Math.max(...zimmerCols);
+          while(ws2['!cols'].length<maxCol) ws2['!cols'].push({});
+          zimmerCols.forEach(c=>{
+            const cd=ws2['!cols'][c-1]||{};
+            if((cd.wch||999)>9){cd.wch=9;ws2['!cols'][c-1]=cd;}
+          });
+        }
+      }
+      buffer=XLSX.write(wb2,{type:'array',bookType:'xlsx'});
+    }catch(e){console.warn('zimmer col width post-process failed',e);}
+  }
   triggerXlsxDownload(buffer,`Tischplan_${hotel}_${ds}.xlsx`);
   setStatus('Hotelier-Tischplan exportiert','go');
   el('s5-done').style.display='block';
