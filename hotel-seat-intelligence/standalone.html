@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-c</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-d</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-c</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-d</p>
       </div>
     </div>
 
@@ -4676,9 +4676,7 @@ async function exportToTischplanTemplate(){
   // (2) Zeit-Dezimalwerte in Zeile 1 werden trotz next.value=string manchmal als Zahl serialisiert
   let sheetjsOk=false;
   try{
-    // bookFiles:true → SheetJS behält alle Workbook-Dateien (styles.xml, Bilder etc.)
-    // als Rohbytes und schreibt sie unverändert zurück — verhindert Formatierungsverlust
-    const wb2=XLSX.read(new Uint8Array(buffer),{type:'array',bookFiles:true,cellStyles:true});
+    const wb2=XLSX.read(new Uint8Array(buffer),{type:'array'});
     const sheetName=wb2.SheetNames.find(n=>/^Tischplan/i.test(n))||wb2.SheetNames[0];
     if(!sheetName) throw new Error('Kein Tischplan-Sheet gefunden. Sheets: '+wb2.SheetNames.join(', '));
     const ws2=wb2.Sheets[sheetName];
