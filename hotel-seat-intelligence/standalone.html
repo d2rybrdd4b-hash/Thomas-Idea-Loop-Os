@@ -948,6 +948,8 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <span id="dash-date-display"></span>
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
+        <span class="dash-meta-sep">·</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-b</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1255,7 +1257,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: 8bfeb7e</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-b</p>
       </div>
     </div>
 
@@ -3164,12 +3166,18 @@ function runCalc(){
     const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
     const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
     let groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+    let calendarOverridden=false;
     if(!groupTable){
-      // Fallback: verlinkte Buchungen auf den Tisch mit meisten freien Plätzen setzen,
-      // damit sie zusammenbleiben auch wenn kein Tisch exakt die Kapazität hat
+      // Fallback 1: Kalender berücksichtigen, freisten Tisch wählen
       groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt&&
         !(tableCalendar&&ci&&co&&!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(tableCalendar,t.tisch_id,ci,co)))
         .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax))[0]||null;
+    }
+    if(!groupTable){
+      // Fallback 2: Kalender ignorieren — verlinkte Zimmer MÜSSEN zusammensitzen
+      groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt)
+        .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax))[0]||null;
+      if(groupTable) calendarOverridden=true;
     }
     if(groupTable){
       const overfill=totalPax>groupTable.kapazitaet-groupTable.belegtPax;
@@ -3184,9 +3192,12 @@ function runCalc(){
         assigned++;
       });
       groupsPlaced++;
-      if(overfill) warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX) — Tisch ${groupTable.tisch_id} knapp, aber Gruppe zusammengehalten`});
+      const zimmerList=gs.map(g=>g.zimmer).join(' + ');
+      if(calendarOverridden) warns.push({level:'yellow',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}) → Tisch ${groupTable.tisch_id} ✓ (Kalender-Konflikt ignoriert — Gruppe zusammengehalten)`});
+      else if(overfill) warns.push({level:'yellow',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}, ${totalPax} PAX) → Tisch ${groupTable.tisch_id} ✓ (Tisch knapp, Gruppe zusammengehalten)`});
+      else warns.push({level:'green',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}) → Tisch ${groupTable.tisch_id} ✓`});
     } else {
-      warns.push({level:'yellow',msg:`Verlinkte Zimmer ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein Tisch verfügbar, wird aufgeteilt`});
+      warns.push({level:'yellow',msg:`Verlinkung Zi. ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein freier Tisch, Gruppe wird aufgeteilt`});
     }
   });
 
