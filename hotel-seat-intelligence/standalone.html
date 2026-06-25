@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-b</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-c</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-b</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-c</p>
       </div>
     </div>
 
@@ -3161,6 +3161,7 @@ function runCalc(){
   });
   const groupAssigned=new Set();
   let assigned=0,groupsPlaced=0;
+  let linkOk=0,linkCalOverride=0,linkOverfill=0,linkSplit=0;
 
   // Pass 1a: Verlinkte Reservierungen (zu #NNNNN) — höchste Priorität vor Nachnamen-Gruppen
   buildLinkedGruppen(neu.filter(g=>!groupAssigned.has(g.id))).forEach(gs=>{
@@ -3196,14 +3197,31 @@ function runCalc(){
         assigned++;
       });
       groupsPlaced++;
-      const zimmerList=gs.map(g=>g.zimmer).join(' + ');
-      if(calendarOverridden) warns.push({level:'yellow',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}) → Tisch ${groupTable.tisch_id} ✓ (Kalender-Konflikt ignoriert — Gruppe zusammengehalten)`});
-      else if(overfill) warns.push({level:'yellow',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}, ${totalPax} PAX) → Tisch ${groupTable.tisch_id} ✓ (Tisch knapp, Gruppe zusammengehalten)`});
-      else warns.push({level:'green',msg:`Verlinkung Zi. ${zimmerList} (Res.#${refs}) → Tisch ${groupTable.tisch_id} ✓`});
+      const zimmerList=gs.map(g=>g.zimmer).join('+');
+      if(calendarOverridden){
+        linkCalOverride++;
+        warns.push({level:'yellow',msg:`Verlinkung Zi.${zimmerList} (Res.#${refs}) → Tisch ${groupTable.tisch_id} — Kalender-Konflikt ignoriert, Gruppe zusammengehalten`});
+      } else if(overfill){
+        linkOverfill++;
+        warns.push({level:'yellow',msg:`Verlinkung Zi.${zimmerList} (Res.#${refs}, ${totalPax} PAX) → Tisch ${groupTable.tisch_id} — Tisch knapp, Gruppe zusammengehalten`});
+      } else {
+        linkOk++;
+      }
     } else {
-      warns.push({level:'yellow',msg:`Verlinkung Zi. ${gs.map(g=>g.zimmer).join(' + ')} (Res.#${refs}, ${totalPax} PAX gesamt) — kein freier Tisch, Gruppe wird aufgeteilt`});
+      linkSplit++;
+      warns.push({level:'yellow',msg:`Verlinkung Zi.${gs.map(g=>g.zimmer).join('+')} (Res.#${refs}, ${totalPax} PAX) — kein freier Tisch, Gruppe aufgeteilt`});
     }
   });
+  // Zusammenfassung Verlinkungen — eine Meldung statt N Einzelmeldungen
+  if(linkOk>0||linkCalOverride>0||linkOverfill>0||linkSplit>0){
+    const parts=[];
+    if(linkOk>0) parts.push(`${linkOk} erfolgreich ✓`);
+    if(linkCalOverride>0) parts.push(`${linkCalOverride} mit Kalender-Konflikt`);
+    if(linkOverfill>0) parts.push(`${linkOverfill} Tisch knapp`);
+    if(linkSplit>0) parts.push(`${linkSplit} aufgeteilt`);
+    const allOk=linkCalOverride===0&&linkOverfill===0&&linkSplit===0;
+    warns.unshift({level:allOk?'green':'yellow',msg:`Verlinkungen (zu #): ${parts.join(', ')}`});
+  }
 
   // Pass 1b: Gleicher Nachname, verschiedene Zimmer → Familiengruppe
   Object.values(neuByLast)
@@ -4658,19 +4676,21 @@ async function exportToTischplanTemplate(){
   // (2) Zeit-Dezimalwerte in Zeile 1 werden trotz next.value=string manchmal als Zahl serialisiert
   let sheetjsOk=false;
   try{
-    const wb2=XLSX.read(new Uint8Array(buffer),{type:'array'});
+    // bookFiles:true → SheetJS behält alle Workbook-Dateien (styles.xml, Bilder etc.)
+    // als Rohbytes und schreibt sie unverändert zurück — verhindert Formatierungsverlust
+    const wb2=XLSX.read(new Uint8Array(buffer),{type:'array',bookFiles:true,cellStyles:true});
     const sheetName=wb2.SheetNames.find(n=>/^Tischplan/i.test(n))||wb2.SheetNames[0];
     if(!sheetName) throw new Error('Kein Tischplan-Sheet gefunden. Sheets: '+wb2.SheetNames.join(', '));
     const ws2=wb2.Sheets[sheetName];
     if(!ws2) throw new Error('Sheet-Objekt leer für: '+sheetName);
     // Fix 1: Zimmer-Spaltenbreiten auf max. 9 Zeichen deckeln.
-    // Setzt alle SheetJS-Breiten-Properties (wch, width, wpx, customWidth) zur Sicherheit.
+    // Nur die Zimmer-Spalten direkt setzen — kein Auffüllen anderer Spalten.
     const zimmerCols=(built.zimmerCols||[]).map(z=>z.c).filter(c=>c!=null);
     if(zimmerCols.length){
       if(!ws2['!cols']) ws2['!cols']=[];
-      const maxCol=Math.max(...zimmerCols);
-      while(ws2['!cols'].length<maxCol) ws2['!cols'].push({});
       zimmerCols.forEach(c=>{
+        // Sicherstellen dass Index c-1 existiert (ohne andere Einträge zu überschreiben)
+        while(ws2['!cols'].length<c) ws2['!cols'].push(null);
         let cd=ws2['!cols'][c-1];
         if(!cd){cd={};ws2['!cols'][c-1]=cd;}
         const curW=cd.wch!=null?cd.wch:(cd.width!=null?cd.width:999);
