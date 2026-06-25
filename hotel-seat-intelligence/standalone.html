@@ -1948,7 +1948,7 @@ function parsePanoramaArrival(wb){
   // Spalten dynamisch aus der Überschriftenzeile ermitteln — robuster als Hardcoding,
   // da PMS-Exporte je nach Version/Konfiguration leicht unterschiedliche Spaltenpositionen haben.
   const findCol=labels=>hdr.findIndex(c=>c&&labels.some(l=>String(c).trim().toLowerCase()===l.toLowerCase()));
-  const colResNr=findCol(['res.-nr.','res.nr.','res-nr','res-nr.','res. nr.','reservierungsnr','buchungsnr.','buchungsnummer','conf.nr.','bestätigungsnummer']);
+  const colResNr=findCol(['res.-nr.','res.nr.','res-nr','res-nr.','res. nr.','reservierungsnr','buchungsnr.','buchungsnummer','conf.nr.','bestätigungsnummer','res.-nr','resnr','resnr.','reservierungsnummer','buchungs-nr.','buchungs-nr','conf. nr.','konfirmationsnr.','konfirmationsnr','res_nr','buchungs_nr','res.nr','reserv.-nr.','reserv.nr.']);
   const colBemZi=findCol(['bemerk. (zi.)','bemerk.(zi.)','bemerk (zi.)','bemerk.zi.','bemerkung (zimmer)','bemerk. zi.']);
 
   const STOP_WORDS=['summe','gesamt','total'];
@@ -2878,6 +2878,44 @@ function buildLinkedGruppen(guests){
   Object.values(refToIdx).forEach(idxs=>{
     for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);
   });
+  // Strategie 3: Konfidenz-Scoring (multi-hotel Fallback)
+  // Verbindet Gäste anhand mehrerer unabhängiger Signale; Schwellenwert ≥4 Punkte verhindert Falschpositive.
+  // Punkte: gegenseitige Res-Nr-Referenz=4, geteilte Referenz=3, gleicher Nachname=2,
+  //         Referenznummern ≤5 auseinander=1, gleiches Anreisedatum=1
+  const withRefs=[];
+  guests.forEach((g,i)=>{if(g.verlinkteRefs&&g.verlinkteRefs.length) withRefs.push([i,g]);});
+  for(let a=0;a<withRefs.length;a++){
+    for(let b=a+1;b<withRefs.length;b++){
+      const [ii,gi]=withRefs[a];
+      const [ij,gj]=withRefs[b];
+      if(root(ii)===root(ij)) continue;
+      let score=0;
+      const refsI=gi.verlinkteRefs;
+      const refsJ=gj.verlinkteRefs;
+      const idI=gi.id?String(gi.id):'';
+      const idJ=gj.id?String(gj.id):'';
+      const realIdI=idI&&!/^G\d+$/.test(idI);
+      const realIdJ=idJ&&!/^G\d+$/.test(idJ);
+      // +4: gegenseitige ID-Referenz (A nennt B's Res-Nr, B nennt A's Res-Nr)
+      const mutualIJ=realIdI&&refsJ.includes(idI);
+      const mutualJI=realIdJ&&refsI.includes(idJ);
+      if(mutualIJ&&mutualJI) score+=4;
+      else if(mutualIJ||mutualJI) score+=2;
+      // +3: geteilte Referenz (beide nennen dieselbe dritte Nummer)
+      if(refsI.some(r=>refsJ.includes(r))) score+=3;
+      // +2: gleicher Nachname (Familie erkennbar)
+      const nameI=(gi.nachname||'').trim().toLowerCase();
+      const nameJ=(gj.nachname||'').trim().toLowerCase();
+      if(nameI&&nameJ&&nameI===nameJ&&nameI!=='unbekannt') score+=2;
+      // +1: Referenznummern ≤5 auseinander (aufeinanderfolgende Buchungen)
+      const numI=refsI.map(Number).filter(n=>n>0);
+      const numJ=refsJ.map(Number).filter(n=>n>0);
+      if(numI.length&&numJ.length&&numI.some(ri=>numJ.some(rj=>Math.abs(ri-rj)<=5))) score+=1;
+      // +1: gleiches Anreisedatum
+      if(gi.check_in&&gj.check_in&&gi.check_in===gj.check_in) score+=1;
+      if(score>=4) join(ii,ij);
+    }
+  }
   const groups={};
   guests.forEach((g,i)=>{
     if(!g.verlinkteRefs) return;
@@ -4608,7 +4646,9 @@ function fmtCellValue(cell){
   // Formelzellen: nur das berechnete Ergebnis anzeigen
   if(typeof raw==='object'&&raw!==null&&'result' in raw) return String(raw.result??'');
   // Zeitwerte (Excel-Bruchzahl 0–1 mit hh:mm-Format) → lesbare Uhrzeit
-  if(typeof raw==='number'&&raw>=0&&raw<1&&cell.numFmt&&/^hh?:mm/i.test(cell.numFmt)){
+  // numFmt kann direkt oder über cell.style kommen; lokalisierte Prefixe wie [$-407] erlauben keinen ^ Anker
+  const nf=(cell.numFmt||(cell.style&&cell.style.numFmt)||'');
+  if(typeof raw==='number'&&raw>=0&&raw<1&&nf&&/hh?:mm/i.test(nf)){
     const tot=Math.round(raw*1440);
     return `${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
   }
