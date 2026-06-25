@@ -1945,6 +1945,12 @@ function parsePanoramaArrival(wb){
   const hasZimmer=hdr.some(c=>c&&String(c).trim()==='Zimmer');
   if(!hasZimmer) return null;
 
+  // Spalten dynamisch aus der Überschriftenzeile ermitteln — robuster als Hardcoding,
+  // da PMS-Exporte je nach Version/Konfiguration leicht unterschiedliche Spaltenpositionen haben.
+  const findCol=labels=>hdr.findIndex(c=>c&&labels.some(l=>String(c).trim().toLowerCase()===l.toLowerCase()));
+  const colResNr=findCol(['res.-nr.','res.nr.','res-nr','res-nr.','res. nr.','reservierungsnr','buchungsnr.','buchungsnummer','conf.nr.','bestätigungsnummer']);
+  const colBemZi=findCol(['bemerk. (zi.)','bemerk.(zi.)','bemerk (zi.)','bemerk.zi.','bemerkung (zimmer)','bemerk. zi.']);
+
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
   for(let i=7;i<aoa.length;i++){
@@ -1957,13 +1963,14 @@ function parsePanoramaArrival(wb){
 
     const naechte=parseInt(row[5])||1;
     const pax=parseInt(row[7])||1;
-    const bemerkung=String(row[8]||'').trim();
+    // Beide Bemerkungsspalten zusammenführen (Bemerk. + Bemerk. (Zi.))
+    const bemHaupt=String(row[8]||'').trim();
+    const bemZi=colBemZi>=0?String(row[colBemZi]||'').trim():'';
+    const bemerkung=[bemHaupt,bemZi].filter(Boolean).join(' / ');
     const resStatus=String(row[14]||'').trim();
-    // Col A (index 0) enthält in vielen PMS-Exporten die Reservierungsnummer —
-    // nur übernehmen wenn der Wert numerisch ist (3–8 Stellen), damit Row-Counter
-    // oder leere Zellen nicht als Res.-Nr. fehlinterpretiert werden.
-    const colA=String(row[0]||'').trim();
-    const gastId=/^\d{3,8}$/.test(colA)?colA:'';
+    // Reservierungsnummer aus der dynamisch gefundenen Spalte lesen
+    const resNrRaw=colResNr>=0?String(row[colResNr]||'').trim():'';
+    const gastId=/^\d{3,8}$/.test(resNrRaw)?resNrRaw:'';
 
     // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
     const firstPerson=(nameRaw.split(',')[0]||'').trim();
