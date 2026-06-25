@@ -4214,7 +4214,7 @@ function updateTemplateStatus(){
 // färbt dadurch ungewollt auch andere Zellen mit — daher immer über eine Kopie
 // des Style-Objekts setzen.
 function setCellFill(cell,fill){
-  cell.style=Object.assign({},cell.style,{fill});
+  cell.fill=fill;
 }
 function copyCellStyle(dst,src){
   dst.style=Object.assign({},src.style);
@@ -4412,17 +4412,12 @@ async function buildFilledTischplanSheet(){
       const existing=entry.existing||{};
       const kat=TISCH_KAT_MAP[tid];
       const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
-      if(katFill) setCellFill(ws.getCell(xlRow,col.tisch),katFill); // Tisch-ID-Zelle
       if(g){
         const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
           +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
         const appExtras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
         const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-        if(col.zimmer){
-          const zimmerCell=ws.getCell(xlRow,col.zimmer);
-          zimmerCell.value=String(g.zimmer||'');
-          if(katFill) setCellFill(zimmerCell,katFill);
-        }
+        if(col.zimmer) ws.getCell(xlRow,col.zimmer).value=String(g.zimmer||'');
         if(col.status) ws.getCell(xlRow,col.status).value=statusStr;
         if(col.name) ws.getCell(xlRow,col.name).value=name;
         if(col.pax) ws.getCell(xlRow,col.pax).value=g.pax||1;
@@ -4437,6 +4432,13 @@ async function buildFilledTischplanSheet(){
         if(col.pax) ws.getCell(xlRow,col.pax).value=existing.pax??null;
         ws.getCell(xlRow,scoreCol).value=null;
         ws.getCell(xlRow,extrasCol).value=existing.extras??null;
+      }
+      // Kategorie-Farbe auf alle Datenzellen der Tisch-Zeile: überschreibt
+      // Theme-Colors aus der Vorlage → garantiert sichtbare Farben in Preview + Export
+      if(katFill){
+        [col.tisch,col.zimmer,col.status,col.name,col.pax,scoreCol,extrasCol]
+          .filter(c=>c!=null)
+          .forEach(c=>setCellFill(ws.getCell(xlRow,c),katFill));
       }
     });
   });
