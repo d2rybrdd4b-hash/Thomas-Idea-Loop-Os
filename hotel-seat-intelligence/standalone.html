@@ -1255,7 +1255,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 20.06.2026</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: 8bfeb7e</p>
       </div>
     </div>
 
@@ -4641,46 +4641,58 @@ async function exportToTischplanTemplate(){
   // zuverlässig über ExcelJS-API korrigieren lassen:
   // (1) Zimmer-Spaltenbreiten werden mit originalen Template-Werten (66) serialisiert statt 9
   // (2) Zeit-Dezimalwerte in Zeile 1 werden trotz next.value=string manchmal als Zahl serialisiert
+  let sheetjsOk=false;
   try{
     const wb2=XLSX.read(new Uint8Array(buffer),{type:'array'});
     const sheetName=wb2.SheetNames.find(n=>/^Tischplan/i.test(n))||wb2.SheetNames[0];
-    if(sheetName){
-      const ws2=wb2.Sheets[sheetName];
-      if(ws2){
-        // Fix 1: Zimmer-Spaltenbreiten auf max. 9 Zeichen deckeln
-        const zimmerCols=(built.zimmerCols||[]).map(z=>z.c).filter(c=>c!=null);
-        if(zimmerCols.length){
-          if(!ws2['!cols']) ws2['!cols']=[];
-          const maxCol=Math.max(...zimmerCols);
-          while(ws2['!cols'].length<maxCol) ws2['!cols'].push({});
-          zimmerCols.forEach(c=>{
-            const cd=ws2['!cols'][c-1]||{};
-            if((cd.wch||999)>9){cd.wch=9;ws2['!cols'][c-1]=cd;}
-          });
+    if(!sheetName) throw new Error('Kein Tischplan-Sheet gefunden. Sheets: '+wb2.SheetNames.join(', '));
+    const ws2=wb2.Sheets[sheetName];
+    if(!ws2) throw new Error('Sheet-Objekt leer für: '+sheetName);
+    // Fix 1: Zimmer-Spaltenbreiten auf max. 9 Zeichen deckeln.
+    // Setzt alle SheetJS-Breiten-Properties (wch, width, wpx, customWidth) zur Sicherheit.
+    const zimmerCols=(built.zimmerCols||[]).map(z=>z.c).filter(c=>c!=null);
+    if(zimmerCols.length){
+      if(!ws2['!cols']) ws2['!cols']=[];
+      const maxCol=Math.max(...zimmerCols);
+      while(ws2['!cols'].length<maxCol) ws2['!cols'].push({});
+      zimmerCols.forEach(c=>{
+        let cd=ws2['!cols'][c-1];
+        if(!cd){cd={};ws2['!cols'][c-1]=cd;}
+        const curW=cd.wch!=null?cd.wch:(cd.width!=null?cd.width:999);
+        if(curW>9){
+          cd.wch=9;cd.width=9;cd.wpx=63;cd.customWidth=true;
         }
-        // Fix 2: Uhrzeit-Dezimalwert (0..1) in Zeile 1 durch "HH:MM"-String ersetzen.
-        // Sucht Muster: Kürzel-Zelle (z.B. "APP") gefolgt von Dezimalzahl → wandelt die
-        // Dezimalzahl direkt im SheetJS-Objekt in einen String um.
-        const now=new Date();
-        const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-        const sr=ws2['!ref']?XLSX.utils.decode_range(ws2['!ref']):{s:{r:0,c:0},e:{r:0,c:20}};
-        for(let col=sr.s.c;col<sr.e.c;col++){
-          const la=XLSX.utils.encode_cell({r:0,c:col});
-          const ta=XLSX.utils.encode_cell({r:0,c:col+1});
-          const lc=ws2[la],tc=ws2[ta];
-          if(!lc||!tc) continue;
-          if(typeof lc.v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(lc.v.trim())&&
-             typeof tc.v==='number'&&tc.v>0&&tc.v<1){
-            lc.v='APP';lc.t='s';delete lc.f;
-            tc.v=timeStr;tc.t='s';delete tc.f;delete tc.z;
-          }
-        }
+      });
+    }
+    // Fix 2: Uhrzeit-Dezimalwert (0..1) in Zeile 1 durch "HH:MM"-String ersetzen.
+    // Sucht Muster: Kürzel-Zelle (z.B. "APP") gefolgt von Dezimalzahl → direkt setzen.
+    const now=new Date();
+    const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    const sr=ws2['!ref']?XLSX.utils.decode_range(ws2['!ref']):{s:{r:0,c:0},e:{r:0,c:20}};
+    let timeCellsFixed=0;
+    for(let col=sr.s.c;col<sr.e.c;col++){
+      const la=XLSX.utils.encode_cell({r:0,c:col});
+      const ta=XLSX.utils.encode_cell({r:0,c:col+1});
+      const lc=ws2[la],tc=ws2[ta];
+      if(!lc||!tc) continue;
+      if(typeof lc.v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(lc.v.trim())&&
+         typeof tc.v==='number'&&tc.v>0&&tc.v<1){
+        lc.v='APP';lc.t='s';delete lc.f;
+        tc.v=timeStr;tc.t='s';delete tc.f;delete tc.z;
+        timeCellsFixed++;
       }
     }
-    buffer=XLSX.write(wb2,{type:'array',bookType:'xlsx'});
-  }catch(e){console.warn('XLSX post-process failed',e);}
+    const newBuf=XLSX.write(wb2,{type:'array',bookType:'xlsx'});
+    if(!newBuf||newBuf.length<1000) throw new Error('XLSX.write ergab leeren Buffer ('+( newBuf?newBuf.length:0)+' Bytes)');
+    buffer=newBuf;
+    sheetjsOk=true;
+    console.log('[HSI] SheetJS-Fix OK — Zimmer-Spalten:',zimmerCols,'Uhrzeit-Zellen:',timeCellsFixed,'Buffer:',buffer.length,'Bytes');
+  }catch(e){
+    console.error('[HSI] SheetJS-Fix FEHLER:',e);
+    setStatus('Export OK (SheetJS-Fix fehlgeschlagen: '+e.message+')','warn');
+  }
   triggerXlsxDownload(buffer,`Tischplan_${hotel}_${ds}.xlsx`);
-  setStatus('Hotelier-Tischplan exportiert','go');
+  setStatus(sheetjsOk?'Hotelier-Tischplan exportiert (SheetJS-Fix OK ✓)':'Hotelier-Tischplan exportiert (SheetJS-Fix fehlgeschlagen — Spaltenbreiten/Uhrzeit ggf. manuell prüfen)','go');
   el('s5-done').style.display='block';
 }
 
