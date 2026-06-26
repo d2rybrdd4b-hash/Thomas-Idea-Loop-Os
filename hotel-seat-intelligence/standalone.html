@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-e</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-f</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-e</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-f</p>
       </div>
     </div>
 
@@ -4369,12 +4369,21 @@ function insertWsColumn(ws,col){
 // Baut die befüllte Tischplan-Vorlage (Workbook + Gast-Zuordnung) ohne sie herunterzuladen —
 // wird sowohl für den echten Export als auch für die Vorschau verwendet.
 async function buildFilledTischplanSheet(){
-  if(!tischplanTemplate) return null;
   if(!calcDone||(lastTables||[]).length===0) return null;
+  // Frisches Workbook — kein Template-Laden, keine ExcelJS/SheetJS-Inkompatibilität.
+  // Template (sofern hochgeladen) liefert nur Tisch-Reihenfolge + Bereichsnamen.
   const wb=new ExcelJS.Workbook();
-  await wb.xlsx.load(tischplanTemplate);
-  const ws=wb.worksheets.find(w=>/^Tischplan/i.test(w.name.trim()))||wb.worksheets[0];
-  // Guest lookup by table ID
+  const ws=wb.addWorksheet('Tischplan');
+  // 7 feste Spalten — Breiten hier definiert, immer korrekt, kein ExcelJS-Template-Bug
+  const N=7;
+  ws.getColumn(1).width=10; // Tisch
+  ws.getColumn(2).width=9;  // Zimmer (schmal, nur Zimmernummern)
+  ws.getColumn(3).width=8;  // Status
+  ws.getColumn(4).width=22; // Gastname
+  ws.getColumn(5).width=5;  // PAX
+  ws.getColumn(6).width=16; // Priorität Score
+  ws.getColumn(7).width=30; // Extras
+  // Gast-Lookup: tisch_id → zugewiesener Gast
   const guestByTable={};
   (lastTables||[]).forEach(t=>{
     if(t.gast_id){
@@ -4382,149 +4391,103 @@ async function buildFilledTischplanSheet(){
       if(g) guestByTable[String(t.tisch_id)]=g;
     }
   });
-  // Führt App-Text und vorhandenen (ggf. handschriftlich vom Hotelier eingetragenen)
-  // Text zusammen, statt den manuellen Inhalt beim Export zu verlieren.
-  const mergeExtras=(appText,existingText)=>{
-    const ex=String(existingText||'').trim();
-    const app=String(appText||'').trim();
-    if(!ex) return app;
-    if(!app) return ex;
-    if(app.toLowerCase().includes(ex.toLowerCase())) return app;
-    return ex+' | '+app;
-  };
-  // Ein oder mehrere Tischblöcke verarbeiten (z.B. "Panorama Restaurant" + "Neue
-  // Restaurants" nebeneinander, oder genau ein Block beim alten Format). Spalten
-  // sind 1-basiert relativ zur jeweiligen Vorlage: Tisch, Zimmer, Status, Name,
-  // PAX, Priorität Score (neu eingefügt), Extras.
-  const useBlocks=(tischplanBlocks&&tischplanBlocks.length)?tischplanBlocks:[null];
-  // Rechts beginnen: das Einfügen einer Spalte in einem Block darf die noch nicht
-  // bearbeiteten, weiter links liegenden Blöcke nicht verschieben.
-  const order=useBlocks.slice().sort((a,b)=>(b?b.tischCol:1)-(a?a.tischCol:1));
-  let lastRange=null;
-  const actualZimmerCols=[];
-  order.forEach(origBlock=>{
-    // Parser liefert 0-basierte Spalten; altes Einzelblock-Format nutzt feste
-    // Spalten A-F als Fallback (Tisch=A, Zimmer=B, Status=C, Name=D, Pax=E, Extras=F).
-    const col=origBlock?{
-      tisch:origBlock.tischCol+1,
-      zimmer:origBlock.zimmerCol!=null?origBlock.zimmerCol+1:null,
-      status:origBlock.statusCol!=null?origBlock.statusCol+1:null,
-      name:origBlock.gastnameCol!=null?origBlock.gastnameCol+1:null,
-      pax:origBlock.paxCol!=null?origBlock.paxCol+1:null,
-      extras:origBlock.extrasCol!=null?origBlock.extrasCol+1:null
-    }:{tisch:1,zimmer:2,status:3,name:4,pax:5,extras:6};
-    // Zimmer-Spalte jetzt (vor der Einfügung der Score-Spalte) festhalten — danach
-    // könnten später verarbeitete (linkere) Blöcke alle bisherigen Positionen verschieben.
-    if(col.zimmer!=null) actualZimmerCols.push({c:col.zimmer});
-    if(col.extras==null) return; // keine Extras-Spalte erkannt — Block überspringen
-    // Prüfen, ob "Priorität Score"-Spalte bereits in der Vorlage existiert (z.B. aus
-    // einem früheren Export). Falls ja → vorhandene Spalte wiederverwenden statt eine
-    // neue einzufügen; sonst wächst die Datei bei jedem Re-Export um eine Spalte.
-    let existingScoreCol=null;
-    if(col.pax!=null){
-      const wsDim=ws.dimensions;
-      const scanBottom=wsDim?Math.min(wsDim.bottom,6):6;
-      outer:for(let r=1;r<=scanBottom;r++){
-        for(let c=col.pax+1;c<col.extras;c++){
-          const v=ws.getCell(r,c).value;
-          if(v&&String(v).trim().toLowerCase()==='priorität score'){existingScoreCol=c;break outer;}
-        }
-      }
+  // Style-Helfer
+  const thinBorder={style:'thin',color:{argb:'FFCCCCCC'}};
+  const allBorders={top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder};
+  function applyHeaderStyle(row){
+    row.height=18;
+    for(let c=1;c<=N;c++){
+      const cell=row.getCell(c);
+      cell.font={bold:true,size:9};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
+      cell.border=allBorders;
+      cell.alignment={vertical:'middle',horizontal:'center',wrapText:false};
     }
-    let range,scoreCol,extrasCol;
-    if(existingScoreCol!==null){
-      const wsDim=ws.dimensions||{top:1,bottom:ws.rowCount,right:ws.columnCount};
-      range={top:wsDim.top,bottom:wsDim.bottom,right:wsDim.right};
-      lastRange=range;
-      scoreCol=existingScoreCol;
-      extrasCol=col.extras;
-    }else{
-      range=insertWsColumn(ws,col.extras);
-      lastRange=range;
-      scoreCol=col.extras;extrasCol=col.extras+1;
-      // Kopfzeile "Extras" (jetzt nach rechts verschoben) finden und davor "Priorität Score" beschriften
-      for(let r=range.top;r<=range.bottom;r++){
-        const cell=ws.getCell(r,extrasCol);
-        if(cell.value&&String(cell.value).trim().toLowerCase()==='extras'){
-          const scoreCell=ws.getCell(r,scoreCol);
-          scoreCell.value='Priorität Score';
-          copyCellStyle(scoreCell,ws.getCell(r,col.pax||scoreCol-1));
-        }
-      }
-      // Eine neue Spalte wurde bei col.extras eingefügt: alle bereits gespeicherten
-      // Zimmer-Positionen, die rechts davon liegen (= frühere Blöcke, weiter rechts),
-      // um +1 verschieben — sonst trifft der Cap-Code später die falsche Spalte.
-      for(const entry of actualZimmerCols) if(entry.c>=col.extras) entry.c++;
+    row.getCell(4).alignment={vertical:'middle',horizontal:'left'};
+    row.getCell(7).alignment={vertical:'middle',horizontal:'left'};
+  }
+  function applyDataStyle(row,katFill){
+    row.height=16;
+    for(let c=1;c<=N;c++){
+      const cell=row.getCell(c);
+      cell.font={size:9};
+      cell.border=allBorders;
+      cell.alignment={vertical:'middle',horizontal:'left',wrapText:false};
+      if(katFill) cell.fill=katFill;
     }
-    Object.entries(tischplanMap).forEach(([tid,entry])=>{
-      const belongsToBlock=origBlock?(entry.block===origBlock):!entry.block;
-      if(!belongsToBlock) return;
-      const xlRow=entry.r+1;
+    row.getCell(5).alignment={vertical:'middle',horizontal:'center'};
+  }
+  // Zeile 1: Info-Kopfzeile (Hotel, Datum, APP, Uhrzeit)
+  const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
+  const now=new Date();
+  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const dateStr=now.toLocaleDateString('de-DE');
+  const infoRow=ws.addRow([hotelName,'','APP',timeStr,dateStr,'','']);
+  infoRow.height=20;
+  infoRow.getCell(1).font={bold:true,size:11};
+  infoRow.getCell(3).font={size:9,color:{argb:'FF999999'}};
+  infoRow.getCell(4).font={size:9};
+  infoRow.getCell(5).font={size:9,color:{argb:'FF999999'}};
+  ws.mergeCells(1,1,1,2);
+  ws.views=[{state:'frozen',xSplit:0,ySplit:2}];
+  // Tisch-Reihenfolge: aus Template (tischplanMap) oder sortiert nach Kategorie
+  const hasTischplan=tischplanTemplate&&Object.keys(tischplanMap||{}).length>0;
+  const useBlocks=hasTischplan&&(tischplanBlocks||[]).length?tischplanBlocks:[null];
+  useBlocks.forEach((block,bi)=>{
+    if(bi>0){const sepRow=ws.addRow(['','','','','','','']);sepRow.height=6;}
+    // Bereichs-Header nur bei mehreren Blöcken anzeigen
+    if(useBlocks.length>1&&block&&block.bereich){
+      const secRow=ws.addRow([block.bereich,'','','','','','']);
+      secRow.height=16;
+      secRow.getCell(1).font={bold:true,size:9,color:{argb:'FF333333'}};
+      secRow.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0F0F0'}};
+      ws.mergeCells(secRow.number,1,secRow.number,N);
+    }
+    // Spalten-Kopfzeile
+    const hdrRow=ws.addRow(['Tisch','Zimmer','Status','Gastname','PAX','Priorität Score','Extras']);
+    applyHeaderStyle(hdrRow);
+    // Tischzeilen
+    let rows;
+    if(hasTischplan){
+      rows=Object.entries(tischplanMap)
+        .filter(([,e])=>block?(e.block===block):!e.block)
+        .sort((a,b)=>a[1].r-b[1].r);
+    } else {
+      rows=(lastTables||[]).filter(t=>t.aktiv)
+        .sort((a,b)=>{
+          const ka=TISCH_KAT_MAP[String(a.tisch_id)]||9,kb=TISCH_KAT_MAP[String(b.tisch_id)]||9;
+          return ka!==kb?ka-kb:String(a.tisch_id).localeCompare(String(b.tisch_id));
+        })
+        .map(t=>[String(t.tisch_id),{r:0,block:null,existing:{}}]);
+    }
+    rows.forEach(([tid,entry])=>{
       const g=guestByTable[tid];
-      const existing=entry.existing||{};
       const kat=TISCH_KAT_MAP[tid];
       const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
+      const ex=entry.existing||{};
+      let zimmer='',status='',name='',pax='',score='',extras='';
       if(g){
-        const name=[g.nachname,g.vorname].filter(Boolean).join(', ')
-          +(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
-        const appExtras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&v.trim()).join(' | ');
-        const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-        if(col.zimmer) ws.getCell(xlRow,col.zimmer).value=String(g.zimmer||'');
-        if(col.status) ws.getCell(xlRow,col.status).value=statusStr;
-        if(col.name) ws.getCell(xlRow,col.name).value=name;
-        if(col.pax) ws.getCell(xlRow,col.pax).value=g.pax||1;
-        ws.getCell(xlRow,scoreCol).value=buildScoreBreakdown(g);
-        ws.getCell(xlRow,extrasCol).value=mergeExtras(appExtras,existing.extras);
+        zimmer=String(g.zimmer||'');
+        // BL = Bleibegast (weder An- noch Abreise heute) — explizit anzeigen
+        status=(!g.status||g.status==='BL')?'BL':(g.status==='AN·AB'?'AN/AB':g.status);
+        name=[g.nachname,g.vorname].filter(Boolean).join(', ')+(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
+        pax=g.pax||1;
+        score=buildScoreBreakdown(g);
+        extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
       } else {
-        // Kein von der App zugewiesener Gast: vorhandenen, ggf. handschriftlich vom
-        // Hotelier eingetragenen Inhalt aus der Vorlage beibehalten statt zu leeren.
-        if(col.zimmer) ws.getCell(xlRow,col.zimmer).value=existing.zimmer??null;
-        if(col.status) ws.getCell(xlRow,col.status).value=existing.status??null;
-        if(col.name) ws.getCell(xlRow,col.name).value=existing.name??null;
-        if(col.pax) ws.getCell(xlRow,col.pax).value=existing.pax??null;
-        ws.getCell(xlRow,scoreCol).value=null;
-        ws.getCell(xlRow,extrasCol).value=existing.extras??null;
+        // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
+        zimmer=String(ex.zimmer||'');status=String(ex.status||'');
+        name=String(ex.name||'');pax=ex.pax!=null?ex.pax:'';extras=String(ex.extras||'');
       }
-      // Kategorie-Farbe auf alle Datenzellen der Tisch-Zeile: überschreibt
-      // Theme-Colors aus der Vorlage → garantiert sichtbare Farben in Preview + Export
-      if(katFill){
-        [col.tisch,col.zimmer,col.status,col.name,col.pax,scoreCol,extrasCol]
-          .filter(c=>c!=null)
-          .forEach(c=>setCellFill(ws.getCell(xlRow,c),katFill));
-      }
+      const dataRow=ws.addRow([tid,zimmer,status,name,pax,score,extras]);
+      applyDataStyle(dataRow,katFill);
     });
   });
-  // Graue Trenn-/Zonenbalken zwischen den Tisch-Blöcken entfernen, um die Tabelle
-  // kompakter darzustellen — nur Zeilen oberhalb des letzten erkannten Tisches.
-  // Bereichs-/Block-Header werden dabei bewusst NICHT gelöscht, sonst verschwinden
-  // die Abschnittsüberschriften aus dem exportierten Tischplan.
-  const dataRows=new Set(Object.values(tischplanMap).map(o=>o.r+1));
-  const bereichXlRows=new Set((tischplanBereichRows||[]).map(r=>r+1));
-  const maxTischRow=dataRows.size?Math.max(...dataRows):0;
-  const sepRows=[];
-  for(let r=3;r<=maxTischRow;r++){
-    if(!dataRows.has(r)&&!bereichXlRows.has(r)) sepRows.push(r);
-  }
-  const afterDelete=deleteWsRows(ws,sepRows);
-  // Bereits vorhandene Tischkategorien-Legende entfernen (z.B. aus der hochgeladenen
-  // Vorlage oder einem früheren Export), bevor unten eine neue angehängt wird — sonst
-  // sammeln sich bei jedem erneuten Export weitere Kopien der Legende an.
-  stripExistingLegende(ws);
-  // Spaltenbreiten an den tatsächlichen Tabelleninhalt anpassen, bevor die Legende
-  // angehängt wird — sonst würde die lange Tisch-ID-Liste der Legende Spalte C
-  // (im Haupttisch die schmale "Status"-Spalte) unnötig aufblähen.
-  const rightCol=lastRange?lastRange.right:1;
-  autoFitColumns(ws,1,afterDelete.bottom,1,rightCol);
-  // Zimmer-Spalten aller Blöcke auf max. 9 Einheiten deckeln (Zimmernummern brauchen nie mehr).
-  // Verwendet die während der Block-Verarbeitung nachgeführten tatsächlichen ExcelJS-Spaltennummern
-  // (statt der originalen 0-basierten Indizes aus tischplanBlocks, die nach Einfügungen veraltet sind).
-  actualZimmerCols.forEach(({c})=>{
-    if(c!=null){const wc=ws.getColumn(c);if((wc.width||0)>9)wc.width=9;}
-  });
-  addKategorienLegende(ws,Object.keys(tischplanMap),rightCol);
-  stampExportZeit(ws);
+  // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
+  const allIds=hasTischplan?Object.keys(tischplanMap):(lastTables||[]).map(t=>String(t.tisch_id));
+  addKategorienLegende(ws,allIds,N);
   buildSortierungZimmerSheet(wb,ws);
-  return{wb,ws,guestByTable,zimmerCols:[...actualZimmerCols]};
+  return{wb,ws,guestByTable};
 }
 
 // Die Kopfzeile der Hotelier-Vorlage enthält pro Block ein Kürzel + eine Excel-
@@ -4663,32 +4626,15 @@ function triggerXlsxDownload(buffer,filename){
 }
 
 async function exportToTischplanTemplate(){
-  if(!tischplanTemplate){setStatus('Bitte zuerst eine Tischplan-Vorlage hochladen','err');return;}
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
   const built=await buildFilledTischplanSheet();
+  if(!built){setStatus('Fehler beim Erstellen des Tischplans','err');return;}
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
   const ds=new Date().toISOString().slice(0,10);
-  let buffer=await built.wb.xlsx.writeBuffer();
-  // ExcelJS-Buffer direkt verwenden — kein SheetJS-Write-Back.
-  // XLSX.write(wb2,...) zerstört bei einem Round-Trip alle ExcelJS-Zelldaten,
-  // weil ExcelJS und SheetJS unterschiedliche interne XLSX-Strukturen erzeugen.
-  // Spaltenbreiten und Uhrzeit werden vollständig über die ExcelJS-API gesetzt
-  // (autoFitColumns + stampExportZeit oben in buildFilledTischplanSheet).
-  let sanityOk=false;
-  try{
-    const wb2=XLSX.read(new Uint8Array(buffer),{type:'array'});
-    const sn=wb2.SheetNames.find(n=>/^Tischplan/i.test(n))||wb2.SheetNames[0];
-    const ws2=sn?wb2.Sheets[sn]:null;
-    const cellCount=ws2?Object.keys(ws2).filter(k=>!k.startsWith('!')).length:0;
-    sanityOk=cellCount>5;
-    console.log('[HSI] Export-Sanity: '+cellCount+' Zellen, Sheets:',wb2.SheetNames,'Buffer:',buffer.byteLength,'Bytes');
-    if(!sanityOk) console.warn('[HSI] Wenige Zellen im ExcelJS-Buffer — Vorlage ggf. nicht korrekt befüllt');
-  }catch(e){
-    console.warn('[HSI] Export-Sanity-Check Fehler:',e);
-  }
+  const buffer=await built.wb.xlsx.writeBuffer();
   triggerXlsxDownload(buffer,`Tischplan_${hotel}_${ds}.xlsx`);
-  setStatus(sanityOk?'Hotelier-Tischplan exportiert ✓':'Hotelier-Tischplan exportiert (Sanity-Check: wenige Zellen — Vorlage hochgeladen?)','go');
+  setStatus('Hotelier-Tischplan exportiert ✓','go');
   el('s5-done').style.display='block';
 }
 
@@ -4774,36 +4720,9 @@ async function toggleExcelPreview(){
   if(!wrap) return;
   if(wrap.style.display==='block'){wrap.style.display='none';return;}
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
-  if(!tischplanTemplate){
-    // Demo-Modus: synthetische Vorschau aus lastTables + assignedGuests
-    const guestByTisch={};
-    (assignedGuests||[]).forEach(g=>{if(g.zugewiesener_tisch) guestByTisch[g.zugewiesener_tisch]=g;});
-    const cols=['Tisch','Status','Zimmer','Gastname','PAX'];
-    let html='<table style="border-collapse:collapse;font-size:9px;line-height:1.25;color:#1A1A2E">';
-    html+='<tr>'+cols.map(c=>`<th style="border:1px solid #999;padding:2px 5px;background:#eee;font-weight:bold">${c}</th>`).join('')+'</tr>';
-    (lastTables||[]).forEach(t=>{
-      const g=guestByTisch[t.tisch_id];
-      const kat=TISCH_KAT_MAP[String(t.tisch_id)]||0;
-      const bg=kat&&KAT_FARBEN[kat]?`background-color:#${KAT_FARBEN[kat]}`:'';
-      const status=!t.aktiv?'Inaktiv':t.blocked_for?'Blockiert':t.belegtPax>0?'Belegt':'Frei';
-      const zimmer=g?String(g.zimmer||''):'';
-      const name=g?[g.vorname,g.nachname].filter(Boolean).join(' '):'';
-      const pax=t.belegtPax>0?String(t.belegtPax):'';
-      html+=`<tr>
-        <td style="border:1px solid #ccc;padding:1px 4px;${bg}">${t.tisch_id}</td>
-        <td style="border:1px solid #ccc;padding:1px 4px">${status}</td>
-        <td style="border:1px solid #ccc;padding:1px 4px">${zimmer}</td>
-        <td style="border:1px solid #ccc;padding:1px 4px">${name}</td>
-        <td style="border:1px solid #ccc;padding:1px 4px;text-align:center">${pax}</td>
-      </tr>`;
-    });
-    html+='</table>';
-    wrap.innerHTML=html;
-    wrap.style.display='block';
-    return;
-  }
+  // Vorschau = identisch mit Excel-Export (gleiche Funktion, gleiche Daten, gleiche Farben)
   const built=await buildFilledTischplanSheet();
-  if(!built) return;
+  if(!built){setStatus('Vorschau konnte nicht erstellt werden','err');return;}
   const dim=built.ws.dimensions||{top:1,bottom:built.ws.rowCount,right:built.ws.columnCount};
   wrap.innerHTML=buildSheetPreviewHtml(built.ws,dim);
   wrap.style.display='block';
