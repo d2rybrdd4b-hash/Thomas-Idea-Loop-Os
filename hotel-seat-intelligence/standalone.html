@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-g</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-h</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-g</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-h</p>
       </div>
     </div>
 
@@ -4391,12 +4391,14 @@ async function buildFilledTischplanSheet(){
   ws.getColumn(5).width=5;  // PAX
   ws.getColumn(6).width=16; // Priorität Score
   ws.getColumn(7).width=30; // Extras
-  // Gast-Lookup: tisch_id → zugewiesener Gast
-  const guestByTable={};
-  (lastTables||[]).forEach(t=>{
-    if(t.gast_id){
-      const g=(assignedGuests||[]).find(g=>g.id===t.gast_id);
-      if(g) guestByTable[String(t.tisch_id)]=g;
+  // Gast-Lookup: tisch_id → [alle Gäste] — inkl. verlinkter Mehrfach-Buchungen (zu #...)
+  // Direkt aus assignedGuests, nicht aus lastTables.gast_id (das speichert nur gs[0])
+  const guestsByTable={};
+  (assignedGuests||[]).forEach(g=>{
+    if(g.zugewiesener_tisch){
+      const tid=String(g.zugewiesener_tisch);
+      if(!guestsByTable[tid]) guestsByTable[tid]=[];
+      guestsByTable[tid].push(g);
     }
   });
   // Style-Helfer
@@ -4470,19 +4472,29 @@ async function buildFilledTischplanSheet(){
         .map(t=>[String(t.tisch_id),{r:0,block:null,existing:{}}]);
     }
     rows.forEach(([tid,entry])=>{
-      const g=guestByTable[tid];
+      const gs=guestsByTable[tid]||[];
       const kat=TISCH_KAT_MAP[tid];
       const katFill=kat?{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+KAT_FARBEN[kat]}}:null;
       const ex=entry.existing||{};
       let zimmer='',status='',name='',pax='',score='',extras='';
-      if(g){
+      if(gs.length===1){
+        const g=gs[0];
         zimmer=String(g.zimmer||'');
-        // BL = Bleibegast (weder An- noch Abreise heute) — explizit anzeigen
         status=(!g.status||g.status==='BL')?'BL':(g.status==='AN·AB'?'AN/AB':g.status);
         name=[g.nachname,g.vorname].filter(Boolean).join(', ')+(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
         pax=g.pax||1;
         score=buildScoreBreakdown(g);
         extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
+      } else if(gs.length>1){
+        // Verlinkte Gruppe (zu #...): alle Zimmer anzeigen, PAX addieren, Namen deduplizieren
+        zimmer=gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', ');
+        const statSet=[...new Set(gs.map(g=>(!g.status||g.status==='BL')?'BL':(g.status==='AN·AB'?'AN/AB':g.status)))];
+        status=statSet.join('/');
+        const nameSet=[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))];
+        name=nameSet.join(' + ')+(gs.some(g=>g.vip)?' ⭐':'')+(gs.some(g=>g.stammgast)?' 🔁':'');
+        pax=gs.reduce((s,g)=>s+(g.pax||1),0);
+        score=buildScoreBreakdown(gs[0]);
+        extras=[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | ');
       } else {
         // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
         zimmer=String(ex.zimmer||'');status=String(ex.status||'');
@@ -4491,12 +4503,34 @@ async function buildFilledTischplanSheet(){
       const dataRow=ws.addRow([tid,zimmer,status,name,pax,score,extras]);
       applyDataStyle(dataRow,katFill);
     });
+    // Summen-Zeilen je Hundert-Bereich (600er, 700er, …) — PAX aus allen Gästen der Gruppe
+    const sumByH={};
+    rows.forEach(([tid])=>{
+      const n=parseInt(tid)||0;
+      if(n<100) return;
+      const h=Math.floor(n/100)*100;
+      if(!sumByH[h]) sumByH[h]={pax:0,tische:0,belegt:0};
+      sumByH[h].tische++;
+      const gs=guestsByTable[tid]||[];
+      if(gs.length>0){sumByH[h].pax+=gs.reduce((s,g)=>s+(g.pax||1),0);sumByH[h].belegt++;}
+    });
+    Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>{
+      const sumRow=ws.addRow(['Summe '+h+'er Tische','','',s.belegt+' belegt / '+s.tische+' gesamt','',s.pax,'']);
+      sumRow.height=15;
+      for(let c=1;c<=N;c++){
+        sumRow.getCell(c).border=allBorders;
+        sumRow.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
+      }
+      sumRow.getCell(1).font={bold:true,size:9};
+      sumRow.getCell(6).font={bold:true,size:9};
+      ws.mergeCells(sumRow.number,1,sumRow.number,3);
+    });
   });
   // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
   const allIds=hasTischplan?Object.keys(tischplanMap):(lastTables||[]).map(t=>String(t.tisch_id));
   addKategorienLegende(ws,allIds,N);
   buildSortierungZimmerSheet(wb,ws);
-  return{wb,ws,guestByTable};
+  return{wb,ws,guestsByTable};
 }
 
 // Die Kopfzeile der Hotelier-Vorlage enthält pro Block ein Kürzel + eine Excel-
