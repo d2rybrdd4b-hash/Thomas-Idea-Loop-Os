@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-h</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-i</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-h</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-i</p>
       </div>
     </div>
 
@@ -2956,7 +2956,15 @@ function detectGroups(guests){
   });
   Object.entries(byFull).forEach(([name,gs])=>{
     if(gs.length>1&&gs[0].nachname){
-      warns.push({level:'red',msg:`Doppelname: "${gs[0].vorname} ${gs[0].nachname}" kommt ${gs.length}× vor — Zimmer: ${gs.map(g=>g.zimmer).join(', ')}`});
+      const rooms=[...new Set(gs.map(g=>String(g.zimmer)))];
+      if(rooms.length<gs.length){
+        // Gleicher Name im SELBEN Zimmer = echte Dublette → kritisch
+        warns.push({level:'red',msg:`Doppelname: "${gs[0].vorname} ${gs[0].nachname}" kommt ${gs.length}× im selben Zimmer vor (${rooms.join(', ')}) — echte Dublette prüfen`});
+      } else {
+        // Gleicher Name, verschiedene Zimmer = Mehrfachbuchung einer Person (z.B. "zu #...")
+        // → nur Hinweis, kein kritischer Fehler
+        warns.push({level:'yellow',msg:`"${gs[0].vorname} ${gs[0].nachname}" mit ${gs.length} Zimmern (${rooms.join(', ')}) — Mehrfachbuchung, wird zusammengesetzt`});
+      }
     }
   });
   Object.entries(byLast).forEach(([last,gs])=>{
@@ -4480,7 +4488,8 @@ async function buildFilledTischplanSheet(){
       if(gs.length===1){
         const g=gs[0];
         zimmer=String(g.zimmer||'');
-        status=(!g.status||g.status==='BL')?'BL':(g.status==='AN·AB'?'AN/AB':g.status);
+        // BL (Bleibegast) bewusst leer lassen — nur AN/AB sorgt für Überblick
+        status=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
         name=[g.nachname,g.vorname].filter(Boolean).join(', ')+(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
         pax=g.pax||1;
         score=buildScoreBreakdown(g);
@@ -4488,7 +4497,7 @@ async function buildFilledTischplanSheet(){
       } else if(gs.length>1){
         // Verlinkte Gruppe (zu #...): alle Zimmer anzeigen, PAX addieren, Namen deduplizieren
         zimmer=gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', ');
-        const statSet=[...new Set(gs.map(g=>(!g.status||g.status==='BL')?'BL':(g.status==='AN·AB'?'AN/AB':g.status)))];
+        const statSet=[...new Set(gs.map(g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status)).filter(Boolean))];
         status=statSet.join('/');
         const nameSet=[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))];
         name=nameSet.join(' + ')+(gs.some(g=>g.vip)?' ⭐':'')+(gs.some(g=>g.stammgast)?' 🔁':'');
