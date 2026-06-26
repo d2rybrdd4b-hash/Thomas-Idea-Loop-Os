@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-f</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-g</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-f</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-g</p>
       </div>
     </div>
 
@@ -2871,6 +2871,14 @@ function buildLinkedGruppen(guests){
   const par=guests.map((_,i)=>i);
   const root=i=>{if(par[i]!==i) par[i]=root(par[i]);return par[i];};
   const join=(i,j)=>{const ri=root(i),rj=root(j);if(ri!==rj) par[ri]=rj;};
+  // Strategie 0: gleiche Reservierungs-ID → automatisch verbinden
+  // (eine Person mit mehreren Zimmern unter einer Buchungsnummer)
+  const idGroups={};
+  guests.forEach((g,i)=>{
+    const id=g.id?String(g.id):null;
+    if(id&&!/^G\d+$/.test(id)){if(!idGroups[id]) idGroups[id]=[];idGroups[id].push(i);}
+  });
+  Object.values(idGroups).forEach(idxs=>{for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);});
   const refToIdx={};
   guests.forEach((g,i)=>{
     if(!g.verlinkteRefs) return;
@@ -2926,10 +2934,10 @@ function buildLinkedGruppen(guests){
   }
   const groups={};
   guests.forEach((g,i)=>{
-    if(!g.verlinkteRefs) return;
-    const key=root(i);
-    if(!groups[key]) groups[key]=[];
-    groups[key].push(g);
+    const r=root(i);
+    if(!g.verlinkteRefs&&r===i) return; // isoliert und keine Refs → überspringen
+    if(!groups[r]) groups[r]=[];
+    groups[r].push(g);
   });
   return Object.values(groups).filter(gs=>gs.length>1);
 }
@@ -4413,7 +4421,8 @@ async function buildFilledTischplanSheet(){
       cell.font={size:9};
       cell.border=allBorders;
       cell.alignment={vertical:'middle',horizontal:'left',wrapText:false};
-      if(katFill) cell.fill=katFill;
+      // Farbe nur auf Tisch (1) und Zimmer (2) — nicht auf die gesamte Zeile
+      if(katFill&&(c===1||c===2)) cell.fill=katFill;
     }
     row.getCell(5).alignment={vertical:'middle',horizontal:'center'};
   }
