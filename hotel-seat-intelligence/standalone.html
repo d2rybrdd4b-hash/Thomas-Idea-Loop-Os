@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-i</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-j</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-i</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-j</p>
       </div>
     </div>
 
@@ -4452,6 +4452,9 @@ async function buildFilledTischplanSheet(){
   // Tisch-Reihenfolge: aus Template (tischplanMap) oder sortiert nach Kategorie
   const hasTischplan=tischplanTemplate&&Object.keys(tischplanMap||{}).length>0;
   const useBlocks=hasTischplan&&(tischplanBlocks||[]).length?tischplanBlocks:[null];
+  // Alle tatsächlich angezeigten Tisch-IDs über ALLE Blöcke sammeln — Basis für eine
+  // einzige, korrekte Summen-Übersicht am Ende (statt fehleranfälliger Block-Summen).
+  const summaryTids=[];
   useBlocks.forEach((block,bi)=>{
     if(bi>0){const sepRow=ws.addRow(['','','','','','','']);sepRow.height=6;}
     // Bereichs-Header nur bei mehreren Blöcken anzeigen
@@ -4511,30 +4514,49 @@ async function buildFilledTischplanSheet(){
       }
       const dataRow=ws.addRow([tid,zimmer,status,name,pax,score,extras]);
       applyDataStyle(dataRow,katFill);
-    });
-    // Summen-Zeilen je Hundert-Bereich (600er, 700er, …) — PAX aus allen Gästen der Gruppe
-    const sumByH={};
-    rows.forEach(([tid])=>{
-      const n=parseInt(tid)||0;
-      if(n<100) return;
-      const h=Math.floor(n/100)*100;
-      if(!sumByH[h]) sumByH[h]={pax:0,tische:0,belegt:0};
-      sumByH[h].tische++;
-      const gs=guestsByTable[tid]||[];
-      if(gs.length>0){sumByH[h].pax+=gs.reduce((s,g)=>s+(g.pax||1),0);sumByH[h].belegt++;}
-    });
-    Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>{
-      const sumRow=ws.addRow(['Summe '+h+'er Tische','','',s.belegt+' belegt / '+s.tische+' gesamt','',s.pax,'']);
-      sumRow.height=15;
-      for(let c=1;c<=N;c++){
-        sumRow.getCell(c).border=allBorders;
-        sumRow.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
-      }
-      sumRow.getCell(1).font={bold:true,size:9};
-      sumRow.getCell(6).font={bold:true,size:9};
-      ws.mergeCells(sumRow.number,1,sumRow.number,3);
+      summaryTids.push(tid);
     });
   });
+  // ── Summen-Übersicht: EINMAL am Ende, korrekt über den GESAMTEN Plan gerechnet ──
+  // Jeder Tisch zählt genau einmal (Set gegen Doppelzählung), PAX direkt aus den
+  // zugewiesenen Gästen — keine erfundenen Zahlen, keine Block-Fragmentierung.
+  const sumByH={};
+  const seenTid=new Set();
+  let totPax=0,totTische=0,totBelegt=0;
+  summaryTids.forEach(tid=>{
+    if(seenTid.has(tid)) return; // jeden Tisch nur einmal werten
+    seenTid.add(tid);
+    const n=parseInt(tid)||0;
+    if(n<100) return;
+    const h=Math.floor(n/100)*100;
+    if(!sumByH[h]) sumByH[h]={pax:0,tische:0,belegt:0};
+    const gs=guestsByTable[tid]||[];
+    const tablePax=gs.reduce((s,g)=>s+(g.pax||1),0);
+    sumByH[h].tische++;totTische++;
+    if(gs.length>0){sumByH[h].pax+=tablePax;sumByH[h].belegt++;totPax+=tablePax;totBelegt++;}
+  });
+  if(totTische>0){
+    const sep=ws.addRow(['','','','','','','']);sep.height=6;
+    const sumHdr=ws.addRow(['Summen-Übersicht','','','','','','']);
+    sumHdr.getCell(1).font={bold:true,size:10};
+    ws.mergeCells(sumHdr.number,1,sumHdr.number,N);
+    const addSumRow=(label,s,bold)=>{
+      const r=ws.addRow([label,'','',s.belegt+' belegt / '+s.tische+' gesamt','',s.pax,'']);
+      r.height=15;
+      for(let c=1;c<=N;c++){
+        r.getCell(c).border=allBorders;
+        r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};
+      }
+      r.getCell(1).font={bold:true,size:9};
+      r.getCell(4).font={bold,size:9};
+      r.getCell(6).font={bold:true,size:9};
+      ws.mergeCells(r.number,1,r.number,3);
+    };
+    Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>{
+      addSumRow('Summe '+h+'er Tische',s,false);
+    });
+    addSumRow('Summe gesamt',{belegt:totBelegt,tische:totTische,pax:totPax},true);
+  }
   // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
   const allIds=hasTischplan?Object.keys(tischplanMap):(lastTables||[]).map(t=>String(t.tisch_id));
   addKategorienLegende(ws,allIds,N);
