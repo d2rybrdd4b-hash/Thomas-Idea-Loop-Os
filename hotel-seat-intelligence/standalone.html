@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-m</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-n</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-m</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-n</p>
       </div>
     </div>
 
@@ -2887,6 +2887,21 @@ function buildLinkedGruppen(guests){
     if(id&&!/^G\d+$/.test(id)){if(!idGroups[id]) idGroups[id]=[];idGroups[id].push(i);}
   });
   Object.values(idGroups).forEach(idxs=>{for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);});
+  // Strategie 0b: gleicher voller Name (Vorname+Nachname) in VERSCHIEDENEN Zimmern
+  // → starkes Signal "eine Person mit zwei Zimmern" (Doppelbuchung). Wird verbunden,
+  // damit beide Zimmer garantiert zusammen am selben Tisch sitzen (Pass 1a hält sie
+  // mit Ausweich-Fallbacks zusammen, statt sie zu splitten).
+  const nameGroups={};
+  guests.forEach((g,i)=>{
+    const full=((g.vorname||'')+' '+(g.nachname||'')).trim().toLowerCase();
+    const nn=(g.nachname||'').trim().toLowerCase();
+    if(full&&nn&&nn!=='unbekannt'){if(!nameGroups[full]) nameGroups[full]=[];nameGroups[full].push(i);}
+  });
+  Object.values(nameGroups).forEach(idxs=>{
+    if(idxs.length<2) return;
+    const rooms=new Set(idxs.map(i=>String(guests[i].zimmer||'')));
+    if(rooms.size>1){for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);} // nur bei verschiedenen Zimmern
+  });
   const refToIdx={};
   guests.forEach((g,i)=>{
     if(!g.verlinkteRefs) return;
@@ -2943,10 +2958,10 @@ function buildLinkedGruppen(guests){
   const groups={};
   guests.forEach((g,i)=>{
     const r=root(i);
-    if(!g.verlinkteRefs&&r===i) return; // isoliert und keine Refs → überspringen
     if(!groups[r]) groups[r]=[];
     groups[r].push(g);
   });
+  // Nur echte Gruppen (>1) zurückgeben — isolierte Gäste bilden Einer-Gruppen und fallen raus
   return Object.values(groups).filter(gs=>gs.length>1);
 }
 
