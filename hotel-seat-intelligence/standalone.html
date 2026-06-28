@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-k</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-l</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-k</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-l</p>
       </div>
     </div>
 
@@ -4533,45 +4533,50 @@ async function buildFilledTischplanSheet(){
       summaryTids.push(tid);
     });
   });
-  // ── Summen-Übersicht: EINMAL am Ende, korrekt über den GESAMTEN Plan gerechnet ──
-  // Jeder Tisch zählt genau einmal (Set gegen Doppelzählung), PAX direkt aus den
-  // zugewiesenen Gästen — keine erfundenen Zahlen, keine Block-Fragmentierung.
+  // ── Verifizierte Summen-Übersicht — IDENTISCHE Quelle wie das Dashboard ──
+  // Haus-Zahlen aus computeHouseStats(); Tisch-Belegung pro Hunderter-Gruppe direkt
+  // aus lastTables (Sitzplatz-Wahrheit), sodass belegt + frei sich exakt reconcilen.
+  const st=computeHouseStats();
   const sumByH={};
-  const seenTid=new Set();
-  let totPax=0,totTische=0,totBelegt=0;
-  summaryTids.forEach(tid=>{
-    if(seenTid.has(tid)) return; // jeden Tisch nur einmal werten
-    seenTid.add(tid);
-    const n=parseInt(tid)||0;
-    if(n<100) return;
+  (lastTables||[]).filter(t=>t.aktiv).forEach(t=>{
+    const n=parseInt(t.tisch_id)||0; if(n<100) return;
     const h=Math.floor(n/100)*100;
     if(!sumByH[h]) sumByH[h]={pax:0,tische:0,belegt:0};
-    const gs=guestsByTable[tid]||[];
-    const tablePax=gs.reduce((s,g)=>s+(g.pax||1),0);
-    sumByH[h].tische++;totTische++;
-    if(gs.length>0){sumByH[h].pax+=tablePax;sumByH[h].belegt++;totPax+=tablePax;totBelegt++;}
+    const bp=t.belegtPax||0;
+    sumByH[h].tische++; sumByH[h].pax+=bp; if(bp>0) sumByH[h].belegt++;
   });
-  if(totTische>0){
+  {
     const sep=ws.addRow(['','','','','','','']);sep.height=6;
-    const sumHdr=ws.addRow(['Summen-Übersicht','','','','','','']);
+    const sumHdr=ws.addRow(['Summen-Übersicht (verifiziert)','','','','','','']);
     sumHdr.getCell(1).font={bold:true,size:10};
     ws.mergeCells(sumHdr.number,1,sumHdr.number,N);
+    // Haus-Block — exakt wie die Dashboard-Kacheln
+    const addInfo=(label,wert,bold)=>{
+      const r=ws.addRow([label,'','',wert,'','','']);
+      r.height=15;
+      for(let c=1;c<=N;c++){r.getCell(c).border=allBorders;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFEFEFEF'}};}
+      r.getCell(1).font={bold:true,size:9};
+      r.getCell(4).font={bold:!!bold,size:9};
+      ws.mergeCells(r.number,1,r.number,3);
+      ws.mergeCells(r.number,4,r.number,N);
+    };
+    addInfo('Gäste gesamt (Haus)',st.gaestePax+' Pers. / '+st.gaesteZimmer+' Zimmer',true);
+    addInfo('davon Anreisen',st.anPax+' Pers. / '+st.anZimmer+' Zimmer');
+    addInfo('davon Abreisen',st.abPax+' Pers. / '+st.abZimmer+' Zimmer');
+    addInfo('An Tischen platziert',st.platziertPax+' Pers. / '+st.platziertZimmer+' Zimmer');
+    addInfo('Ohne Tisch (offen)',st.ohneTischPax+' Pers. / '+st.ohneTischZimmer+' Zimmer',st.ohneTischPax>0);
+    // Tisch-Belegung pro Hunderter-Gruppe + Gesamtzeile
     const addSumRow=(label,s,bold)=>{
       const r=ws.addRow([label,'','',s.belegt+' belegt / '+s.tische+' gesamt','',s.pax,'']);
       r.height=15;
-      for(let c=1;c<=N;c++){
-        r.getCell(c).border=allBorders;
-        r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};
-      }
+      for(let c=1;c<=N;c++){r.getCell(c).border=allBorders;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};}
       r.getCell(1).font={bold:true,size:9};
-      r.getCell(4).font={bold,size:9};
+      r.getCell(4).font={bold:!!bold,size:9};
       r.getCell(6).font={bold:true,size:9};
       ws.mergeCells(r.number,1,r.number,3);
     };
-    Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>{
-      addSumRow('Summe '+h+'er Tische',s,false);
-    });
-    addSumRow('Summe gesamt',{belegt:totBelegt,tische:totTische,pax:totPax},true);
+    Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Tische '+h+'er',s,false));
+    addSumRow('Tische gesamt',{belegt:st.tischeBelegt,tische:st.tischeGesamt,pax:st.platziertPax},true);
   }
   // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
   const allIds=hasTischplan?Object.keys(tischplanMap):(lastTables||[]).map(t=>String(t.tisch_id));
@@ -5155,6 +5160,28 @@ function quickCalc(){
   setTimeout(()=>{runCalc();},200);
 }
 
+// ── EINE gemeinsame, verifizierte Rechenquelle für Dashboard UND Excel ──
+// Alle Zahlen kommen direkt aus assignedGuests (Gäste) und lastTables (Tische);
+// nichts wird geschätzt oder erfunden. Dashboard und Export können nie auseinanderlaufen.
+function computeHouseStats(){
+  const ag=assignedGuests||[];
+  const px=arr=>arr.reduce((s,g)=>s+(g.pax||1),0);
+  const an=ag.filter(g=>g.status==='AN'||g.status==='AN·AB');
+  const ab=ag.filter(g=>g.status==='AB'||g.status==='AN·AB');
+  const seated=ag.filter(g=>g.zugewiesener_tisch);
+  const unseated=ag.filter(g=>!g.zugewiesener_tisch);
+  const tische=(lastTables||[]).filter(t=>t.aktiv);
+  const belegt=tische.filter(t=>(t.belegtPax||0)>0);
+  return{
+    gaestePax:px(ag),gaesteZimmer:ag.length,
+    anPax:px(an),anZimmer:an.length,
+    abPax:px(ab),abZimmer:ab.length,
+    platziertPax:px(seated),platziertZimmer:seated.length,
+    ohneTischPax:px(unseated),ohneTischZimmer:unseated.length,
+    tischeGesamt:tische.length,tischeBelegt:belegt.length,tischeFrei:tische.length-belegt.length
+  };
+}
+
 // ── DASHBOARD ──
 function updateDashboard(){
   const dm=el('dash-date');
@@ -5165,25 +5192,18 @@ function updateDashboard(){
   const dd=el('dash-date-display');
   if(dd) dd.textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   if(calcDone){
-    // Gäste = alle aktiven Gäste als Personen (PAX), unabhängig von Tischzuweisung
-    const gaestePax=assignedGuests.reduce((s,g)=>s+(g.pax||1),0);
-    animateNumber('ds-gaeste',gaestePax);
+    // Alle Zähler aus der EINEN gemeinsamen Quelle — identisch zum Excel-Export
+    const st=computeHouseStats();
+    animateNumber('ds-gaeste',st.gaestePax);
     el('ds-gaeste-sub').textContent='Gäste gesamt';
-    // Anreise/Abreise = Personen (PAX). Status stammt aus der Datei-Herkunft (siehe runCalc),
-    // wird also direkt aus den hochgeladenen Anreisen-/Abreisen-Dateien gezählt — nie erfunden.
-    const ankRows=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB');
-    const ankPax=ankRows.reduce((s,g)=>s+(g.pax||1),0);
-    animateNumber('ds-ankuenfte',ankPax);
-    el('ds-ankuenfte-sub').textContent=ankPax===1?'Gast Anreise':'Gäste Anreise';
-    const ankPaxEl=el('ds-ankuenfte-pax');if(ankPaxEl) ankPaxEl.textContent=ankRows.length+' Zimmer';
-    const fr=lastTables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
-    animateNumber('ds-tische',fr);
-    el('ds-tische-sub').textContent=fr===1?'Tisch frei':'Tische frei';
-    const abrRows=assignedGuests.filter(g=>g.status==='AB'||g.status==='AN·AB');
-    const abrPax=abrRows.reduce((s,g)=>s+(g.pax||1),0);
-    animateNumber('ds-abreisen',abrPax);
-    el('ds-abreisen-sub')&&(el('ds-abreisen-sub').textContent=abrPax===1?'Gast Abreise':'Gäste Abreise');
-    const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=abrRows.length+' Zimmer';
+    animateNumber('ds-ankuenfte',st.anPax);
+    el('ds-ankuenfte-sub').textContent=st.anPax===1?'Gast Anreise':'Gäste Anreise';
+    const ankPaxEl=el('ds-ankuenfte-pax');if(ankPaxEl) ankPaxEl.textContent=st.anZimmer+' Zimmer';
+    animateNumber('ds-tische',st.tischeFrei);
+    el('ds-tische-sub').textContent=st.tischeFrei===1?'Tisch frei':'Tische frei';
+    animateNumber('ds-abreisen',st.abPax);
+    el('ds-abreisen-sub')&&(el('ds-abreisen-sub').textContent=st.abPax===1?'Gast Abreise':'Gäste Abreise');
+    const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=st.abZimmer+' Zimmer';
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
     el('ds-plan-sub').textContent='Tischplan ansehen →';
