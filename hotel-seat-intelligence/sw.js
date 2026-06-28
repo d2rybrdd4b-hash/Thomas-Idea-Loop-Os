@@ -1,4 +1,4 @@
-const CACHE = 'hsi-v25.06-j';
+const CACHE = 'hsi-v25.06-k';
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 

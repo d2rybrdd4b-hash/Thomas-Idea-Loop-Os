@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-j</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-k</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-j</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-k</p>
       </div>
     </div>
 
@@ -2404,6 +2404,9 @@ function getMappedRows(){
   // gewinnt z.B. immer die Vortags-Übernahme (ohne Abreisedatum) gegen die fachlich
   // genauere Abreisen-Zeile desselben Gasts, und der Gast würde nie als "AB" erkannt.
   const sources=['inhaus','ankuenfte','abreisen'];
+  // Datei-Herkunft je Gast festhalten — Basis für die An-/Abreise-Zählung (Datei-basiert,
+  // deterministisch, nie aus Datumslogik erfunden). Flags werden über alle Quellen kumuliert.
+  const srcFlag={inhaus:'_quelleInhaus',ankuenfte:'_quelleAnreise',abreisen:'_quelleAbreise'};
   const byKey=new Map();
   const order=[];
   sources.forEach(key=>{
@@ -2423,7 +2426,9 @@ function getMappedRows(){
       if(byKey.has(key2)){
         const existing=byKey.get(key2);
         Object.entries(mapped).forEach(([k,v])=>{ if(v!=null&&v!=='') existing[k]=v; });
+        existing[srcFlag[key]]=true; // Herkunft kumulieren, nie überschreiben
       }else{
+        mapped[srcFlag[key]]=true;
         byKey.set(key2,mapped);
         order.push(key2);
       }
@@ -2713,6 +2718,9 @@ function parseGuests(rows){
       zugewiesener_tisch:'',
       prioritaet_score:0,
       status:'',
+      // Datei-Herkunft (aus getMappedRows) — steuert die An-/Abreise-Zählung
+      quelle_anreise:!!r._quelleAnreise,
+      quelle_abreise:!!r._quelleAbreise,
       warnings:[]
     };
     return enrichFromBemerkung(g);
@@ -3071,7 +3079,15 @@ function runCalc(){
   // Set status + vorheriger tisch
   guests=guests.map(g=>{
     const vt=g.vorheriger_tisch||vtMap[g.zimmer]||'';
-    const status=calcStatus({...g,vorheriger_tisch:vt},refDate);
+    // Status primär aus der Datei-Herkunft (deterministisch, nie erfunden):
+    // Gast aus Anreisen-Datei = AN, aus Abreisen-Datei = AB, aus beiden = AN·AB.
+    // Nur wenn keine dedizierte An-/Abreise-Datei den Gast liefert, greift die
+    // bisherige Datums-/GastTyp-Logik (z.B. reine In-Haus-/Vortagsliste → BL).
+    let status;
+    if(g.quelle_anreise&&g.quelle_abreise) status='AN·AB';
+    else if(g.quelle_anreise) status='AN';
+    else if(g.quelle_abreise) status='AB';
+    else status=calcStatus({...g,vorheriger_tisch:vt},refDate);
     const score=scoreGuest({...g,status},refDate);
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
   });
@@ -5149,22 +5165,25 @@ function updateDashboard(){
   const dd=el('dash-date-display');
   if(dd) dd.textContent=new Date(dateStr+'T12:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
   if(calcDone){
-    animateNumber('ds-gaeste',assignedGuests.reduce((s,g)=>s+(g.pax||1),0));
-    el('ds-gaeste-sub').textContent='Gäste mit Tisch';
+    // Gäste = alle aktiven Gäste als Personen (PAX), unabhängig von Tischzuweisung
+    const gaestePax=assignedGuests.reduce((s,g)=>s+(g.pax||1),0);
+    animateNumber('ds-gaeste',gaestePax);
+    el('ds-gaeste-sub').textContent='Gäste gesamt';
+    // Anreise/Abreise = Personen (PAX). Status stammt aus der Datei-Herkunft (siehe runCalc),
+    // wird also direkt aus den hochgeladenen Anreisen-/Abreisen-Dateien gezählt — nie erfunden.
     const ankRows=assignedGuests.filter(g=>g.status==='AN'||g.status==='AN·AB');
-    const ank=ankRows.length;
     const ankPax=ankRows.reduce((s,g)=>s+(g.pax||1),0);
-    animateNumber('ds-ankuenfte',ank);
-    el('ds-ankuenfte-sub').textContent=ank===1?'Anreise heute':'Anreisen heute';
-    const ankPaxEl=el('ds-ankuenfte-pax');if(ankPaxEl) ankPaxEl.textContent=ankPax+(ankPax===1?' Gast':' Gäste');
+    animateNumber('ds-ankuenfte',ankPax);
+    el('ds-ankuenfte-sub').textContent=ankPax===1?'Gast Anreise':'Gäste Anreise';
+    const ankPaxEl=el('ds-ankuenfte-pax');if(ankPaxEl) ankPaxEl.textContent=ankRows.length+' Zimmer';
     const fr=lastTables.filter(t=>(t.belegtPax||0)===0&&t.aktiv).length;
     animateNumber('ds-tische',fr);
     el('ds-tische-sub').textContent=fr===1?'Tisch frei':'Tische frei';
     const abrRows=assignedGuests.filter(g=>g.status==='AB'||g.status==='AN·AB');
-    const abr=abrRows.length;
     const abrPax=abrRows.reduce((s,g)=>s+(g.pax||1),0);
-    animateNumber('ds-abreisen',abr);
-    const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=abrPax+(abrPax===1?' Gast':' Gäste');
+    animateNumber('ds-abreisen',abrPax);
+    el('ds-abreisen-sub')&&(el('ds-abreisen-sub').textContent=abrPax===1?'Gast Abreise':'Gäste Abreise');
+    const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=abrRows.length+' Zimmer';
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
     el('ds-plan-sub').textContent='Tischplan ansehen →';
