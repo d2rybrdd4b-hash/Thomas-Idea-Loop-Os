@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-l</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-m</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-l</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-m</p>
       </div>
     </div>
 
@@ -3330,9 +3330,56 @@ function runCalc(){
     } else {
       unassigned++;
       g.begruendung='Kein Tisch verfügbar';
-      warns.push({level:'red',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX): Kein passender Tisch verfügbar`});
+      // Rote Meldung NICHT hier — der Auffüll-Pass unten versucht erst eine Notplatzierung
     }
   });
+
+  // ── Auffüll-Pass: jeden noch ungesetzten Gast nach Priorität unterbringen ──
+  // Stufenweise Lockerung (höchste Priorität zuerst): normale Suche → Kalender
+  // ignorieren → Notplatzierung/Überbelegung. Bleibegäste bekommen hier ihren
+  // Ausweichtisch (Phase 1 hatte nur den exakten Stammtisch versucht). Ziel: niemand
+  // bleibt ohne Tisch, außer es ist physisch unmöglich — dann klare rote Meldung.
+  let fillOk=0,fillCal=0,fillTight=0,fillNone=0;
+  active.filter(g=>!g.zugewiesener_tisch)
+    .sort((a,b)=>(ruleRank(a)-ruleRank(b))||(b.prioritaet_score-a.prioritaet_score))
+    .forEach(g=>{
+      const pref=getZoneForGuest(g);
+      const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
+      const ausweich=g.vorheriger_tisch?`Stammtisch ${g.vorheriger_tisch} belegt → `:'';
+      // Stufe 0/1: normale Suche (Kalender beachtet) — deckt auch Bleibegast-Ausweich ab
+      let t=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar);
+      if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id}`;fillOk++;return;}
+      // Stufe 2: Kalender ignorieren (heute setzen, Folgetag separat prüfen)
+      t=findBestTable(ts,pref,g.pax,nights,null,null,null);
+      if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id} (Kalender prüfen)`;fillCal++;
+        warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}) → Tisch ${t.tisch_id}: heute gesetzt, Folgetag-Konflikt möglich`});return;}
+      // Stufe 4: Notplatzierung — aktiver, nicht gesperrter Tisch mit größter Restkapazität
+      // (cand wird je Gast neu berechnet → Überlauf verteilt sich gleichmäßig)
+      const cand=ts.filter(x=>x.aktiv&&!x.blocked_for)
+        .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax));
+      if(cand.length){
+        const t2=cand[0];
+        const ueber=(t2.kapazitaet-t2.belegtPax)<g.pax;
+        doAssign(g,t2);
+        g.begruendung=ausweich+`Notplatzierung Tisch ${t2.tisch_id}`+(ueber?' (überbelegt)':'');
+        fillTight++;
+        warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX) → Tisch ${t2.tisch_id}: Notplatzierung${ueber?' — Tisch überbelegt, bitte prüfen':' — Tisch knapp'}`});
+        return;
+      }
+      // Stufe 5: wirklich kein aktiver Tisch im Haus
+      fillNone++;
+      g.begruendung='Kein Tisch verfügbar';
+      warns.push({level:'red',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX): Kapazität erschöpft — kein Tisch im Haus verfügbar`});
+    });
+  // unassigned = wirklich nicht platzierbare Gäste nach allen Stufen
+  unassigned=active.filter(g=>!g.zugewiesener_tisch).length;
+  if(fillOk+fillCal+fillTight>0){
+    const parts=[];
+    if(fillOk>0) parts.push(`${fillOk} regulär nachplatziert`);
+    if(fillCal>0) parts.push(`${fillCal} mit Kalender-Lockerung`);
+    if(fillTight>0) parts.push(`${fillTight} Notplatzierung`);
+    warns.unshift({level:fillTight>0?'yellow':'green',msg:`Auffüll-Pass: ${parts.join(', ')}${fillNone>0?`, ${fillNone} ohne Tisch (Kapazität erschöpft)`:''}`});
+  }
 
   if(el('cs2-res')) el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   if(el('cs3-res')) el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
