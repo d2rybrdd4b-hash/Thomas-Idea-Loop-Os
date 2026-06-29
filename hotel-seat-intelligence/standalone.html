@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-u</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-v</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-u</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-v</p>
       </div>
     </div>
 
@@ -2838,7 +2838,7 @@ function parseTables(rows){
       return tplIds.map(id=>({
         tisch_id:id,
         zone:'C',
-        kapazitaet:4,
+        kapazitaet:(tischplanKapazitaet||{})[id]||4,
         kategorie:tischplanKat[id]||5,
         aktiv:true,
         x:0,y:0,
@@ -2859,7 +2859,7 @@ function parseTables(rows){
     return{
       tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
-      kapazitaet:parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
+      kapazitaet:parseInt((tischplanKapazitaet||{})[id]||r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
       kategorie:kat,
       aktiv:ak!=='0'&&ak!=='false'&&ak!=='nein',
       x:parseInt(r.X||r.x||pos.x||0),
@@ -3948,6 +3948,7 @@ let tischplanBereichRows=[]; // 0-basierte Strukturzeilen (Bereichs-Header bzw. 
 let tischplanBlocks=[];      // Mehrblock-Layout (z.B. "Panorama Restaurant" + "Neue Restaurants" nebeneinander):
                               // [{tischCol,zimmerCol,statusCol,gastnameCol,paxCol,extrasCol,bereich}], 0-basierte Spalten
 let tischplanKat={};         // tableID → kategorie (1–8)
+let tischplanKapazitaet={};  // tableID → Sitzplätze (echte Kapazität aus der "Plätze"-Spalte der Hotelier-Vorlage)
 let tischplanKombi=[];       // [{tables,min,max}]
 let tischplanDupes=[];       // [{id,zeilen:[excelRow,...]}] — Tisch-IDs, die mehrfach in der Vorlage vorkommen
                               // (z.B. gleiche Nummer in zwei Blöcken) — spätere Vorkommen überschreiben
@@ -4146,7 +4147,7 @@ function clearAbreisenFile(){
   setStatus('Abreisen-Datei entfernt','');
 }
 function clearTemplate(){
-  tischplanTemplate=null;tischplanMap={};tischplanBereichRows=[];tischplanBlocks=[];tischplanKat={};tischplanKombi=[];
+  tischplanTemplate=null;tischplanMap={};tischplanBereichRows=[];tischplanBlocks=[];tischplanKat={};tischplanKapazitaet={};tischplanKombi=[];
   localStorage.removeItem('hsi_tischplan_template_b64');
   const sec=el('export-vorlage-section');if(sec) sec.style.display='none';
   updateTemplateStatus();
@@ -4235,7 +4236,7 @@ function parseTischplanTemplate(buf){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wb.SheetNames[0];
   const ws=wb.Sheets[sheetName];
   const range=XLSX.utils.decode_range(ws['!ref']||'A1:N99');
-  tischplanMap={};tischplanKat={};tischplanKombi=[];tischplanBlocks=[];tischplanDupes=[];
+  tischplanMap={};tischplanKat={};tischplanKombi=[];tischplanBlocks=[];tischplanDupes=[];tischplanKapazitaet={};
   let inKat=false,inKombi=false;
   // Erster Tischblock einer Vorlage hat oft keine eigene Abschnitts-Überschrift
   // (steht ggf. in Zeile 1-3, die hier nicht gescannt wird) — daher Default "Restaurant 1".
@@ -4277,6 +4278,8 @@ function parseTischplanTemplate(buf){
         // Bei mehreren Blöcken kann derselbe Spaltenname (z.B. "Zimmer") weiter rechts
         // erneut auftauchen (nächster Block) — erster Treffer gewinnt, kein Überschreiben.
         for(const key in FIELD_LABELS){ if(label===FIELD_LABELS[key]&&block[key+'Col']==null) block[key+'Col']=cc; }
+        // "Plätze"/"Sitzplätze"/"Kapazität" = echte Tischkapazität, die der Hotelier einträgt
+        if(block.plaetzeCol==null&&/^(pl(ä|ae)tze|sitzpl(ä|ae)tze|kapazit(ä|ae)t)$/.test(label)) block.plaetzeCol=cc;
       }
       const labelCol=block.extrasCol??block.paxCol??block.gastnameCol??block.statusCol??block.zimmerCol??c;
       // Bereichsname steht oberhalb der Kopfzeile, ggf. mit einer leeren Trennzeile
@@ -4356,6 +4359,7 @@ function parseTischplanTemplate(buf){
       blocks.forEach(block=>{
         const tid=String(cv(r,block.tischCol)||'').trim();
         if(!/^\d/.test(tid)) return;
+        if(block.plaetzeCol!=null){const cap=String(cv(r,block.plaetzeCol)||'').trim();if(/^\d+$/.test(cap)) tischplanKapazitaet[tid]=parseInt(cap);}
         regTisch(tid,{
           r,bereich:block.bereich,block,
           existing:{
@@ -4383,6 +4387,7 @@ function parseTischplanTemplate(buf){
         }
         continue;
       }
+      if(block.plaetzeCol!=null){const cap=String(cv(r,block.plaetzeCol)||'').trim();if(/^\d+$/.test(cap)) tischplanKapazitaet[tid]=parseInt(cap);}
       regTisch(tid,{
         r,bereich:currentBereich,block,
         existing:{
@@ -4588,15 +4593,16 @@ async function buildFilledTischplanSheet(){
   // Template (sofern hochgeladen) liefert nur Tisch-Reihenfolge + Bereichsnamen.
   const wb=new ExcelJS.Workbook();
   const ws=wb.addWorksheet('Tischplan');
-  // 7 feste Spalten — Breiten hier definiert, immer korrekt, kein ExcelJS-Template-Bug
-  const N=7;
+  // 8 feste Spalten — Breiten hier definiert, immer korrekt, kein ExcelJS-Template-Bug
+  const N=8;
   ws.getColumn(1).width=10; // Tisch
   ws.getColumn(2).width=9;  // Zimmer (schmal, nur Zimmernummern)
-  ws.getColumn(3).width=8;  // Status
-  ws.getColumn(4).width=22; // Gastname
-  ws.getColumn(5).width=5;  // PAX
-  ws.getColumn(6).width=16; // Priorität Score
-  ws.getColumn(7).width=30; // Extras
+  ws.getColumn(3).width=7;  // Plätze (echte Kapazität — vom Hotelier gepflegt)
+  ws.getColumn(4).width=8;  // Status
+  ws.getColumn(5).width=22; // Gastname
+  ws.getColumn(6).width=5;  // PAX
+  ws.getColumn(7).width=16; // Priorität Score
+  ws.getColumn(8).width=30; // Extras
   // Gast-Lookup: tisch_id → [alle Gäste] — inkl. verlinkter Mehrfach-Buchungen (zu #...)
   // Direkt aus assignedGuests, nicht aus lastTables.gast_id (das speichert nur gs[0])
   const guestsByTable={};
@@ -4619,8 +4625,9 @@ async function buildFilledTischplanSheet(){
       cell.border=allBorders;
       cell.alignment={vertical:'middle',horizontal:'center',wrapText:false};
     }
-    row.getCell(4).alignment={vertical:'middle',horizontal:'left'};
-    row.getCell(7).alignment={vertical:'middle',horizontal:'left'};
+    row.getCell(5).alignment={vertical:'middle',horizontal:'left'}; // Gastname
+    row.getCell(8).alignment={vertical:'middle',horizontal:'left'}; // Extras
+    row.getCell(3).alignment={vertical:'middle',horizontal:'center'}; // Plätze
   }
   function applyDataStyle(row,katFill){
     row.height=16;
@@ -4632,19 +4639,20 @@ async function buildFilledTischplanSheet(){
       // Farbe nur auf Tisch (1) und Zimmer (2) — nicht auf die gesamte Zeile
       if(katFill&&(c===1||c===2)) cell.fill=katFill;
     }
-    row.getCell(5).alignment={vertical:'middle',horizontal:'center'};
+    row.getCell(3).alignment={vertical:'middle',horizontal:'center'}; // Plätze
+    row.getCell(6).alignment={vertical:'middle',horizontal:'center'}; // PAX
   }
   // Zeile 1: Info-Kopfzeile (Hotel, Datum, APP, Uhrzeit)
   const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
   const now=new Date();
   const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const dateStr=now.toLocaleDateString('de-DE');
-  const infoRow=ws.addRow([hotelName,'','APP',timeStr,dateStr,'','']);
+  const infoRow=ws.addRow([hotelName,'','','APP',timeStr,dateStr,'','']);
   infoRow.height=20;
   infoRow.getCell(1).font={bold:true,size:11};
-  infoRow.getCell(3).font={size:9,color:{argb:'FF999999'}};
-  infoRow.getCell(4).font={size:9};
-  infoRow.getCell(5).font={size:9,color:{argb:'FF999999'}};
+  infoRow.getCell(4).font={size:9,color:{argb:'FF999999'}};
+  infoRow.getCell(5).font={size:9};
+  infoRow.getCell(6).font={size:9,color:{argb:'FF999999'}};
   ws.mergeCells(1,1,1,2);
   ws.views=[{state:'frozen',xSplit:0,ySplit:2}];
   // Tisch-Reihenfolge: aus Template (tischplanMap) oder sortiert nach Kategorie
@@ -4664,7 +4672,7 @@ async function buildFilledTischplanSheet(){
       ws.mergeCells(secRow.number,1,secRow.number,N);
     }
     // Spalten-Kopfzeile
-    const hdrRow=ws.addRow(['Tisch','Zimmer','Status','Gastname','PAX','Priorität Score','Extras']);
+    const hdrRow=ws.addRow(['Tisch','Zimmer','Plätze','Status','Gastname','PAX','Priorität Score','Extras']);
     applyHeaderStyle(hdrRow);
     // Tischzeilen
     let rows;
@@ -4710,7 +4718,9 @@ async function buildFilledTischplanSheet(){
         zimmer=String(ex.zimmer||'');status=String(ex.status||'');
         name=String(ex.name||'');pax=ex.pax!=null?ex.pax:'';extras=String(ex.extras||'');
       }
-      const dataRow=ws.addRow([tid,zimmer,status,name,pax,score,extras]);
+      // Plätze = echte Kapazität (vom Hotelier gepflegt); unbekannt → leer lassen (nichts raten)
+      const plaetze=(tischplanKapazitaet||{})[tid]!=null?String(tischplanKapazitaet[tid]):'';
+      const dataRow=ws.addRow([tid,zimmer,plaetze,status,name,pax,score,extras]);
       applyDataStyle(dataRow,katFill);
       summaryTids.push(tid);
     });
