@@ -8240,84 +8240,91 @@ function App() {
   // Public booking: lade Salon-Daten aus Supabase wenn ?salon= in URL
   useEffect(() => {
     if (!urlSalon) return;
-    (async () => {
-      const {
-        data: salon
-      } = await sb.from('salons').select('*').eq('slug', urlSalon).single();
-      if (!salon) {
+    const load = async () => {
+      try {
+        const {
+          data: salon,
+          error: salonErr
+        } = await sb.from('salons').select('*').eq('slug', urlSalon).single();
+        if (salonErr || !salon) {
+          setPubLoading(false);
+          return;
+        }
+        const [{
+          data: staffRows,
+          error: staffErr
+        }, {
+          data: svcRows,
+          error: svcErr
+        }, {
+          data: availRows
+        }, {
+          data: bkRows
+        }] = await Promise.all([sb.from('staff').select('*').eq('salon_id', salon.id).eq('active', true), sb.from('services').select('*').eq('salon_id', salon.id), sb.from('availability').select('*').eq('salon_id', salon.id), sb.from('bookings').select('id,staff_id,date,start_time,status').eq('salon_id', salon.id).neq('status', 'cancelled')]);
+        let finalSvcs = svcRows || [];
+        let finalStaff = staffRows || [];
+        if ((svcErr || finalSvcs.length === 0) && salon.services_json) {
+          try {
+            finalSvcs = JSON.parse(salon.services_json);
+          } catch (e) {}
+        }
+        if ((staffErr || finalStaff.length === 0) && salon.staff_json) {
+          try {
+            finalStaff = JSON.parse(salon.staff_json);
+          } catch (e) {}
+        }
+        const availMap = {};
+        (availRows || []).forEach(r => {
+          if (!availMap[r.staff_id]) availMap[r.staff_id] = {
+            start: r.start_time,
+            end: r.end_time,
+            days: []
+          };
+          availMap[r.staff_id].days.push(r.day_of_week);
+        });
+        if (Object.keys(availMap).length === 0 && salon.avail_json) {
+          try {
+            Object.assign(availMap, JSON.parse(salon.avail_json));
+          } catch (e) {}
+        }
+        const bookings = (bkRows || []).map(b => ({
+          id: b.id,
+          staffId: b.staff_id,
+          date: b.date,
+          startTime: b.start_time,
+          status: b.status
+        }));
+        setPubData({
+          salonId: salon.id,
+          salon: {
+            name: salon.name,
+            slug: salon.slug,
+            whatsapp: salon.whatsapp_number
+          },
+          staff: finalStaff.map(s => ({
+            id: s.id,
+            name: s.name,
+            color: s.color,
+            sick: s.sick,
+            active: s.active
+          })),
+          services: finalSvcs.map(s => ({
+            id: s.id,
+            name: s.name,
+            duration: s.duration,
+            price: s.price,
+            buffer: s.buffer
+          })),
+          availability: availMap,
+          bookings
+        });
+      } catch (e) {
+        console.error('Public booking load error:', e);
+      } finally {
         setPubLoading(false);
-        return;
       }
-      const [{
-        data: staffRows,
-        error: staffErr
-      }, {
-        data: svcRows,
-        error: svcErr
-      }, {
-        data: availRows
-      }, {
-        data: bkRows
-      }] = await Promise.all([sb.from('staff').select('*').eq('salon_id', salon.id).eq('active', true), sb.from('services').select('*').eq('salon_id', salon.id), sb.from('availability').select('*').eq('salon_id', salon.id), sb.from('bookings').select('id,staff_id,date,start_time,status').eq('salon_id', salon.id).neq('status', 'cancelled')]);
-      let finalSvcs = svcRows || [];
-      let finalStaff = staffRows || [];
-      if ((svcErr || finalSvcs.length === 0) && salon.services_json) {
-        try {
-          finalSvcs = JSON.parse(salon.services_json);
-        } catch (e) {}
-      }
-      if ((staffErr || finalStaff.length === 0) && salon.staff_json) {
-        try {
-          finalStaff = JSON.parse(salon.staff_json);
-        } catch (e) {}
-      }
-      const availMap = {};
-      (availRows || []).forEach(r => {
-        if (!availMap[r.staff_id]) availMap[r.staff_id] = {
-          start: r.start_time,
-          end: r.end_time,
-          days: []
-        };
-        availMap[r.staff_id].days.push(r.day_of_week);
-      });
-      if (Object.keys(availMap).length === 0 && salon.avail_json) {
-        try {
-          Object.assign(availMap, JSON.parse(salon.avail_json));
-        } catch (e) {}
-      }
-      const bookings = (bkRows || []).map(b => ({
-        id: b.id,
-        staffId: b.staff_id,
-        date: b.date,
-        startTime: b.start_time,
-        status: b.status
-      }));
-      setPubData({
-        salonId: salon.id,
-        salon: {
-          name: salon.name,
-          slug: salon.slug,
-          whatsapp: salon.whatsapp_number
-        },
-        staff: finalStaff.map(s => ({
-          id: s.id,
-          name: s.name,
-          color: s.color,
-          sick: s.sick,
-          active: s.active
-        })),
-        services: finalSvcs.map(s => ({
-          id: s.id,
-          name: s.name,
-          duration: s.duration,
-          price: s.price,
-          buffer: s.buffer
-        })),
-        availability: availMap,
-        bookings
-      });
-      setPubLoading(false);
-    })();
+    };
+    load();
   }, []);
 
   // Session-Management: onAuthStateChange für stabile Auth über Token-Refresh hinaus
@@ -8504,9 +8511,21 @@ function App() {
       } else if (event === 'SIGNED_IN') {
         loadSalonData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
-        localStorage.removeItem(KEY);
-        setState(DEF);
-        setPage('home');
+        // App-Daten (KEY) NICHT löschen — User bleibt im Dashboard mit gecachten Daten
+        // Nur Banner zeigen damit er weiß dass er die Verbindung erneuern muss
+        const cached = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(KEY) || '{}');
+          } catch {
+            return {};
+          }
+        })();
+        if (cached.onboarded) {
+          setSyncBanner(true);
+          setPage('dashboard');
+        } else {
+          setPage('home');
+        }
         setPageProps({});
         setAuthChecked(true);
       }
@@ -8526,6 +8545,15 @@ function App() {
     setTimeout(() => setToast(null), 3200);
   };
   const onLogout = async () => {
+    // Expliziter Logout: App-Daten löschen und zur Startseite
+    localStorage.removeItem(KEY);
+    try {
+      localStorage.removeItem(RT_KEY);
+      localStorage.removeItem(EMAIL_KEY);
+    } catch {}
+    setState(DEF);
+    setSyncBanner(false);
+    setPage('home');
     await sb.auth.signOut();
     // SIGNED_OUT in onAuthStateChange übernimmt den Rest
   };
