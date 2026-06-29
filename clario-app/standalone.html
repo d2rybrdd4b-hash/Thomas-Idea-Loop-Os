@@ -2180,7 +2180,7 @@ function Auth({
     className: "inp",
     type: "email",
     name: "email",
-    autoComplete: "email",
+    autoComplete: "username",
     placeholder: "E-Mail",
     value: f.email,
     onChange: e => setF(x => ({
@@ -6961,7 +6961,7 @@ function BookingPage({
     n: "right",
     s: 16
   }))), salon.whatsapp && (() => {
-    const waMsg = encodeURIComponent(`Hallo ${salon.name},\n\nich habe gerade online gebucht:\n` + `📋 Service: ${selSvc?.name}\n` + `👤 Mitarbeiter: ${selStaff?.name}\n` + `📅 Datum: ${fmtShort(selDate)}\n` + `⏰ Uhrzeit: ${selTime} Uhr\n` + (selSvc?.price ? `💰 Preis: ${selSvc.price}€\n` : '') + `\nMein Name: ${form.name}\nMeine Nummer: ${form.phone}\n\nBitte bestätige meinen Termin. Danke!`);
+    const waMsg = encodeURIComponent(`Hallo ${salon.name},\n\nich habe gerade online gebucht:\n` + `✂️ Service: ${selSvc?.name}\n` + `• Mitarbeiter: ${selStaff?.name}\n` + `• Datum: ${fmtShort(selDate)}\n` + `⏰ Uhrzeit: ${selTime} Uhr\n` + (selSvc?.price ? `• Preis: ${selSvc.price}€\n` : '') + `\nMein Name: ${form.name}\nMeine Nummer: ${form.phone}\n\nBitte bestätige meinen Termin. Danke!`);
     const waNum = salon.whatsapp.replace(/\D/g, '').replace(/^0/, '49');
     return /*#__PURE__*/React.createElement("a", {
       href: `https://wa.me/${waNum}?text=${waMsg}`,
@@ -8206,7 +8206,17 @@ function App() {
   const [pubData, setPubData] = useState(null);
   const [pubLoading, setPubLoading] = useState(!!urlSalon);
   const [pubPage, setPubPage] = useState("booking");
-  const [authChecked, setAuthChecked] = useState(!!urlSalon);
+  // Offline-first: wenn schon onboarded → Dashboard sofort zeigen, Auth im Hintergrund
+  const cachedOnboarded = (() => {
+    try {
+      return load().onboarded;
+    } catch {
+      return false;
+    }
+  })();
+  const [authChecked, setAuthChecked] = useState(!!urlSalon || cachedOnboarded);
+  const [syncBanner, setSyncBanner] = useState(false); // zeigt "Verbindung erneuern"-Banner
+
   useEffect(() => {
     saveState(state);
   }, [state]);
@@ -8350,45 +8360,50 @@ function App() {
         const saved = load();
         const hasData = staffRows?.length > 0 || svcRows?.length > 0;
         const isOnboarded = hasData || saved.onboarded;
-        setState(s => ({
-          ...s,
-          onboarded: isOnboarded,
-          salon: {
-            ...s.salon,
-            name: salon.name,
-            slug: salon.slug,
-            ownerName: salon.owner_name,
-            email: salon.email,
-            supabaseId: salon.id,
-            whatsapp: salon.whatsapp_number || ""
-          },
-          staff: staffRows?.length ? staffRows.map(m => ({
-            id: m.id,
-            name: m.name,
-            color: m.color || '#4FD1C5',
-            active: m.active !== false,
-            sick: m.sick || false
-          })) : s.staff,
-          services: svcRows?.length ? svcRows.map(sv => ({
-            id: sv.id,
-            name: sv.name,
-            duration: sv.duration,
-            price: sv.price,
-            buffer: sv.buffer || 0
-          })) : s.services,
-          availability: Object.keys(availMap).length ? availMap : s.availability,
-          bookings: sbBookings.length ? sbBookings : s.bookings
-        }));
+        setState(s => {
+          // MERGE: Supabase-Buchungen + lokale Buchungen die nicht in Supabase sind
+          const sbIds = new Set(sbBookings.map(b => b.id));
+          const localOnly = (s.bookings || []).filter(b => b.id && !sbIds.has(b.id));
+          const mergedBookings = sbBookings.length ? [...sbBookings, ...localOnly] : s.bookings;
+          return {
+            ...s,
+            onboarded: isOnboarded,
+            salon: {
+              ...s.salon,
+              name: salon.name,
+              slug: salon.slug,
+              ownerName: salon.owner_name,
+              email: salon.email,
+              supabaseId: salon.id,
+              whatsapp: salon.whatsapp_number || ""
+            },
+            staff: staffRows?.length ? staffRows.map(m => ({
+              id: m.id,
+              name: m.name,
+              color: m.color || '#4FD1C5',
+              active: m.active !== false,
+              sick: m.sick || false
+            })) : s.staff,
+            services: svcRows?.length ? svcRows.map(sv => ({
+              id: sv.id,
+              name: sv.name,
+              duration: sv.duration,
+              price: sv.price,
+              buffer: sv.buffer || 0
+            })) : s.services,
+            availability: Object.keys(availMap).length ? availMap : s.availability,
+            bookings: mergedBookings
+          };
+        });
+        setSyncBanner(false);
         setPage(isOnboarded ? 'dashboard' : 'onboarding');
         setPageProps({});
       } catch (e) {
         console.error('Session-Load Fehler:', e);
-        // Netzwerkfehler → gespeicherte Daten verwenden damit User eingeloggt bleibt
-        const cached = load();
-        if (cached.onboarded) {
-          setPage('dashboard');
-          setPageProps({});
-        }
+        // Netzwerkfehler → gecachte Daten behalten, Banner anzeigen
+        setSyncBanner(true);
+        setPage('dashboard');
+        setPageProps({});
       } finally {
         setAuthChecked(true);
       }
@@ -8402,7 +8417,7 @@ function App() {
         if (session) {
           loadSalonData(session.user.id);
         } else {
-          // Keine Session: erst Backup-Refresh-Token versuchen
+          // Keine Supabase-Session → Backup-Refresh-Token versuchen
           const rt = (() => {
             try {
               return localStorage.getItem(RT_KEY) || "";
@@ -8414,8 +8429,7 @@ function App() {
             sb.auth.refreshSession({
               refresh_token: rt
             }).then(({
-              data,
-              error
+              data
             }) => {
               if (data?.session) {
                 try {
@@ -8423,22 +8437,44 @@ function App() {
                 } catch {}
                 loadSalonData(data.session.user.id);
               } else {
-                const lastEmail = (() => {
-                  try {
-                    return localStorage.getItem(EMAIL_KEY) || "";
-                  } catch {
-                    return "";
+                // Backup-Token auch abgelaufen → Banner zeigen, User bleibt im Dashboard
+                const cached = load();
+                if (cached.onboarded) {
+                  setSyncBanner(true);
+                  setPage('dashboard');
+                } else {
+                  const lastEmail = (() => {
+                    try {
+                      return localStorage.getItem(EMAIL_KEY) || "";
+                    } catch {
+                      return "";
+                    }
+                  })();
+                  if (lastEmail) {
+                    setPage('login');
+                    setPageProps({
+                      prefillEmail: lastEmail
+                    });
                   }
-                })();
-                if (lastEmail) {
-                  setPage('login');
-                  setPageProps({
-                    prefillEmail: lastEmail
-                  });
                 }
                 setAuthChecked(true);
               }
             }).catch(() => {
+              const cached = load();
+              if (cached.onboarded) {
+                setSyncBanner(true);
+                setPage('dashboard');
+              }
+              setAuthChecked(true);
+            });
+          } else {
+            // Kein Token, kein Backup → wenn onboarded: Dashboard mit Banner, sonst Login
+            const cached = load();
+            if (cached.onboarded) {
+              setSyncBanner(true);
+              setPage('dashboard');
+              setAuthChecked(true);
+            } else {
               const lastEmail = (() => {
                 try {
                   return localStorage.getItem(EMAIL_KEY) || "";
@@ -8453,22 +8489,7 @@ function App() {
                 });
               }
               setAuthChecked(true);
-            });
-          } else {
-            const lastEmail = (() => {
-              try {
-                return localStorage.getItem(EMAIL_KEY) || "";
-              } catch {
-                return "";
-              }
-            })();
-            if (lastEmail) {
-              setPage('login');
-              setPageProps({
-                prefillEmail: lastEmail
-              });
             }
-            setAuthChecked(true);
           }
         }
       } else if (event === 'PASSWORD_RECOVERY') {
@@ -8511,6 +8532,7 @@ function App() {
       },
       onboarded: mode !== "register" ? true : s.onboarded
     }));
+    setSyncBanner(false);
     if (mode === "register") {
       go("onboarding");
     } else {
@@ -8518,7 +8540,7 @@ function App() {
     }
   };
 
-  // Warte auf Auth-Check (verhindert Flackern der Startseite)
+  // Nur Spinner anzeigen wenn wirklich noch kein Cache (nicht-onboardete Nutzer)
   if (!authChecked) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100dvh",
@@ -8547,6 +8569,7 @@ function App() {
       color: "var(--muted)"
     }
   }, "Wird geladen…")));
+  // Offline-first: onboarded user sieht sofort Dashboard, auch ohne aktive Session
 
   // Public-Modus: Kunde kommt via QR-Code ?salon=slug
   if (urlSalon) {
@@ -8639,13 +8662,43 @@ function App() {
     state: state,
     setState: setState,
     go: go
-  }), page === "dashboard" && /*#__PURE__*/React.createElement(Dashboard, {
+  }), page === "dashboard" && /*#__PURE__*/React.createElement(React.Fragment, null, syncBanner && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 9990,
+      background: "var(--warn)",
+      color: "#fff",
+      padding: "10px 16px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      fontSize: 13,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Verbindung unterbrochen — Daten aus Cache"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPage('login'),
+    style: {
+      background: "rgba(255,255,255,.25)",
+      border: "none",
+      color: "#fff",
+      borderRadius: 8,
+      padding: "5px 12px",
+      cursor: "pointer",
+      fontWeight: 600,
+      fontSize: 12
+    }
+  }, "Erneut anmelden")), /*#__PURE__*/React.createElement(Dashboard, {
     state: state,
     setState: setState,
     go: go,
     showToast: showToast,
-    onLogout: onLogout
-  }), page === "book" && /*#__PURE__*/React.createElement(BookingPage, {
+    onLogout: onLogout,
+    syncBannerActive: syncBanner
+  })), page === "book" && /*#__PURE__*/React.createElement(BookingPage, {
     state: state,
     setState: setState,
     slug: pageProps.slug,
