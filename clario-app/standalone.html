@@ -21,8 +21,7 @@
 <body>
 <div id="err"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h2>Verbindungsproblem</h2><p>Slotly konnte nicht geladen werden. Bitte prüfe deine Internetverbindung.</p><button onclick="location.reload()">Erneut versuchen</button></div>
 <div id="root"></div>
-<script>
-// ─── REACT GLOBALS (from CDN) ────────────────────────────────
+<script>// ─── REACT GLOBALS (from CDN) ────────────────────────────────
 const {
   useState,
   useEffect,
@@ -30,7 +29,13 @@ const {
 } = React;
 
 // ─── SUPABASE ────────────────────────────────────────────────
-const sb = supabase.createClient('https://oypnplvdjlyeagtngtgz.supabase.co', 'sb_publishable_3E4xj1WUmo-xJWTq6lo1Tg_Nq0z7y8b');
+const sb = supabase.createClient('https://oypnplvdjlyeagtngtgz.supabase.co', 'sb_publishable_3E4xj1WUmo-xJWTq6lo1Tg_Nq0z7y8b', {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'slotly_auth_v1'
+  }
+});
 
 // ─── CSS ─────────────────────────────────────────────────────
 const CSS = `
@@ -452,17 +457,25 @@ function QR({
   text,
   size = 200
 }) {
-  const ref = useRef(null);
+  const [src, setSrc] = useState("");
   useEffect(() => {
-    if (!ref.current || !window.QRCode) return;
-    window.QRCode.toCanvas(ref.current, text, {
-      width: size,
-      margin: 2,
-      color: {
-        dark: "#172033",
-        light: "#ffffff"
+    if (!text) return;
+    let tries = 0;
+    const gen = () => {
+      if (!window.QRCode) {
+        if (tries++ < 20) setTimeout(gen, 150);
+        return;
       }
-    });
+      window.QRCode.toDataURL(text, {
+        width: size,
+        margin: 2,
+        color: {
+          dark: "#172033",
+          light: "#ffffff"
+        }
+      }).then(url => setSrc(url)).catch(() => {});
+    };
+    gen();
   }, [text, size]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -473,13 +486,26 @@ function QR({
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow)"
     }
-  }, /*#__PURE__*/React.createElement("canvas", {
-    ref: ref,
+  }, src ? /*#__PURE__*/React.createElement("img", {
+    src: src,
+    alt: "QR Code",
+    width: size,
+    height: size,
     style: {
       display: "block",
       borderRadius: 4
     }
-  }));
+  }) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--muted)",
+      fontSize: 12
+    }
+  }, "Wird generiert…"));
 }
 
 // ─── SALON SCENE SVG ─────────────────────────────────────────
@@ -8364,6 +8390,12 @@ function App() {
         setPageProps({});
       } catch (e) {
         console.error('Session-Load Fehler:', e);
+        // Netzwerkfehler → gespeicherte Daten verwenden damit User eingeloggt bleibt
+        const cached = load();
+        if (cached.onboarded) {
+          setPage('dashboard');
+          setPageProps({});
+        }
       } finally {
         setAuthChecked(true);
       }
@@ -8609,13 +8641,13 @@ function App() {
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 try {
   ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-} catch(e) {
-  document.getElementById("err").style.display="flex";
+} catch (e) {
+  document.getElementById("err").style.display = "flex";
   console.error("Slotly boot error:", e);
 }
-window.onerror = function(msg,src,row,col,err) {
-  if(document.getElementById("root").innerHTML.trim()==="") {
-    document.getElementById("err").style.display="flex";
+window.onerror = function (msg, src, row, col, err) {
+  if (document.getElementById("root").innerHTML.trim() === "") {
+    document.getElementById("err").style.display = "flex";
   }
 };
 
