@@ -3984,20 +3984,26 @@ function WaSetupSheet({
   }, saving ? "Wird gespeichert…" : "Nummer speichern")));
 }
 
-// ─── STATISTIK SEKTION ───────────────────────────────────────
-function StatsSection({
+// ─── ANALYTICS SECTION ───────────────────────────────────────
+function AnalyticsSection({
   bookings,
   services,
   staff
 }) {
+  const ok = bookings.filter(b => b.status !== 'cancelled');
+  if (ok.length === 0) return null;
+  const todayStr = today();
+  const DN = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  const MN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  const now = new Date();
   const weekStart = (() => {
     const d = new Date(),
-      day = d.getDay();
-    const mon = new Date(d);
+      day = d.getDay(),
+      mon = new Date(d);
     mon.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
     return mon.toISOString().split('T')[0];
   })();
-  const monthStart = new Date().toISOString().slice(0, 7) + '-01';
+  const monthStart = now.toISOString().slice(0, 7) + '-01';
   const lastMonthStart = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
@@ -4008,204 +4014,486 @@ function StatsSection({
     d.setDate(0);
     return d.toISOString().split('T')[0];
   })();
-  const ok = bookings.filter(b => b.status !== 'cancelled');
-  const thisWeekB = ok.filter(b => b.date >= weekStart);
-  const thisMonthB = ok.filter(b => b.date >= monthStart);
-  const lastMonthB = ok.filter(b => b.date >= lastMonthStart && b.date <= lastMonthEnd);
-  const rev = bs => bs.reduce((s, b) => {
-    const svc = services.find(sv => sv.id === b.serviceId);
-    return s + (Number(svc?.price) || 0);
-  }, 0);
-  const svcMap = {};
+  const rev = bs => bs.reduce((s, b) => s + (Number(services.find(sv => sv.id === b.serviceId)?.price) || 0), 0);
+  const weekB = ok.filter(b => b.date >= weekStart);
+  const monthB = ok.filter(b => b.date >= monthStart);
+  const lastB = ok.filter(b => b.date >= lastMonthStart && b.date <= lastMonthEnd);
+  const monthRev = rev(monthB),
+    lastRev = rev(lastB),
+    weekRev = rev(weekB);
+  const delta = lastRev > 0 ? Math.round((monthRev - lastRev) / lastRev * 100) : null;
+  const totalRev = rev(ok);
+  const avgPerBooking = ok.length > 0 ? Math.round(totalRev / ok.length) : 0;
+
+  // Best day of week
+  const dCnt = Array(7).fill(0);
   ok.forEach(b => {
-    const name = services.find(sv => sv.id === b.serviceId)?.name || '–';
-    svcMap[name] = (svcMap[name] || 0) + 1;
+    const d = new Date(b.date + 'T00:00:00');
+    dCnt[d.getDay()]++;
   });
-  const topSvcs = Object.entries(svcMap).sort((a, b2) => b2[1] - a[1]).slice(0, 4);
-  const maxC = topSvcs[0]?.[1] || 1;
-  const staffMap = {};
-  if (staff.length > 1) {
-    ok.forEach(b => {
-      const name = staff.find(m => m.id === b.staffId)?.name || '–';
-      staffMap[name] = (staffMap[name] || 0) + 1;
-    });
-  }
-  const topStaff = Object.entries(staffMap).sort((a, b2) => b2[1] - a[1]).slice(0, 3);
-  const weekRev = rev(thisWeekB),
-    monthRev = rev(thisMonthB),
-    lastRev = rev(lastMonthB);
-  const monthDelta = lastRev > 0 ? Math.round((monthRev - lastRev) / lastRev * 100) : null;
-  if (ok.length === 0) return null;
+  const bestDayIdx = dCnt.reduce((mi, c, i) => c > dCnt[mi] ? i : mi, 1);
+
+  // Last 7 days for chart
+  const l7 = Array.from({
+    length: 7
+  }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().slice(0, 10);
+  });
+  const l7cnt = l7.map(d => ok.filter(b => b.date === d).length);
+  const maxL7 = Math.max(...l7cnt, 1);
+
+  // Top services
+  const sMap = {};
+  ok.forEach(b => {
+    const n = services.find(sv => sv.id === b.serviceId)?.name || '–';
+    sMap[n] = (sMap[n] || 0) + 1;
+  });
+  const topSvc = Object.entries(sMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxSvc = topSvc[0]?.[1] || 1;
+
+  // Team
+  const tMap = {};
+  if (staff.length > 1) ok.forEach(b => {
+    const m = staff.find(m => m.id === b.staffId);
+    if (m) tMap[m.id] = {
+      name: m.name,
+      color: m.color || "var(--accent)",
+      cnt: (tMap[m.id]?.cnt || 0) + 1
+    };
+  });
+  const topTeam = Object.values(tMap).sort((a, b) => b.cnt - a.cnt);
+  const maxTeam = topTeam[0]?.cnt || 1;
+  const rankColors = ["var(--gold)", "var(--accent)", "var(--accent3)", "var(--muted3)"];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("h2", {
     className: "serif",
     style: {
       fontSize: 22,
       fontWeight: 600,
-      letterSpacing: "-.01em",
-      marginBottom: 14
+      letterSpacing: "-.01em"
     }
   }, "Statistik"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: "var(--border)"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "linear-gradient(135deg,#0B1C33 0%,#162944 60%,#0d2438 100%)",
+      borderRadius: 22,
+      padding: "22px 22px 20px",
+      marginBottom: 12,
+      boxShadow: "0 12px 40px rgba(11,28,51,.28)",
+      position: "relative",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: -40,
+      right: -30,
+      width: 140,
+      height: 140,
+      borderRadius: "50%",
+      background: "rgba(79,209,197,.08)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: -50,
+      right: 30,
+      width: 100,
+      height: 100,
+      borderRadius: "50%",
+      background: "rgba(79,209,197,.05)",
+      pointerEvents: "none"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: ".14em",
+      textTransform: "uppercase",
+      color: "rgba(255,255,255,.45)",
+      marginBottom: 8
+    }
+  }, "Umsatz ", MN[now.getMonth()]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 0,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "serif",
+    style: {
+      fontSize: 48,
+      fontWeight: 600,
+      color: "#fff",
+      letterSpacing: "-.03em",
+      lineHeight: 1
+    }
+  }, monthRev > 0 ? monthRev.toLocaleString('de-DE') : "0"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22,
+      color: "rgba(255,255,255,.55)",
+      marginLeft: 5,
+      fontFamily: "Fraunces,serif",
+      fontWeight: 500
+    }
+  }, "€")), delta !== null ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      borderRadius: 20,
+      padding: "4px 12px",
+      marginBottom: 16,
+      background: delta >= 0 ? "rgba(79,209,197,.18)" : "rgba(197,104,90,.18)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      lineHeight: 1,
+      color: delta >= 0 ? "#6de8de" : "#f09b92"
+    }
+  }, delta >= 0 ? "↑" : "↓"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: delta >= 0 ? "#6de8de" : "#f09b92"
+    }
+  }, Math.abs(delta), "% vs. ", MN[new Date(lastMonthStart).getMonth()])) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "rgba(255,255,255,.3)",
+      marginBottom: 16
+    }
+  }, "Erster Monat · kein Vormonatsvergleich"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 0
+    }
+  }, [{
+    v: monthB.length,
+    l: "Diesen Monat"
+  }, {
+    v: weekB.length,
+    l: "Diese Woche"
+  }, ...(weekRev > 0 ? [{
+    v: weekRev + "€",
+    l: "Wochenumsatz"
+  }] : [])].map((item, i, arr) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: 2,
+      paddingRight: i < arr.length - 1 ? 12 : 0,
+      marginRight: i < arr.length - 1 ? 12 : 0,
+      borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,.1)" : undefined
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#fff",
+      fontFamily: "Fraunces,serif"
+    }
+  }, item.v), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "rgba(255,255,255,.4)"
+    }
+  }, item.l)))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       gap: 8,
-      marginBottom: 10
+      marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "stat"
+    className: "card",
+    style: {
+      padding: "14px 16px"
+    }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 6
-    }
-  }, "Diese Woche"), /*#__PURE__*/React.createElement("div", {
-    className: "sn",
-    style: {
-      color: "var(--accent)",
-      fontSize: 30
-    }
-  }, thisWeekB.length), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--muted)",
-      marginTop: 2
-    }
-  }, "Buchungen"), weekRev > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
+      fontSize: 9,
       fontWeight: 700,
-      color: "var(--accent2)",
-      marginTop: 4
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 8
     }
-  }, weekRev, " €")), /*#__PURE__*/React.createElement("div", {
-    className: "stat"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
-    style: {
-      marginBottom: 6
-    }
-  }, "Dieser Monat"), /*#__PURE__*/React.createElement("div", {
+  }, "Ø pro Termin"), /*#__PURE__*/React.createElement("div", {
     className: "sn",
     style: {
-      color: "var(--accent)",
-      fontSize: 30
+      fontSize: 32,
+      color: "var(--gold)"
     }
-  }, thisMonthB.length), /*#__PURE__*/React.createElement("div", {
+  }, avgPerBooking > 0 ? avgPerBooking + "€" : "–"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--muted)",
-      marginTop: 2
+      marginTop: 6
     }
-  }, "Buchungen"), /*#__PURE__*/React.createElement("div", {
+  }, "Durchschnittsumsatz")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 8
+    }
+  }, "Bester Wochentag"), /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      fontSize: 32,
+      color: "var(--accent)"
+    }
+  }, DN[bestDayIdx]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      marginTop: 6
+    }
+  }, dCnt[bestDayIdx], " Termine historisch"))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: "16px 16px 14px",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 16
+    }
+  }, "Letzte 7 Tage"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
-      gap: 6,
-      marginTop: 4
+      alignItems: "flex-end",
+      gap: 5,
+      height: 72
     }
-  }, monthRev > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "var(--accent2)"
-    }
-  }, monthRev, " €"), monthDelta !== null && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: monthDelta >= 0 ? "var(--success)" : "var(--error)"
-    }
-  }, monthDelta >= 0 ? "+" : "", monthDelta, "% vs. letzten Monat")))), topSvcs.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, l7.map((d, i) => {
+    const cnt = l7cnt[i];
+    const pct = cnt / maxL7;
+    const isToday = d === todayStr;
+    const barH = cnt === 0 ? 3 : Math.max(7, Math.round(pct * 56));
+    return /*#__PURE__*/React.createElement("div", {
+      key: d,
+      style: {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        height: "100%",
+        justifyContent: "flex-end"
+      }
+    }, cnt > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 700,
+        color: isToday ? "var(--accent)" : "var(--muted2)"
+      }
+    }, cnt), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "100%",
+        borderRadius: "5px 5px 0 0",
+        height: barH,
+        background: isToday ? "linear-gradient(180deg,var(--accent) 0%,var(--accent2) 100%)" : cnt === 0 ? "var(--bg3)" : "var(--accent-soft2)"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: isToday ? 700 : 500,
+        color: isToday ? "var(--accent2)" : "var(--muted2)",
+        marginTop: 2
+      }
+    }, DN[new Date(d + 'T00:00:00').getDay()]));
+  }))), topSvc.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 16,
-      marginBottom: 8
+      marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 12
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 16
     }
   }, "Top Leistungen"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 14
     }
-  }, topSvcs.map(([name, count]) => /*#__PURE__*/React.createElement("div", {
+  }, topSvc.map(([name, cnt], idx) => /*#__PURE__*/React.createElement("div", {
     key: name
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      fontSize: 13,
-      marginBottom: 5
+      alignItems: "center",
+      marginBottom: 7
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontWeight: 500,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 20,
+      height: 20,
+      borderRadius: "50%",
+      background: rankColors[idx] || "var(--muted3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 10,
+      color: "#fff",
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, idx + 1), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      maxWidth: "78%"
+      maxWidth: 160
     }
-  }, name), /*#__PURE__*/React.createElement("span", {
+  }, name)), /*#__PURE__*/React.createElement("span", {
     style: {
+      fontSize: 13,
       fontWeight: 700,
       color: "var(--accent)",
       flexShrink: 0
     }
-  }, count, "×")), /*#__PURE__*/React.createElement("div", {
-    className: "pbar"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "pfill",
+  }, cnt, "×")), /*#__PURE__*/React.createElement("div", {
+    className: "pbar",
     style: {
-      width: `${Math.round(count / maxC * 100)}%`
+      height: 6,
+      borderRadius: 3
     }
-  })))))), topStaff.length > 1 && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      borderRadius: 3,
+      background: `linear-gradient(90deg,${rankColors[idx] || "var(--accent)"},${["#b8922a", "var(--accent2)", "var(--accent3)", "var(--muted2)"][idx] || "var(--accent2)"})`,
+      width: `${Math.round(cnt / maxSvc * 100)}%`,
+      transition: "width .5s"
+    }
+  })))))), topTeam.length > 1 && /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 12
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: ".1em",
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 16
     }
   }, "Team-Auslastung"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 14
     }
-  }, topStaff.map(([name, count]) => /*#__PURE__*/React.createElement("div", {
-    key: name
+  }, topTeam.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.name
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      fontSize: 13,
-      marginBottom: 5
+      alignItems: "center",
+      marginBottom: 7
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 500
-    }
-  }, name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      color: "var(--accent)"
-    }
-  }, count, "×")), /*#__PURE__*/React.createElement("div", {
-    className: "pbar"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "pfill",
     style: {
-      width: `${Math.round(count / (topStaff[0][1] || 1) * 100)}%`
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: "50%",
+      background: m.color,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 10,
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, m.name[0]), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, m.name)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: m.color
+    }
+  }, m.cnt, "×")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 7,
+      borderRadius: 4,
+      background: "var(--bg2)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      borderRadius: 4,
+      background: m.color,
+      width: `${Math.round(m.cnt / maxTeam * 100)}%`,
+      transition: "width .5s"
     }
   })))))));
 }
@@ -5031,7 +5319,7 @@ function Dashboard({
       n: "wa",
       s: 14
     }), "Erinnerung senden"))));
-  }))), /*#__PURE__*/React.createElement(StatsSection, {
+  }))), /*#__PURE__*/React.createElement(AnalyticsSection, {
     bookings: bookings,
     services: services,
     staff: staff
