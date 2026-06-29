@@ -83,6 +83,10 @@ body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); m
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes waPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,.5)}70%{box-shadow:0 0 0 14px transparent}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes floatCard1{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(-1deg)}}
+@keyframes floatCard2{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-9px) rotate(1deg)}}
+@keyframes floatCard3{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-14px) rotate(0deg)}}
 
 .a1{animation:fadeUp .6s ease both}.a2{animation:fadeUp .6s .1s ease both}
 .a3{animation:fadeUp .6s .2s ease both}.a4{animation:fadeUp .6s .3s ease both}
@@ -795,20 +799,126 @@ function PhoneMockup() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────
+const LP_DARK = "#08111f";
+const LP_DARK2 = "#0a1628";
+const LP_DARK3 = "#0d1e38";
+const LP_GOLD = "#c9a85a";
+const LP_GOLD_LIGHT = "#e8c87a";
+const LP_WHITE = "#ffffff";
+const LP_W70 = "rgba(255,255,255,.7)";
+const LP_W50 = "rgba(255,255,255,.5)";
+const LP_W40 = "rgba(255,255,255,.4)";
+const LP_W30 = "rgba(255,255,255,.3)";
+const LP_W10 = "rgba(255,255,255,.1)";
+const LP_W08 = "rgba(255,255,255,.08)";
+const LP_W06 = "rgba(255,255,255,.06)";
+const LP_W04 = "rgba(255,255,255,.04)";
+const LP_GOLD_BG = "rgba(201,168,90,.12)";
+const LP_GOLD_BR = "rgba(201,168,90,.25)";
+const LP_GOLD_GLOW = "rgba(201,168,90,.45)";
+function lpGoldGrad(dir = "135deg") {
+  return `linear-gradient(${dir},${LP_GOLD},${LP_GOLD_LIGHT})`;
+}
+function lpGoldText() {
+  return {
+    background: lpGoldGrad(),
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent"
+  };
+}
+function LPOrb({
+  top,
+  left,
+  right,
+  bottom,
+  size = 500,
+  color = "rgba(201,168,90,.08)"
+}) {
+  const s = {
+    position: "absolute",
+    borderRadius: "50%",
+    background: `radial-gradient(circle,${color} 0%,transparent 70%)`,
+    pointerEvents: "none",
+    width: size,
+    height: size
+  };
+  if (top !== undefined) s.top = top;
+  if (bottom !== undefined) s.bottom = bottom;
+  if (left !== undefined) s.left = left;
+  if (right !== undefined) s.right = right;
+  return /*#__PURE__*/React.createElement("div", {
+    style: s
+  });
+}
+function LPFloatCard({
+  style,
+  icon,
+  iconBg,
+  label,
+  value
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: LP_WHITE,
+      color: LP_DARK,
+      borderRadius: 16,
+      padding: "12px 16px",
+      boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      ...style
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: "50%",
+      background: iconBg,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      color: "#fff"
+    }
+  }, icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: "#5A6B7B",
+      fontWeight: 600,
+      letterSpacing: ".07em",
+      textTransform: "uppercase"
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      marginTop: 1,
+      color: LP_DARK
+    }
+  }, value)));
+}
 function Landing({
   go
 }) {
   return /*#__PURE__*/React.createElement("div", {
-    className: "fade"
+    className: "fade",
+    style: {
+      background: LP_DARK,
+      color: LP_WHITE,
+      overflowX: "hidden"
+    }
   }, /*#__PURE__*/React.createElement("header", {
     style: {
       position: "sticky",
       top: 0,
       zIndex: 50,
-      background: "rgba(245,248,250,.92)",
-      backdropFilter: "blur(20px)",
-      borderBottom: "1px solid var(--border)",
-      padding: "12px 20px"
+      background: "rgba(8,17,31,.9)",
+      backdropFilter: "blur(24px)",
+      WebkitBackdropFilter: "blur(24px)",
+      borderBottom: "1px solid rgba(255,255,255,.07)",
+      padding: "13px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -829,11 +939,11 @@ function Landing({
       width: 34,
       height: 34,
       borderRadius: 10,
-      background: "linear-gradient(135deg,var(--accent-deep),var(--accent2))",
+      background: lpGoldGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#fff"
+      color: LP_DARK
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: "cal",
@@ -841,10 +951,10 @@ function Landing({
   })), /*#__PURE__*/React.createElement("span", {
     className: "serif",
     style: {
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: 600,
-      letterSpacing: "-.01em",
-      color: "var(--accent-deep)"
+      color: LP_WHITE,
+      letterSpacing: "-.01em"
     }
   }, "Slotly")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -852,43 +962,68 @@ function Landing({
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-g",
+    className: "btn",
     onClick: () => go("login"),
     style: {
-      padding: "8px 16px",
-      fontSize: 13
+      padding: "8px 18px",
+      fontSize: 13,
+      background: "rgba(255,255,255,.07)",
+      border: "1px solid rgba(255,255,255,.14)",
+      color: LP_WHITE,
+      borderRadius: 10,
+      fontWeight: 500
     }
   }, "Login"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-accent",
+    className: "btn",
     onClick: () => go("register"),
     style: {
-      padding: "8px 16px",
-      fontSize: 13
+      padding: "8px 18px",
+      fontSize: 13,
+      background: lpGoldGrad(),
+      color: LP_DARK,
+      fontWeight: 700,
+      borderRadius: 10,
+      border: "none",
+      boxShadow: `0 4px 18px ${LP_GOLD_GLOW}`
     }
   }, "Kostenlos starten")))), /*#__PURE__*/React.createElement("section", {
     style: {
-      padding: "56px 20px 64px",
+      background: `linear-gradient(-45deg,${LP_DARK},${LP_DARK3},${LP_DARK2},#0b0f1e,${LP_DARK3})`,
+      backgroundSize: "400% 400%",
+      animation: "gradientShift 18s ease infinite",
+      padding: "88px 20px 0",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
+      minHeight: "100svh",
+      display: "flex",
+      flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "salon-bg-1",
-    style: {
-      top: 60,
-      left: "3%"
-    }
+  }, /*#__PURE__*/React.createElement(LPOrb, {
+    top: "-10%",
+    left: "10%",
+    size: 700,
+    color: "rgba(201,168,90,.1)"
+  }), /*#__PURE__*/React.createElement(LPOrb, {
+    top: "30%",
+    right: "-8%",
+    size: 550,
+    color: "rgba(79,209,197,.07)"
+  }), /*#__PURE__*/React.createElement(LPOrb, {
+    bottom: "5%",
+    left: "-8%",
+    size: 450,
+    color: "rgba(201,168,90,.07)"
   }), /*#__PURE__*/React.createElement("div", {
-    className: "salon-bg-2",
-    style: {
-      top: 180,
-      right: "-8%"
-    }
-  }), /*#__PURE__*/React.createElement(SalonScene, null), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 1100,
       margin: "0 auto",
+      width: "100%",
       position: "relative",
-      textAlign: "center"
+      textAlign: "center",
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "a1",
@@ -896,210 +1031,225 @@ function Landing({
       display: "flex",
       flexWrap: "wrap",
       justifyContent: "center",
-      gap: 8,
-      marginBottom: 28
+      gap: 7,
+      marginBottom: 36
     }
-  }, ["Friseur", "Nagelstudio", "Kosmetik", "Massage", "Tattoo", "Physio", "Studio", "& mehr"].map(b => /*#__PURE__*/React.createElement("span", {
+  }, ["Friseur", "Nagelstudio", "Kosmetik", "Massage", "Tattoo", "Physio", "Waxing", "Barbershop"].map(b => /*#__PURE__*/React.createElement("span", {
     key: b,
     style: {
-      padding: "4px 12px",
+      padding: "5px 14px",
       borderRadius: 20,
-      background: "var(--accent-soft)",
-      color: "var(--accent2)",
+      background: LP_GOLD_BG,
+      color: LP_GOLD,
       fontSize: 12,
       fontWeight: 600,
-      border: "1px solid var(--accent-soft2)"
+      border: `1px solid ${LP_GOLD_BR}`,
+      letterSpacing: ".02em"
     }
   }, b))), /*#__PURE__*/React.createElement("h1", {
     className: "serif a2",
     style: {
-      fontSize: "clamp(34px,7.5vw,62px)",
+      fontSize: "clamp(40px,8.5vw,76px)",
       fontWeight: 500,
-      lineHeight: 1.08,
-      marginBottom: 20,
-      letterSpacing: "-.025em"
+      lineHeight: 1.03,
+      marginBottom: 26,
+      letterSpacing: "-.03em",
+      color: LP_WHITE,
+      maxWidth: 820
     }
-  }, "Terminbuchung, die", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
-    className: "grad-text",
+  }, "Kunden buchen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic"
+      fontStyle: "italic",
+      ...lpGoldText()
     }
-  }, "einfach funktioniert.")), /*#__PURE__*/React.createElement("p", {
+  }, "Du arbeitest.")), /*#__PURE__*/React.createElement("p", {
     className: "a3",
     style: {
       fontSize: 17,
-      color: "var(--muted)",
-      lineHeight: 1.65,
-      marginBottom: 32,
-      maxWidth: 480,
-      marginLeft: "auto",
-      marginRight: "auto"
+      color: LP_W50,
+      lineHeight: 1.75,
+      marginBottom: 38,
+      maxWidth: 460
     }
-  }, "Kunden buchen selbst — per Link oder QR-Code, ohne App, ohne Konto. Du siehst alles auf einen Blick und sparst täglich Zeit."), /*#__PURE__*/React.createElement("div", {
+  }, "Dein persönlicher Buchungslink — ohne App, ohne Konto.", /*#__PURE__*/React.createElement("br", null), "In 5 Minuten live. Täglich Anrufe sparen."), /*#__PURE__*/React.createElement("div", {
     className: "a4",
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 10,
-      maxWidth: 360,
-      marginLeft: "auto",
-      marginRight: "auto",
-      marginBottom: 40
+      width: "100%",
+      maxWidth: 340,
+      marginBottom: 72
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-accent",
+    className: "btn",
     onClick: () => go("register"),
     style: {
-      padding: "16px",
+      padding: "17px",
       fontSize: 15,
-      width: "100%"
+      width: "100%",
+      background: lpGoldGrad(),
+      color: LP_DARK,
+      fontWeight: 700,
+      borderRadius: 14,
+      border: "none",
+      boxShadow: `0 8px 36px ${LP_GOLD_GLOW}`,
+      letterSpacing: "-.01em"
     }
   }, "In 5 Minuten starten ", /*#__PURE__*/React.createElement(I, {
     n: "arrow_right",
     s: 16
   })), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-g",
+    className: "btn",
     onClick: () => go("book", {
       slug: "muster"
     }),
     style: {
-      padding: "13px",
+      padding: "14px",
       fontSize: 13,
-      width: "100%"
+      width: "100%",
+      background: "rgba(255,255,255,.06)",
+      border: "1px solid rgba(255,255,255,.14)",
+      color: LP_W70,
+      borderRadius: 14
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: "eye",
     s: 14
-  }), "Demo ansehen")), /*#__PURE__*/React.createElement("div", {
+  }), " Live-Demo ansehen")), /*#__PURE__*/React.createElement("div", {
     className: "a5",
     style: {
-      display: "flex",
-      justifyContent: "center",
       position: "relative",
-      marginBottom: 32
-    }
-  }, /*#__PURE__*/React.createElement(PhoneMockup, null), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 40,
-      right: "6%",
-      background: "#fff",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: "10px 14px",
-      boxShadow: "var(--shadow-lg)",
       display: "flex",
-      alignItems: "center",
-      gap: 8,
-      animation: "floatGentle 4s ease-in-out infinite"
+      justifyContent: "center",
+      width: "100%",
+      paddingBottom: 80
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: "var(--success-soft)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--success)"
+      position: "absolute",
+      bottom: 50,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: 280,
+      height: 80,
+      background: `radial-gradient(ellipse,rgba(201,168,90,.4) 0%,transparent 70%)`,
+      filter: "blur(24px)",
+      pointerEvents: "none"
     }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "check",
-    s: 14
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--muted)"
-    }
-  }, "Neue Buchung"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, "Anna · 11:30 Uhr"))), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement(PhoneMockup, null), /*#__PURE__*/React.createElement(LPFloatCard, {
     style: {
       position: "absolute",
-      bottom: 90,
-      left: "4%",
-      background: "#fff",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: "10px 14px",
-      boxShadow: "var(--shadow-lg)",
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      animation: "floatGentle 5s 1.2s ease-in-out infinite"
+      top: 36,
+      right: "4%",
+      maxWidth: 190,
+      animation: "floatCard1 4.2s ease-in-out infinite"
+    },
+    iconBg: "linear-gradient(135deg,#4FD1C5,#2CA6A4)",
+    icon: /*#__PURE__*/React.createElement(I, {
+      n: "check",
+      s: 14
+    }),
+    label: "Neue Buchung",
+    value: "Anna · Di 10:30"
+  }), /*#__PURE__*/React.createElement(LPFloatCard, {
+    style: {
+      position: "absolute",
+      top: "34%",
+      left: "1%",
+      maxWidth: 178,
+      animation: "floatCard2 5.5s 1s ease-in-out infinite"
+    },
+    iconBg: lpGoldGrad(),
+    icon: /*#__PURE__*/React.createElement(I, {
+      n: "cal",
+      s: 14
+    }),
+    label: "Heute",
+    value: "8 Termine · voll"
+  }), /*#__PURE__*/React.createElement(LPFloatCard, {
+    style: {
+      position: "absolute",
+      bottom: 95,
+      right: "3%",
+      maxWidth: 186,
+      animation: "floatCard3 5s 0.5s ease-in-out infinite"
+    },
+    iconBg: "linear-gradient(135deg,#25d366,#128c7e)",
+    icon: /*#__PURE__*/React.createElement(I, {
+      n: "wa",
+      s: 14
+    }),
+    label: "Krank-Modus",
+    value: "4 Kunden informiert"
+  }), /*#__PURE__*/React.createElement(LPFloatCard, {
+    style: {
+      position: "absolute",
+      bottom: "27%",
+      left: "0%",
+      maxWidth: 178,
+      animation: "floatCard1 6s 2s ease-in-out infinite"
+    },
+    iconBg: lpGoldGrad(),
+    icon: /*#__PURE__*/React.createElement(I, {
+      n: "zap",
+      s: 14
+    }),
+    label: "Neue Bewertung",
+    value: "\"Absolut top!\" ★★★★★"
+  })))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: "rgba(255,255,255,.03)",
+      borderTop: "1px solid rgba(255,255,255,.07)",
+      borderBottom: "1px solid rgba(255,255,255,.07)",
+      padding: "36px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 30,
-      height: 30,
-      borderRadius: "50%",
-      background: "var(--wa-soft)",
+      maxWidth: 800,
+      margin: "0 auto",
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--wa-dark)"
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "wa",
-    s: 14
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "var(--muted)"
-    }
-  }, "Krank-Modus"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, "3 Kunden informiert")))), /*#__PURE__*/React.createElement("div", {
-    className: "a5",
-    style: {
-      display: "flex",
-      justifyContent: "center",
-      gap: 20,
-      flexWrap: "wrap"
+      justifyContent: "space-around",
+      flexWrap: "wrap",
+      gap: 28
     }
   }, [{
-    i: "zap",
-    t: "In 5 Min live"
+    n: "500+",
+    l: "Betriebe aktiv"
   }, {
-    i: "shield",
-    t: "DSGVO-konform"
+    n: "∅ 2h",
+    l: "gespart pro Woche"
   }, {
-    i: "phone",
-    t: "Kein App-Download"
-  }, {
-    i: "wa",
-    t: "WhatsApp ready"
+    n: "5 Min",
+    l: "bis du live bist"
   }].map(({
-    i,
-    t
+    n,
+    l
   }) => /*#__PURE__*/React.createElement("div", {
-    key: t,
+    key: l,
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "serif",
+    style: {
+      fontSize: "clamp(30px,5vw,48px)",
+      fontWeight: 500,
+      lineHeight: 1,
+      ...lpGoldText()
+    }
+  }, n), /*#__PURE__*/React.createElement("div", {
+    style: {
       fontSize: 12,
-      color: "var(--muted)",
-      fontWeight: 500
+      color: LP_W40,
+      marginTop: 6,
+      fontWeight: 500,
+      letterSpacing: ".03em"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, l))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      color: i === "wa" ? "var(--wa-dark)" : "var(--accent2)"
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: i,
-    s: 13
-  })), t))))), /*#__PURE__*/React.createElement("section", {
-    style: {
-      background: "var(--bg2)",
-      padding: "70px 20px"
+      background: LP_DARK,
+      padding: "88px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1109,103 +1259,118 @@ function Landing({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      marginBottom: 44
+      marginBottom: 60
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 10
+      fontSize: 11,
+      letterSpacing: ".14em",
+      textTransform: "uppercase",
+      fontWeight: 600,
+      color: LP_GOLD,
+      marginBottom: 14
     }
   }, "So einfach geht's"), /*#__PURE__*/React.createElement("h2", {
     className: "serif",
     style: {
-      fontSize: "clamp(24px,4vw,38px)",
+      fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
-      lineHeight: 1.15,
-      letterSpacing: "-.02em"
+      lineHeight: 1.1,
+      color: LP_WHITE,
+      letterSpacing: "-.025em"
     }
   }, "In 3 Schritten", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
-    className: "grad-text",
     style: {
-      fontStyle: "italic"
+      fontStyle: "italic",
+      ...lpGoldText()
     }
   }, "online buchbar."))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
-      gap: 16
+      gap: 20
     }
   }, [{
     n: "01",
     i: "edit",
     t: "Profil einrichten",
-    d: "Salon-Name, Services und Mitarbeiter in weniger als 5 Minuten eingetragen."
+    d: "Salon-Name, Services und Mitarbeiter. Fertig in unter 5 Minuten."
   }, {
     n: "02",
     i: "link",
-    t: "Link & QR-Code teilen",
-    d: "Dein persönlicher Buchungslink und QR-Code sind sofort verfügbar. Einfach teilen."
+    t: "Link teilen",
+    d: "Buchungslink sofort live. QR-Code ins Schaufenster, Link in die Bio."
   }, {
     n: "03",
     i: "cal",
-    t: "Buchungen empfangen",
-    d: "Kunden buchen selbst — du siehst jeden Termin sofort. Keine Rückfragen mehr."
-  }].map(s => /*#__PURE__*/React.createElement("div", {
+    t: "Entspannt arbeiten",
+    d: "Kunden buchen selbst — du bekommst eine Benachrichtigung. Keine Anrufe mehr."
+  }].map((s, idx) => /*#__PURE__*/React.createElement("div", {
     key: s.n,
-    className: "card lift",
     style: {
-      padding: 24
+      background: LP_W04,
+      border: `1px solid ${LP_W08}`,
+      borderRadius: 20,
+      padding: 28,
+      transition: "all .3s"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      fontWeight: 800,
-      color: "var(--accent)",
-      letterSpacing: ".12em",
-      marginBottom: 14,
-      opacity: .7
-    }
-  }, s.n), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      background: "var(--accent-soft)",
+      width: 48,
+      height: 48,
+      borderRadius: "50%",
+      background: LP_GOLD_BG,
+      border: `1px solid ${LP_GOLD_BR}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "var(--accent2)",
-      marginBottom: 14
+      marginBottom: 20,
+      fontFamily: "'Fraunces',serif",
+      fontWeight: 600,
+      fontSize: 17,
+      color: LP_GOLD
+    }
+  }, s.n), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: LP_GOLD_BG,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: LP_GOLD,
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: s.i,
-    s: 20
+    s: 19
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontWeight: 700,
       fontSize: 15,
       marginBottom: 8,
+      color: LP_WHITE,
       letterSpacing: "-.01em"
     }
   }, s.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "var(--muted)",
-      lineHeight: 1.6
+      color: LP_W50,
+      lineHeight: 1.65
     }
   }, s.d)))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      padding: "70px 20px",
+      background: LP_DARK2,
+      padding: "88px 20px",
       position: "relative",
       overflow: "hidden"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "salon-bg-4",
-    style: {
-      top: "20%",
-      right: "-10%",
-      opacity: .25
-    }
+  }, /*#__PURE__*/React.createElement(LPOrb, {
+    top: "50%",
+    left: "50%",
+    size: 700,
+    color: "rgba(201,168,90,.05)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 1100,
@@ -1215,38 +1380,43 @@ function Landing({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      marginBottom: 44
+      marginBottom: 60
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 10
+      fontSize: 11,
+      letterSpacing: ".14em",
+      textTransform: "uppercase",
+      fontWeight: 600,
+      color: LP_GOLD,
+      marginBottom: 14
     }
   }, "Funktionen"), /*#__PURE__*/React.createElement("h2", {
     className: "serif",
     style: {
-      fontSize: "clamp(24px,4vw,38px)",
+      fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
-      lineHeight: 1.15,
-      letterSpacing: "-.02em"
+      lineHeight: 1.1,
+      color: LP_WHITE,
+      letterSpacing: "-.025em"
     }
   }, "Alles, was dein Betrieb", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
-    className: "grad-text",
     style: {
-      fontStyle: "italic"
+      fontStyle: "italic",
+      ...lpGoldText()
     }
   }, "wirklich braucht."))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+      gridTemplateColumns: "repeat(auto-fit,minmax(265px,1fr))",
       gap: 14,
-      maxWidth: 880,
+      maxWidth: 900,
       margin: "0 auto"
     }
   }, [{
     i: "phone",
     t: "Kein App-Download",
-    d: "Buchung läuft direkt im Browser — mobiloptimiert, ohne Konto, ohne Hürden."
+    d: "Buchung läuft im Browser — mobiloptimiert, ohne Konto, ohne Hürden."
   }, {
     i: "users",
     t: "Nur das Nötigste",
@@ -1258,30 +1428,38 @@ function Landing({
   }, {
     i: "qr",
     t: "QR-Code & Link",
-    d: "Sofort verfügbar. Ins Schaufenster, auf die Visitenkarte, in die Instagram-Story."
+    d: "Sofort live. Ins Schaufenster, auf die Visitenkarte, in die Instagram-Story."
   }, {
     i: "cal",
     t: "Solo oder Team",
-    d: "Für Einzelpersonen und kleine Teams bis 6 Personen — flexibel skalierbar."
+    d: "Für Einzelpersonen und kleine Teams bis 6 — einfach skalierbar."
   }, {
     i: "clock",
     t: "Tagesplan auf einen Blick",
-    d: "Wer kommt heute, was wird gemacht — klar, übersichtlich, ohne Rätselraten."
+    d: "Wer kommt heute, was wird gemacht — klar, übersichtlich, sofort."
   }].map(f => /*#__PURE__*/React.createElement("div", {
     key: f.t,
-    className: "card lift",
     style: {
-      padding: 20,
+      background: LP_W04,
+      border: `1px solid ${LP_W08}`,
+      borderRadius: 16,
+      padding: "18px 20px",
       display: "flex",
       alignItems: "flex-start",
       gap: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "feat-icon",
     style: {
-      color: f.i === "wa" ? "var(--wa-dark)" : undefined,
-      background: f.i === "wa" ? "var(--wa-soft)" : undefined,
-      border: f.i === "wa" ? "1px solid rgba(37,211,102,.25)" : undefined
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      background: f.i === "wa" ? "rgba(37,211,102,.12)" : LP_GOLD_BG,
+      border: f.i === "wa" ? "1px solid rgba(37,211,102,.2)" : `1px solid ${LP_GOLD_BR}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: f.i === "wa" ? "#25d366" : LP_GOLD,
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: f.i,
@@ -1290,177 +1468,75 @@ function Landing({
     style: {
       fontWeight: 700,
       fontSize: 14,
-      marginBottom: 4,
+      marginBottom: 5,
+      color: LP_WHITE,
       letterSpacing: "-.01em"
     }
   }, f.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "var(--muted)",
-      lineHeight: 1.5
+      color: LP_W40,
+      lineHeight: 1.55
     }
   }, f.d))))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: "linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%)",
-      padding: "70px 20px",
+      padding: "88px 20px",
+      background: `linear-gradient(135deg,${LP_DARK3},${LP_DARK})`,
       position: "relative",
       overflow: "hidden"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "salon-bg-1",
-    style: {
-      top: "20%",
-      right: "-5%",
-      opacity: .2
-    }
+  }, /*#__PURE__*/React.createElement(LPOrb, {
+    top: "50%",
+    left: "50%",
+    size: 600,
+    color: "rgba(201,168,90,.07)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      maxWidth: 900,
+      maxWidth: 640,
       margin: "0 auto",
+      textAlign: "center",
       position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tag tag-wa",
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "wa",
-    s: 13
-  }), "WhatsApp-Feature"), /*#__PURE__*/React.createElement("h2", {
-    className: "serif",
-    style: {
-      fontSize: "clamp(24px,4vw,38px)",
-      fontWeight: 500,
-      lineHeight: 1.15,
-      marginBottom: 14,
-      letterSpacing: "-.02em"
-    }
-  }, "Krank? ", /*#__PURE__*/React.createElement("em", {
-    style: {
-      color: "var(--accent)",
-      fontStyle: "italic"
-    }
-  }, "Drei Taps.")), /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: 15,
-      color: "var(--muted)",
-      lineHeight: 1.65,
-      maxWidth: 500,
-      margin: "0 auto"
-    }
-  }, "Slotly zeigt alle Termine, du wischst durch, und WhatsApp öffnet sich mit der fertigen Nachricht — du tippst einmal Senden. Fertig.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
-      gap: 16
-    }
-  }, [{
-    n: 1,
-    t: "Wer ist krank?",
-    d: "Mitarbeiter und Tag wählen — in Sekunden.",
-    i: "users"
-  }, {
-    n: 2,
-    t: "WhatsApp öffnet sich",
-    d: "Jeder Termin als Karte, fertige Nachricht. Du tippst nur Senden.",
-    i: "wa"
-  }, {
-    n: 3,
-    t: "Erledigt.",
-    d: "Alle Kunden informiert. In unter 3 Minuten.",
-    i: "check"
-  }].map(s => /*#__PURE__*/React.createElement("div", {
-    key: s.n,
-    className: "card lift",
-    style: {
-      padding: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "step-circle",
-    style: {
-      marginBottom: 14
-    }
-  }, s.n), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: s.i === "wa" ? "var(--wa-dark)" : "var(--accent)"
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: s.i,
-    s: 18
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      fontSize: 15,
-      color: "var(--ink)"
-    }
-  }, s.t)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--muted)",
-      lineHeight: 1.5
-    }
-  }, s.d)))))), /*#__PURE__*/React.createElement("section", {
-    style: {
-      padding: "64px 20px",
-      background: "linear-gradient(135deg,var(--accent-deep),#0f2543)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      maxWidth: 640,
-      margin: "0 auto",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 36,
-      color: "var(--accent)",
-      marginBottom: 10,
-      lineHeight: 1,
-      fontFamily: "Georgia,serif"
+      fontSize: 72,
+      color: LP_GOLD,
+      lineHeight: .7,
+      marginBottom: 20,
+      fontFamily: "Georgia,serif",
+      opacity: .5
     }
   }, "\""), /*#__PURE__*/React.createElement("p", {
     className: "serif",
     style: {
-      fontSize: "clamp(17px,3vw,24px)",
+      fontSize: "clamp(19px,3.5vw,27px)",
       fontWeight: 500,
-      lineHeight: 1.45,
-      color: "#fff",
-      marginBottom: 24,
+      lineHeight: 1.5,
+      color: "rgba(255,255,255,.92)",
+      marginBottom: 30,
       fontStyle: "italic",
-      letterSpacing: "-.01em"
+      letterSpacing: "-.015em"
     }
   }, "Seit Slotly verwende ich kaum noch Zeit auf Terminabsprachen. Kunden buchen selbst — ich muss nur noch arbeiten."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 12
+      gap: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 42,
-      height: 42,
+      width: 46,
+      height: 46,
       borderRadius: "50%",
-      background: "var(--accent)",
+      background: lpGoldGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#fff",
+      color: LP_DARK,
       fontWeight: 700,
-      fontSize: 16
+      fontSize: 18,
+      fontFamily: "'Fraunces',serif"
     }
   }, "M"), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1469,18 +1545,161 @@ function Landing({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontWeight: 600,
-      fontSize: 13,
-      color: "#fff"
+      fontSize: 14,
+      color: LP_WHITE
     }
   }, "Michael K."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "rgba(255,255,255,.5)"
+      color: LP_W40
     }
-  }, "Friseurmeister · München"))))), /*#__PURE__*/React.createElement("section", {
+  }, "Friseurmeister · München"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "var(--bg)",
-      padding: "70px 20px"
+      display: "flex",
+      justifyContent: "center",
+      gap: 5,
+      marginTop: 22
+    }
+  }, [1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      color: LP_GOLD,
+      fontSize: 18
+    }
+  }, "★"))))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: LP_DARK,
+      padding: "88px 20px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 900,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 52
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      background: "rgba(37,211,102,.1)",
+      border: "1px solid rgba(37,211,102,.2)",
+      borderRadius: 20,
+      padding: "6px 16px",
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#25d366",
+      letterSpacing: ".07em",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 12
+  }), " WhatsApp-Feature"), /*#__PURE__*/React.createElement("h2", {
+    className: "serif",
+    style: {
+      fontSize: "clamp(28px,5vw,46px)",
+      fontWeight: 500,
+      lineHeight: 1.1,
+      color: LP_WHITE,
+      letterSpacing: "-.025em",
+      marginBottom: 16
+    }
+  }, "Krank? ", /*#__PURE__*/React.createElement("em", {
+    style: {
+      fontStyle: "italic",
+      color: "#25d366"
+    }
+  }, "Drei Taps.")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 15,
+      color: LP_W50,
+      lineHeight: 1.75,
+      maxWidth: 460,
+      margin: "0 auto"
+    }
+  }, "Slotly zeigt alle Termine, du wischst durch, WhatsApp öffnet sich mit der fertigen Nachricht — einmal tippen. Fertig.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
+      gap: 16
+    }
+  }, [{
+    n: 1,
+    t: "Wer ist krank?",
+    d: "Mitarbeiter und Tag wählen. In Sekunden erledigt.",
+    i: "users",
+    c: LP_GOLD
+  }, {
+    n: 2,
+    t: "WhatsApp öffnet sich",
+    d: "Jeder Termin als Karte, fertige Nachricht. Du tippst nur Senden.",
+    i: "wa",
+    c: "#25d366"
+  }, {
+    n: 3,
+    t: "Erledigt.",
+    d: "Alle Kunden informiert. In unter 3 Minuten.",
+    i: "check",
+    c: LP_GOLD
+  }].map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.n,
+    style: {
+      background: LP_W04,
+      border: `1px solid ${LP_W08}`,
+      borderRadius: 20,
+      padding: 26
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      background: "rgba(37,211,102,.1)",
+      border: "1px solid rgba(37,211,102,.2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#25d366",
+      fontFamily: "'Fraunces',serif",
+      fontWeight: 700,
+      fontSize: 16,
+      marginBottom: 18
+    }
+  }, s.n), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: s.c
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: s.i,
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      color: LP_WHITE
+    }
+  }, s.t)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: LP_W40,
+      lineHeight: 1.6
+    }
+  }, s.d)))))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      background: LP_DARK2,
+      padding: "88px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1490,52 +1709,58 @@ function Landing({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      marginBottom: 44
+      marginBottom: 56
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
     style: {
-      marginBottom: 10
+      fontSize: 11,
+      letterSpacing: ".14em",
+      textTransform: "uppercase",
+      fontWeight: 600,
+      color: LP_GOLD,
+      marginBottom: 14
     }
   }, "Preise"), /*#__PURE__*/React.createElement("h2", {
     className: "serif",
     style: {
-      fontSize: "clamp(24px,4vw,38px)",
+      fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
-      lineHeight: 1.15,
-      marginBottom: 8,
-      letterSpacing: "-.02em"
+      lineHeight: 1.1,
+      color: LP_WHITE,
+      marginBottom: 10,
+      letterSpacing: "-.025em"
     }
   }, "Ehrlich, einfach,", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
-    className: "grad-text",
     style: {
-      fontStyle: "italic"
+      fontStyle: "italic",
+      ...lpGoldText()
     }
   }, "ohne Überraschungen.")), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: "var(--muted)",
-      fontSize: 14,
-      marginTop: 6
+      color: LP_W30,
+      fontSize: 13,
+      marginTop: 6,
+      letterSpacing: ".02em"
     }
   }, "Monatlich kündbar · 14 Tage gratis testen")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
       gap: 18,
-      maxWidth: 900,
+      maxWidth: 920,
       margin: "0 auto"
     }
   }, [{
     n: "Solo",
     p: 15,
     d: "Für Einzelpersonen",
-    f: ["1 buchbare Person", "Eigene Buchungsseite", "QR-Code", "Krank-Modus (WhatsApp)"],
+    f: ["1 buchbare Person", "Eigene Buchungsseite", "QR-Code", "Krank-Modus"],
     hi: false
   }, {
     n: "Team",
     p: 25,
     d: "Für Teams bis 3 Personen",
-    f: ["Bis 3 buchbare Personen", "Mitarbeiterwahl", "Team-Kalender", "Krank-Modus + WhatsApp-Batch"],
+    f: ["Bis 3 buchbare Personen", "Mitarbeiterwahl", "Team-Kalender", "WhatsApp-Batch"],
     hi: true
   }, {
     n: "Studio",
@@ -1545,12 +1770,14 @@ function Landing({
     hi: false
   }].map(p => /*#__PURE__*/React.createElement("div", {
     key: p.n,
-    className: p.hi ? "card-elevated" : "card lift",
     style: {
-      padding: 28,
+      background: p.hi ? `linear-gradient(135deg,${LP_GOLD_BG},rgba(201,168,90,.06))` : LP_W04,
+      border: p.hi ? `2px solid rgba(201,168,90,.45)` : `1px solid ${LP_W08}`,
+      borderRadius: 22,
+      padding: 30,
       position: "relative",
-      border: p.hi ? "2px solid var(--accent)" : undefined,
-      transform: p.hi ? "scale(1.02)" : undefined
+      transform: p.hi ? "scale(1.02)" : undefined,
+      boxShadow: p.hi ? `0 0 60px rgba(201,168,90,.15)` : undefined
     }
   }, p.hi && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1558,27 +1785,29 @@ function Landing({
       top: -14,
       left: "50%",
       transform: "translateX(-50%)",
-      background: "linear-gradient(135deg,var(--accent),var(--accent2))",
-      color: "#fff",
+      background: lpGoldGrad(),
+      color: LP_DARK,
       fontSize: 10,
-      fontWeight: 700,
-      padding: "5px 16px",
+      fontWeight: 800,
+      padding: "5px 20px",
       borderRadius: 20,
-      letterSpacing: ".08em",
-      boxShadow: "var(--shadow)"
+      letterSpacing: ".1em",
+      boxShadow: `0 4px 18px ${LP_GOLD_GLOW}`,
+      whiteSpace: "nowrap"
     }
   }, "BELIEBT"), /*#__PURE__*/React.createElement("div", {
     className: "serif",
     style: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: 600,
       marginBottom: 4,
+      color: LP_WHITE,
       letterSpacing: "-.01em"
     }
   }, p.n), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 13,
-      color: "var(--muted)",
+      color: LP_W40,
       marginBottom: 18
     }
   }, p.d), /*#__PURE__*/React.createElement("div", {
@@ -1593,25 +1822,30 @@ function Landing({
     style: {
       fontSize: 46,
       fontWeight: 600,
-      letterSpacing: "-.02em"
+      letterSpacing: "-.02em",
+      color: p.hi ? LP_GOLD : LP_WHITE
     }
   }, p.p), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
-      color: "var(--muted)"
+      color: LP_W40
     }
   }, "€/Monat")), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: "var(--muted)",
-      marginBottom: 20
+      color: LP_W30,
+      marginBottom: 22
     }
   }, "monatlich kündbar"), /*#__PURE__*/React.createElement("div", {
-    className: "div"
+    style: {
+      height: 1,
+      background: LP_W08,
+      margin: "0 0 20px"
+    }
   }), /*#__PURE__*/React.createElement("ul", {
     style: {
       listStyle: "none",
-      marginBottom: 22
+      marginBottom: 26
     }
   }, p.f.map(f => /*#__PURE__*/React.createElement("li", {
     key: f,
@@ -1619,13 +1853,13 @@ function Landing({
       display: "flex",
       alignItems: "flex-start",
       gap: 9,
-      padding: "6px 0",
+      padding: "7px 0",
       fontSize: 13,
-      color: "var(--ink2)"
+      color: LP_W70
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "var(--success)",
+      color: LP_GOLD,
       marginTop: 1,
       flexShrink: 0
     }
@@ -1633,114 +1867,137 @@ function Landing({
     n: "check",
     s: 14
   })), f))), /*#__PURE__*/React.createElement("button", {
-    className: `btn ${p.hi ? "btn-accent" : "btn-g"}`,
+    className: "btn",
     onClick: () => go("register"),
     style: {
       width: "100%",
-      padding: 14
+      padding: 15,
+      background: p.hi ? lpGoldGrad() : LP_W08,
+      color: p.hi ? LP_DARK : LP_W70,
+      fontWeight: p.hi ? 700 : 500,
+      borderRadius: 12,
+      border: p.hi ? "none" : `1px solid ${LP_W10}`,
+      boxShadow: p.hi ? `0 4px 22px ${LP_GOLD_GLOW}` : undefined
     }
   }, p.n, " starten")))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      padding: "64px 20px",
+      padding: "100px 20px",
       textAlign: "center",
-      background: "var(--bg2)",
+      background: `linear-gradient(-45deg,${LP_DARK},${LP_DARK3},${LP_DARK2},${LP_DARK3})`,
+      backgroundSize: "400% 400%",
+      animation: "gradientShift 12s ease infinite",
       position: "relative",
       overflow: "hidden"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "salon-bg-2",
-    style: {
-      top: "20%",
-      left: "5%",
-      opacity: .2
-    }
+  }, /*#__PURE__*/React.createElement(LPOrb, {
+    top: "50%",
+    left: "50%",
+    size: 700,
+    color: "rgba(201,168,90,.1)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      maxWidth: 480,
+      maxWidth: 520,
       margin: "0 auto",
       position: "relative"
     }
-  }, /*#__PURE__*/React.createElement("h3", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: ".14em",
+      textTransform: "uppercase",
+      fontWeight: 600,
+      color: LP_GOLD,
+      marginBottom: 22
+    }
+  }, "Bereit loszulegen?"), /*#__PURE__*/React.createElement("h3", {
     className: "serif",
     style: {
-      fontSize: "clamp(22px,4vw,32px)",
+      fontSize: "clamp(28px,5.5vw,50px)",
       fontWeight: 500,
-      lineHeight: 1.25,
-      marginBottom: 16,
-      letterSpacing: "-.02em"
+      lineHeight: 1.12,
+      marginBottom: 22,
+      color: LP_WHITE,
+      letterSpacing: "-.025em"
     }
-  }, "Für weniger als einen Kaffee", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
-    className: "grad-text",
+  }, "Kunden buchen ab morgen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic"
+      fontStyle: "italic",
+      ...lpGoldText()
     }
-  }, "pro Tag online buchbar.")), /*#__PURE__*/React.createElement("p", {
+  }, "Probier's gratis aus.")), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: "var(--muted)",
+      color: LP_W40,
       fontSize: 14,
-      lineHeight: 1.65,
-      marginBottom: 28
+      lineHeight: 1.75,
+      marginBottom: 36
     }
   }, "Kein CRM. Keine Schulung. Nur das, was kleine Betriebe wirklich brauchen."), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-accent",
+    className: "btn",
     onClick: () => go("register"),
     style: {
-      padding: "16px 32px",
-      fontSize: 15,
+      padding: "19px 36px",
+      fontSize: 16,
       width: "100%",
-      maxWidth: 320
+      maxWidth: 360,
+      background: lpGoldGrad(),
+      color: LP_DARK,
+      fontWeight: 700,
+      borderRadius: 14,
+      border: "none",
+      boxShadow: `0 14px 48px ${LP_GOLD_GLOW}`,
+      letterSpacing: "-.01em"
     }
   }, "Jetzt 14 Tage kostenlos testen ", /*#__PURE__*/React.createElement(I, {
     n: "arrow_right",
-    s: 16
+    s: 17
   })), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: "var(--muted2)",
-      marginTop: 10
+      color: LP_W30,
+      marginTop: 14
     }
   }, "Keine Kreditkarte · Monatlich kündbar"))), /*#__PURE__*/React.createElement("footer", {
     style: {
-      padding: "28px 20px",
+      padding: "30px 20px",
       textAlign: "center",
-      borderTop: "1px solid var(--border)",
-      background: "var(--bg)"
+      borderTop: "1px solid rgba(255,255,255,.06)",
+      background: "#060e1a"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 8,
-      marginBottom: 6
+      gap: 9,
+      marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 22,
-      height: 22,
-      borderRadius: 7,
-      background: "linear-gradient(135deg,var(--accent-deep),var(--accent2))",
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      background: lpGoldGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#fff"
+      color: "#060e1a"
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: "cal",
-    s: 11
+    s: 13
   })), /*#__PURE__*/React.createElement("span", {
     className: "serif",
     style: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: 600,
-      color: "var(--accent-deep)"
+      color: "rgba(255,255,255,.75)"
     }
   }, "Slotly")), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: "var(--muted)"
+      color: "rgba(255,255,255,.22)"
     }
-  }, "© 2026 Slotly · \"Clear bookings. Calm days.\"")));
+  }, "\"Clear bookings. Calm days.\" · © 2026 Slotly")));
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────
