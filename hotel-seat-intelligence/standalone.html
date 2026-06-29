@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-p</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-q</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-p</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-q</p>
       </div>
     </div>
 
@@ -2127,6 +2127,22 @@ function enrichFromBemerkung(g){
   const babyM=bem.match(/(\d+)\s*baby|babybett/i);
   if(babyM&&!g.kinder) g.kinder=1;
 
+  // Echte Personenzahl aus "X Erw[achsene] Y Ki[nd]" ableiten. "davon X Kind" bedeutet
+  // "darunter" → schon in PAX enthalten (nicht dazurechnen). "X Erw Y Ki" nennt dagegen
+  // Erwachsene UND Kinder getrennt → echte Gesamtzahl = X+Y. Nur korrigieren, wenn diese
+  // Summe größer als die PMS-PAX ist (Kind fehlt in der Zählung) — kein Doppelzähl-Risiko.
+  const ewM=bem.match(/(\d+)\s*erw/i);
+  const kiM=bem.match(/(\d+)\s*ki(?:nd(?:er)?|\.|\b)/i);
+  if(ewM&&kiM){
+    const erw=parseInt(ewM[1])||0, ki=parseInt(kiM[1])||0, total=erw+ki;
+    if(ki>0&&!g.kinder) g.kinder=ki; // Kinderzahl für die "(N Ki)"-Anzeige
+    if(total>(g.pax||0)){ // Kind fehlt in der PMS-PAX → echte Gesamtzahl verwenden
+      g._paxOriginal=g.pax;
+      g.pax=total;
+      g._paxAdjusted=true;
+    }
+  }
+
   // STAMM → Stammgast (eigene Kategorie, kein automatischer VIP)
   if(/\bstamm\b/i.test(bem)) g.stammgast=true;
 
@@ -2846,7 +2862,7 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
       if(aq!==bq) return aq-bq;
       return(a.kategorie||9)-(b.kategorie||9);
     }
-    return nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0);
+    return (a.kategorie||9)-(b.kategorie||9); // beste Kategorie zuerst — die Gäste-Reihenfolge (Score) steuert, wer zuerst wählt
   });
   return pool[0]||null;
 }
@@ -3123,11 +3139,14 @@ function runCalc(){
   const groupWarns=detectGroups(active);
   warns.push(...groupWarns);
 
-  // Zimmerstamm validation
+  // Zimmerstamm validation + PAX-Anpassungs-Hinweis
   active.forEach(g=>{
     const zimNr=parseInt(g.zimmer);
     if(g.zimmer&&!ZIMMERSTAMM.has(zimNr)){
       warns.push({level:'yellow',msg:`Zimmer ${g.zimmer} (${g.nachname}) nicht im Zimmerstamm — bitte prüfen`});
+    }
+    if(g._paxAdjusted){
+      warns.push({level:'yellow',msg:`PAX angepasst: ${g.nachname} (Zi. ${g.zimmer}) — PMS ${g._paxOriginal}, laut Bemerkung ${g.pax} Personen (inkl. ${g.kinder} Kind) — Tisch entsprechend größer geplant, bitte prüfen`});
     }
   });
 
@@ -3208,7 +3227,7 @@ function runCalc(){
           if(aq!==bq) return aq-bq;
           return(a.kategorie||9)-(b.kategorie||9);
         }
-        return nights>=5?(a.kategorie||9)-(b.kategorie||9):(b.kategorie||0)-(a.kategorie||0);
+        return (a.kategorie||9)-(b.kategorie||9); // beste Kategorie zuerst — die Gäste-Reihenfolge (Score) steuert, wer zuerst wählt
       });
       const prefT=cand.find(t=>t.zone===pref)||cand[0];
       if(prefT){
@@ -3329,13 +3348,13 @@ function runCalc(){
     });
 
   // Individual placement for remaining (non-group) neu guests — Familie bleibt ein
-  // eigener Bedürfnis-Vorlauf (braucht den Familienbereich), alle übrigen Gäste
-  // (vorher künstlich nach VIP/Anlass/Rest getrennt) laufen jetzt in einem Topf und
-  // konkurrieren rein über ruleRank (Aufenthaltsdauer-Berechtigung) und Score
-  // (enthält VIP/Stammgast/Anlass-Bonus bereits) um die besten freien Tische.
+  // eigener Bedürfnis-Vorlauf (braucht den Familienbereich). Reihenfolge KOMBINIERT:
+  // Score zuerst (VIP/Stammgast/Anlass), bei Gleichstand die Aufenthaltsdauer (länger
+  // zuerst). Wer zuerst dran ist, bekommt die beste freie Kategorie.
+  const nightsOf=g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
   const fam=neu.filter(g=>!groupAssigned.has(g.id)&&g.kinder>0);
   const rest=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder);
-  const rankSort=(a,b)=>(ruleRank(a)-ruleRank(b))||(b.prioritaet_score-a.prioritaet_score);
+  const rankSort=(a,b)=>(b.prioritaet_score-a.prioritaet_score)||(nightsOf(b)-nightsOf(a));
   const sorted=[...fam.sort(rankSort),...rest.sort(rankSort)];
 
   const doAssign=(g,t)=>{
@@ -3386,7 +3405,7 @@ function runCalc(){
   // bleibt ohne Tisch, außer es ist physisch unmöglich — dann klare rote Meldung.
   let fillOk=0,fillCal=0,fillTight=0,fillNone=0;
   active.filter(g=>!g.zugewiesener_tisch)
-    .sort((a,b)=>(ruleRank(a)-ruleRank(b))||(b.prioritaet_score-a.prioritaet_score))
+    .sort((a,b)=>(b.prioritaet_score-a.prioritaet_score)||(nightsOf(b)-nightsOf(a)))
     .forEach(g=>{
       const pref=getZoneForGuest(g);
       const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
@@ -4609,7 +4628,7 @@ async function buildFilledTischplanSheet(){
         // BL (Bleibegast) bewusst leer lassen — nur AN/AB sorgt für Überblick
         status=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
         name=[g.nachname,g.vorname].filter(Boolean).join(', ')+(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
-        pax=g.pax||1;
+        pax=paxLabel(g.pax||1,g.kinder||0);
         score=buildScoreBreakdown(g);
         extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
       } else if(gs.length>1){
@@ -4619,7 +4638,7 @@ async function buildFilledTischplanSheet(){
         status=statSet.join('/');
         const nameSet=[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))];
         name=nameSet.join(' + ')+(gs.some(g=>g.vip)?' ⭐':'')+(gs.some(g=>g.stammgast)?' 🔁':'');
-        pax=gs.reduce((s,g)=>s+(g.pax||1),0);
+        pax=paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0));
         score=buildScoreBreakdown(gs[0]);
         extras=[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | ');
       } else {
@@ -5257,6 +5276,12 @@ function quickCalc(){
   setStatus('Berechne Tischplan…','spin');
   currentStep=2;
   setTimeout(()=>{runCalc();},200);
+}
+
+// PAX-Anzeige: Personen gesamt, Kinderzahl in Klammer (z.B. "3 (1 Ki)") — einheitlich
+// in Vorschau und Export, da beide buildFilledTischplanSheet() nutzen.
+function paxLabel(pers,kinder){
+  return kinder>0 ? `${pers} (${kinder} Ki)` : String(pers);
 }
 
 // ── EINE gemeinsame, verifizierte Rechenquelle für Dashboard UND Excel ──
