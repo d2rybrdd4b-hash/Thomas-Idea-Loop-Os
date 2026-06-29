@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-n</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-o</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-n</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-o</p>
       </div>
     </div>
 
@@ -3131,9 +3131,37 @@ function runCalc(){
   stepAnim(3);
   const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false,zukunft_belegt:false,zukunft_info:null}));
 
-  // Phase 1: Bleibegäste
-  const bleib=active.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB');
-  const neu=active.filter(g=>!g.vorheriger_tisch||g.status==='AN'||g.status==='AN·AB');
+  // ── Vorab: Doppelbuchungen/verlinkte Gruppen MIT Bleibegast-Beteiligung zusammen
+  // platzieren — damit die Doppelbuchungslogik EINHEITLICH auch für Bleibegäste gilt
+  // (eine Person mit zwei Zimmern sitzt immer am selben Tisch, egal ob An- oder Bleibegast).
+  // Reine Neugäste-Gruppen übernimmt weiterhin Pass 1a (kalenderbewusst).
+  const preAssigned=new Set();
+  let dbBleib=0;
+  buildLinkedGruppen(active).forEach(gs=>{
+    if(!gs.some(g=>g.vorheriger_tisch)) return; // ohne Bleibegast → Pass 1a übernimmt
+    const totalPax=gs.reduce((s,g)=>s+(g.pax||1),0);
+    const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
+    const nights=Math.max(1,...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
+    // bevorzugt einen bisherigen Tisch eines Mitglieds, der die ganze Gruppe fasst
+    let target=null;
+    for(const g of gs){
+      const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
+      if(t){target=t;break;}
+    }
+    if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null);
+    if(target){
+      target.belegtPax+=totalPax;
+      if(target.belegtPax>=target.kapazitaet) target.belegt=true;
+      target.gast_id=gs[0].id;
+      gs.forEach(g=>{g.zugewiesener_tisch=target.tisch_id;g.begruendung=`Doppelbuchung ${gs[0].nachname} → gemeinsam Tisch ${target.tisch_id}`;preAssigned.add(g.id);});
+      dbBleib++;
+      warns.push({level:'yellow',msg:`Doppelbuchung ${gs[0].nachname} (Zi. ${gs.map(g=>g.zimmer).join('+')}, ${totalPax} PAX) → Tisch ${target.tisch_id} — Bleibegast-Doppelbuchung zusammengesetzt`});
+    }
+  });
+
+  // Phase 1: Bleibegäste (bereits zusammengesetzte Doppelbuchungen ausgenommen)
+  const bleib=active.filter(g=>!preAssigned.has(g.id)&&g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB');
+  const neu=active.filter(g=>!preAssigned.has(g.id)&&(!g.vorheriger_tisch||g.status==='AN'||g.status==='AN·AB'));
 
   let bl_ok=0,bl_fail=0;
   bleib.forEach(g=>{
@@ -3158,9 +3186,9 @@ function runCalc(){
   });
   if(el('cs1-res')) el('cs1-res').textContent=bl_ok+' Bleibegäste gesichert'+(bl_fail?' | '+bl_fail+' Konflikte':'');
 
-  // Build calendar from bleibegäste + soft-reserve for PROGNOSE guests
+  // Build calendar from bleibegäste + vorab platzierte Doppelbuchungen + soft-reserve für PROGNOSE
   stepAnim(5);
-  const tableCalendar=buildTableCalendar(bleib,ts);
+  const tableCalendar=buildTableCalendar([...bleib,...active.filter(g=>preAssigned.has(g.id))],ts);
   let progReserved=0;
   prognoseFuture
     .filter(g=>g.check_in&&g.check_out)
