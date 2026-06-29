@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-q</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-r</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-q</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-r</p>
       </div>
     </div>
 
@@ -3320,7 +3320,11 @@ function runCalc(){
   }
 
   // Pass 1b: Gleicher Nachname, verschiedene Zimmer → Familiengruppe
+  // WICHTIG: bereits platzierte Gäste (Vorab-Pass / Pass 1a "zu #") ausschließen,
+  // sonst reißt die Nachnamen-Gruppe eine bestehende Verlinkung wieder auseinander
+  // und ein Gast landet an zwei Tischen.
   Object.values(neuByLast)
+    .map(gs=>gs.filter(g=>!g.zugewiesener_tisch&&!groupAssigned.has(g.id)))
     .filter(gs=>[...new Set(gs.map(g=>String(g.zimmer)))].length>1)
     .sort((a,b)=>b.reduce((s,g)=>s+g.pax,0)-a.reduce((s,g)=>s+g.pax,0)) // largest groups first
     .forEach(gs=>{
@@ -3456,6 +3460,22 @@ function runCalc(){
   const guestMap={};
   [...bleib,...neu].forEach(g=>{guestMap[g.id]=g;});
   assignedGuests=[...Object.values(guestMap),...active.filter(g=>!guestMap[g.id])];
+
+  // Diagnose: gleiche Zimmernummer an mehreren Tischen → meist Zimmerwechsel/Abreise
+  // (eine Buchung reist ab, eine andere übernimmt das Zimmer), kann aber auch ein
+  // Gruppierungsfehler sein. Sichtbar machen statt verstecken.
+  const roomTische={};
+  assignedGuests.filter(g=>g.zugewiesener_tisch&&g.zimmer).forEach(g=>{
+    const z=String(g.zimmer).trim();
+    if(!roomTische[z]) roomTische[z]={};
+    roomTische[z][g.zugewiesener_tisch]=(roomTische[z][g.zugewiesener_tisch]||0)+1;
+  });
+  Object.entries(roomTische).forEach(([z,tische])=>{
+    const tIds=Object.keys(tische);
+    if(tIds.length>1){
+      warns.push({level:'yellow',msg:`Zimmer ${z} an mehreren Tischen (${tIds.join(', ')}) — bitte prüfen (Zimmerwechsel/Abreise oder Gruppierung)`});
+    }
+  });
   warnings=warns;
 
   // Phase 3: Hochstufungs-Optimierung — attraktive Tische nicht leer lassen
