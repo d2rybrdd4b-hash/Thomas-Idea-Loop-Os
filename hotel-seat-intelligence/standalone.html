@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-v</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-w</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-v</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-w</p>
       </div>
     </div>
 
@@ -2839,7 +2839,8 @@ function parseTables(rows){
         tisch_id:id,
         zone:'C',
         kapazitaet:(tischplanKapazitaet||{})[id]||4,
-        kategorie:tischplanKat[id]||5,
+        // Zusatz-/Splittische (z.B. 622_1) erben die Kategorie ihres Stammtischs (622)
+        kategorie:tischplanKat[id]||tischplanKat[String(id).split('_')[0]]||TISCH_KAT_MAP[id]||TISCH_KAT_MAP[String(id).split('_')[0]]||5,
         aktiv:true,
         x:0,y:0,
         belegt:false,
@@ -2854,8 +2855,9 @@ function parseTables(rows){
   return rows.map(r=>{
     const ak=r.Aktiv||r.aktiv||r.Active||'1';
     const id=r.Tisch||r.TischID||r.table_id||r.ID||'';
+    const baseId=String(id).split('_')[0]; // Stammtisch eines Zusatz-/Splittischs (622_1 → 622)
     const pos=posMap[id]||{x:0,y:0};
-    const kat=parseInt(r.Kategorie||r.kategorie||r.Category||(tischplanKat||{})[id]||katMap[id]||5);
+    const kat=parseInt(r.Kategorie||r.kategorie||r.Category||(tischplanKat||{})[id]||(tischplanKat||{})[baseId]||TISCH_KAT_MAP[id]||TISCH_KAT_MAP[baseId]||katMap[id]||5);
     return{
       tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
