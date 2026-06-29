@@ -3924,6 +3924,10 @@ function BookingDetail({
 }) {
   const svc = state.services.find(s => s.id === booking.serviceId);
   const mbr = state.staff.find(m => m.id === booking.staffId);
+  const svcName = svc?.name || booking.serviceName || "—";
+  const svcDur = svc?.duration ?? booking.serviceDuration;
+  const svcPrice = svc?.price ?? booking.servicePrice;
+  const staffName = mbr?.name || booking.staffName || "—";
   const wasSickCancel = booking.cancelReason === "sick_mode";
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
@@ -3997,7 +4001,7 @@ function BookingDetail({
       flexDirection: "column",
       marginBottom: 24
     }
-  }, [["Leistung", svc?.name], ["Mitarbeiter", mbr?.name], ["Dauer", `${svc?.duration} Min`], ["Preis", svc ? `${svc.price} €` : "-"], ["Status", booking.status === "confirmed" ? "Bestätigt" : booking.status === "pending" ? "Ausstehend" : "Abgesagt"]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Leistung", svcName], ["Mitarbeiter", staffName], ["Dauer", svcDur != null ? `${svcDur} Min` : "—"], ["Preis", svcPrice != null ? `${svcPrice} €` : "—"], ["Status", booking.status === "confirmed" ? "Bestätigt" : booking.status === "pending" ? "Ausstehend" : "Abgesagt"]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
     key: k,
     style: {
       display: "flex",
@@ -4756,12 +4760,18 @@ function Dashboard({
       filter: `salon_id=eq.${salon.supabaseId}`
     }, payload => {
       const b = payload.new;
+      const _rtSvc = services.find(s => s.id === b.service_id);
+      const _rtStaff = staff.find(m => m.id === b.staff_id);
       const newB = {
         id: b.id,
         date: b.date,
         startTime: b.start_time,
         serviceId: b.service_id,
         staffId: b.staff_id,
+        serviceName: _rtSvc?.name,
+        serviceDuration: _rtSvc?.duration,
+        servicePrice: _rtSvc?.price,
+        staffName: _rtStaff?.name,
         customerName: b.customer_name,
         customerPhone: b.customer_phone,
         status: b.status,
@@ -4792,12 +4802,18 @@ function Dashboard({
       ascending: true
     });
     if (bkRows) {
+      const _sv = Object.fromEntries(services.map(s => [s.id, s]));
+      const _st = Object.fromEntries(staff.map(m => [m.id, m]));
       const fresh = bkRows.map(b => ({
         id: b.id,
         date: b.date,
         startTime: b.start_time,
         serviceId: b.service_id,
         staffId: b.staff_id,
+        serviceName: _sv[b.service_id]?.name,
+        serviceDuration: _sv[b.service_id]?.duration,
+        servicePrice: _sv[b.service_id]?.price,
+        staffName: _st[b.staff_id]?.name,
         customerName: b.customer_name,
         customerPhone: b.customer_phone,
         status: b.status,
@@ -6444,24 +6460,27 @@ function Settings({
     } = await syncToSb(state.salon.supabaseId, state.staff, state.services, state.availability);
     showToast(ok ? `${state.services.length} Services & ${state.staff.length} Mitarbeiter synchronisiert` : "Sync fehlgeschlagen — bitte neu einloggen", ok ? "ok" : "err");
     if (ok) {
-      if (idMap && Object.keys(idMap).length > 0) {
-        const staffFinal = state.staff.map(m => ({
-          ...m,
-          id: idMap[m.id] || m.id
-        }));
-        const availFinal = {};
-        Object.entries(state.availability || {}).forEach(([sid, a]) => {
-          availFinal[idMap[sid] || sid] = a;
-        });
-        update(s => {
-          const n = {
-            ...s,
-            staff: staffFinal,
-            availability: availFinal
-          };
-          return n;
-        });
-      }
+      const staffFinal = state.staff.map(m => ({
+        ...m,
+        id: (idMap || {})[m.id] || m.id
+      }));
+      const svcsFinal = state.services.map(sv => ({
+        ...sv,
+        id: (svcIdMap || {})[sv.id] || sv.id
+      }));
+      const availFinal = {};
+      Object.entries(state.availability || {}).forEach(([sid, a]) => {
+        availFinal[(idMap || {})[sid] || sid] = a;
+      });
+      update(s => {
+        const n = {
+          ...s,
+          staff: staffFinal,
+          services: svcsFinal,
+          availability: availFinal
+        };
+        return n;
+      });
     }
     setSyncing(false);
   };
@@ -8342,14 +8361,23 @@ async function syncToSb(salonId, staff, services, availability) {
         });
       }
     }
+    const svcIdMap = {};
     if (services.length > 0) {
-      await sb.from('services').insert(services.map(sv => ({
+      const {
+        data: insertedSvcs
+      } = await sb.from('services').insert(services.map(sv => ({
         salon_id: salonId,
         name: sv.name,
         duration: sv.duration || 30,
         price: sv.price || 0,
         buffer: sv.buffer || 0
-      })));
+      }))).select();
+      if (insertedSvcs) {
+        services.forEach(sv => {
+          const match = insertedSvcs.find(r => r.name === sv.name);
+          if (match) svcIdMap[sv.id] = match.id;
+        });
+      }
     }
     const availRows = [];
     Object.entries(availability || {}).forEach(([sid, a]) => {
@@ -8378,7 +8406,7 @@ async function syncToSb(salonId, staff, services, availability) {
       sick: m.sick || false
     }));
     const svcsForJson = services.map(sv => ({
-      id: sv.id || 'sv_' + sv.name,
+      id: svcIdMap[sv.id] || sv.id,
       name: sv.name,
       duration: sv.duration || 30,
       price: sv.price || 0,
@@ -8403,7 +8431,8 @@ async function syncToSb(salonId, staff, services, availability) {
     if (upErr) console.error('Salon JSON update error:', upErr.message);
     return {
       ok: !upErr,
-      idMap
+      idMap,
+      svcIdMap
     };
   } catch (e) {
     console.error('Salon JSON update failed:', e);
@@ -8475,7 +8504,8 @@ function OnboardingWizard({
     });
     const {
       ok,
-      idMap
+      idMap,
+      svcIdMap
     } = await syncToSb(state.salon.supabaseId, validStaff, validSvcs, avail);
     // Remap local IDs → Supabase UUIDs so bookings + availability stay consistent
     const staffFinal = ok && idMap ? validStaff.map(m => ({
@@ -8484,6 +8514,14 @@ function OnboardingWizard({
       active: true
     })) : validStaff.map(m => ({
       ...m,
+      active: true
+    }));
+    const svcsFinal = ok && svcIdMap ? validSvcs.map(sv => ({
+      ...sv,
+      id: svcIdMap[sv.id] || sv.id,
+      active: true
+    })) : validSvcs.map(sv => ({
+      ...sv,
       active: true
     }));
     const availFinal = {};
@@ -8498,10 +8536,7 @@ function OnboardingWizard({
       const next = {
         ...s,
         staff: staffFinal,
-        services: validSvcs.map(sv => ({
-          ...sv,
-          active: true
-        })),
+        services: svcsFinal,
         availability: availFinal,
         onboarded: true
       };
@@ -9179,12 +9214,18 @@ function App() {
           };
           availMap[r.staff_id].days.push(r.day_of_week);
         });
+        const _svcById = Object.fromEntries((svcRows || []).map(sv => [sv.id, sv]));
+        const _staffById = Object.fromEntries((staffRows || []).map(m => [m.id, m]));
         const sbBookings = (bkRows || []).map(b => ({
           id: b.id,
           date: b.date,
           startTime: b.start_time,
           serviceId: b.service_id,
           staffId: b.staff_id,
+          serviceName: _svcById[b.service_id]?.name,
+          serviceDuration: _svcById[b.service_id]?.duration,
+          servicePrice: _svcById[b.service_id]?.price,
+          staffName: _staffById[b.staff_id]?.name,
           customerName: b.customer_name,
           customerPhone: b.customer_phone,
           status: b.status,
