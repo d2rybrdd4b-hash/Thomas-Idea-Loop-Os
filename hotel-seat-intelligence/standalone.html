@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-r</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-s</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-r</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-s</p>
       </div>
     </div>
 
@@ -2438,7 +2438,12 @@ function getMappedRows(){
       });
       const zimmer=String(mapped.Zimmernummer||'').trim().toLowerCase();
       const nachname=String(mapped.Nachname||'').trim().toLowerCase();
-      const key2=(mapped.GastID||'')+'|'+zimmer+'|'+nachname;
+      // Dedup primär über Zimmer+Nachname — so verschmelzen Vortags-/In-Haus-Zeile
+      // (ohne GastID) und An-/Abreise-Zeile DESSELBEN Gasts zu einem Objekt. Sonst
+      // entstehen Doppel-Objekte (Gast an zwei Tischen, überhöhte Zählung). Zimmerwechsel
+      // (gleiches Zimmer, anderer Nachname) bleibt korrekt getrennt. Nur wenn Zimmer ODER
+      // Nachname fehlt, wird auf den GastID-Schlüssel zurückgefallen.
+      const key2=(zimmer&&nachname)?(zimmer+'|'+nachname):((mapped.GastID||'')+'|'+zimmer+'|'+nachname);
       if(byKey.has(key2)){
         const existing=byKey.get(key2);
         Object.entries(mapped).forEach(([k,v])=>{ if(v!=null&&v!=='') existing[k]=v; });
