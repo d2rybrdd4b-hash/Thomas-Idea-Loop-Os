@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-o</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-p</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-o</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-p</p>
       </div>
     </div>
 
@@ -2991,7 +2991,11 @@ function detectGroups(guests){
     }
   });
   Object.entries(byLast).forEach(([last,gs])=>{
-    if(gs.length>1&&!byFull[gs.map(g=>(g.vorname+' '+last).trim().toLowerCase()).join(',')]){
+    const fullNames=new Set(gs.map(g=>(g.vorname+' '+last).trim().toLowerCase()));
+    // Nur warnen, wenn VERSCHIEDENE Personen (mehrere unterschiedliche volle Namen) gleichen
+    // Nachnamen haben = mögliche Familie. Eine Einzelperson mit zwei Zimmern ist bereits
+    // über die Mehrfachbuchung (byFull) abgedeckt → keine doppelte Warnung.
+    if(gs.length>1&&fullNames.size>1){
       const zimmer=[...new Set(gs.map(g=>g.zimmer))];
       if(zimmer.length>1){
         warns.push({level:'yellow',msg:`Gleicher Nachname "${gs[0].nachname}" in Zimmer ${zimmer.join(', ')} — mögliche Gruppe`});
@@ -3177,11 +3181,9 @@ function runCalc(){
       bl_fail++;
       const confliktT=ts.find(t=>t.tisch_id===g.vorheriger_tisch);
       if(confliktT) confliktT.konflikt=true;
-      if(confliktT&&confliktT.belegtPax>0){
-        warns.push({level:'red',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} bereits belegt`});
-      } else if(!confliktT){
-        warns.push({level:'red',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} nicht gefunden`});
-      }
+      // KEINE rote Warnung hier — der Auffüll-Pass unten setzt den Gast auf einen
+      // Ausweichtisch und meldet das als gelben (gelösten) Hinweis. Nur wenn am Ende
+      // wirklich kein Tisch frei ist, bleibt es kritisch (Auffüll-Pass Stufe 5).
     }
   });
   if(el('cs1-res')) el('cs1-res').textContent=bl_ok+' Bleibegäste gesichert'+(bl_fail?' | '+bl_fail+' Konflikte':'');
@@ -3391,7 +3393,9 @@ function runCalc(){
       const ausweich=g.vorheriger_tisch?`Stammtisch ${g.vorheriger_tisch} belegt → `:'';
       // Stufe 0/1: normale Suche (Kalender beachtet) — deckt auch Bleibegast-Ausweich ab
       let t=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar);
-      if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id}`;fillOk++;return;}
+      if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id}`;fillOk++;
+        if(ausweich) warns.push({level:'yellow',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} belegt → Ausweich Tisch ${t.tisch_id} (gelöst)`});
+        return;}
       // Stufe 2: Kalender ignorieren (heute setzen, Folgetag separat prüfen)
       t=findBestTable(ts,pref,g.pax,nights,null,null,null);
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id} (Kalender prüfen)`;fillCal++;
@@ -3704,6 +3708,11 @@ function enrichWarning(w){
     problem=m;
     auswirkung='Gäste einer Gruppe sitzen an verschiedenen Tischen — möglicherweise unerwünscht.';
     loesung='Größeren freien Tisch wählen oder Aufteilung bewusst bestätigen.';
+  } else if(m.includes('Ausweich Tisch')||m.includes('Notplatzierung')){
+    title='Automatisch auf Ausweichtisch gesetzt';
+    problem=m;
+    auswirkung='Das System hat den Gast automatisch auf einen freien Ausweichtisch platziert — alle Gäste sind untergebracht.';
+    loesung='Nur prüfen, ob der Ausweichtisch passt — sonst keine Aktion nötig.';
   } else if(m.includes('überbelegt')||m.includes('Überbelegung')||m.includes('überfüllt')){
     title='Tisch ist überbelegt';
     problem=m;
