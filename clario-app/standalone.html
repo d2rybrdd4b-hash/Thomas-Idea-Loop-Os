@@ -15,7 +15,6 @@
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>#err{display:none;position:fixed;inset:0;background:#0B1C33;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:16;padding:32;text-align:center;font-family:system-ui,sans-serif;z-index:9999}#err svg{opacity:.6}#err h2{font-size:20px;font-weight:600;margin:0}#err p{font-size:14px;opacity:.7;margin:0;max-width:280px;line-height:1.5}#err button{margin-top:8px;padding:12px 28px;background:#4FD1C5;color:#0B1C33;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}</style>
 </head>
 <body>
@@ -32,10 +31,10 @@ const {
 const sb = supabase.createClient('https://oypnplvdjlyeagtngtgz.supabase.co', 'sb_publishable_3E4xj1WUmo-xJWTq6lo1Tg_Nq0z7y8b', {
   auth: {
     persistSession: true,
-    autoRefreshToken: true,
-    storageKey: 'slotly_auth_v1'
+    autoRefreshToken: true
   }
 });
+const RT_KEY = 'slotly_rt_v1'; // Backup-Refresh-Token
 
 // ─── CSS ─────────────────────────────────────────────────────
 const CSS = `
@@ -457,26 +456,8 @@ function QR({
   text,
   size = 200
 }) {
-  const [src, setSrc] = useState("");
-  useEffect(() => {
-    if (!text) return;
-    let tries = 0;
-    const gen = () => {
-      if (!window.QRCode) {
-        if (tries++ < 20) setTimeout(gen, 150);
-        return;
-      }
-      window.QRCode.toDataURL(text, {
-        width: size,
-        margin: 2,
-        color: {
-          dark: "#172033",
-          light: "#ffffff"
-        }
-      }).then(url => setSrc(url)).catch(() => {});
-    };
-    gen();
-  }, [text, size]);
+  const [err, setErr] = useState(false);
+  const url = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=${size}x${size}&color=172033&bgcolor=ffffff&margin=2&format=png`;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-block",
@@ -486,26 +467,37 @@ function QR({
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow)"
     }
-  }, src ? /*#__PURE__*/React.createElement("img", {
-    src: src,
+  }, err ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      color: "var(--muted)",
+      fontSize: 11,
+      textAlign: "center",
+      padding: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "QR-Code nicht verfügbar"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      wordBreak: "break-all",
+      fontSize: 9,
+      color: "var(--accent)"
+    }
+  }, text)) : /*#__PURE__*/React.createElement("img", {
+    src: url,
     alt: "QR Code",
     width: size,
     height: size,
     style: {
       display: "block",
       borderRadius: 4
-    }
-  }) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: size,
-      height: size,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--muted)",
-      fontSize: 12
-    }
-  }, "Wird generiert…"));
+    },
+    onError: () => setErr(true)
+  }));
 }
 
 // ─── SALON SCENE SVG ─────────────────────────────────────────
@@ -2012,6 +2004,7 @@ function Auth({
         }
         try {
           localStorage.setItem(EMAIL_KEY, f.email);
+          if (data.session?.refresh_token) localStorage.setItem(RT_KEY, data.session.refresh_token);
         } catch {}
         onLogin({
           name: salon.name,
@@ -8409,21 +8402,74 @@ function App() {
         if (session) {
           loadSalonData(session.user.id);
         } else {
-          // Keine Session: wenn E-Mail bekannt → direkt zur Login-Form (überspringt Landing)
-          const lastEmail = (() => {
+          // Keine Session: erst Backup-Refresh-Token versuchen
+          const rt = (() => {
             try {
-              return localStorage.getItem(EMAIL_KEY) || "";
+              return localStorage.getItem(RT_KEY) || "";
             } catch {
               return "";
             }
           })();
-          if (lastEmail) {
-            setPage('login');
-            setPageProps({
-              prefillEmail: lastEmail
+          if (rt) {
+            sb.auth.refreshSession({
+              refresh_token: rt
+            }).then(({
+              data,
+              error
+            }) => {
+              if (data?.session) {
+                try {
+                  localStorage.setItem(RT_KEY, data.session.refresh_token);
+                } catch {}
+                loadSalonData(data.session.user.id);
+              } else {
+                const lastEmail = (() => {
+                  try {
+                    return localStorage.getItem(EMAIL_KEY) || "";
+                  } catch {
+                    return "";
+                  }
+                })();
+                if (lastEmail) {
+                  setPage('login');
+                  setPageProps({
+                    prefillEmail: lastEmail
+                  });
+                }
+                setAuthChecked(true);
+              }
+            }).catch(() => {
+              const lastEmail = (() => {
+                try {
+                  return localStorage.getItem(EMAIL_KEY) || "";
+                } catch {
+                  return "";
+                }
+              })();
+              if (lastEmail) {
+                setPage('login');
+                setPageProps({
+                  prefillEmail: lastEmail
+                });
+              }
+              setAuthChecked(true);
             });
+          } else {
+            const lastEmail = (() => {
+              try {
+                return localStorage.getItem(EMAIL_KEY) || "";
+              } catch {
+                return "";
+              }
+            })();
+            if (lastEmail) {
+              setPage('login');
+              setPageProps({
+                prefillEmail: lastEmail
+              });
+            }
+            setAuthChecked(true);
           }
-          setAuthChecked(true);
         }
       } else if (event === 'PASSWORD_RECOVERY') {
         setPage('recovery');
