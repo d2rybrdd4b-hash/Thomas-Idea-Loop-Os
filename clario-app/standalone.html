@@ -1708,13 +1708,187 @@ function Auth({
   });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetEmail, setResetEmail] = useState(prefillEmail || "");
   const pwRef = useRef(null);
   const isReg = mode === "register";
 
   // Auto-fokus Passwort wenn E-Mail vorausgefüllt → triggert iOS Face ID / Touch ID
   useEffect(() => {
-    if (!isReg && prefillEmail && pwRef.current) pwRef.current.focus();
+    if (!isReg && !forgot && prefillEmail && pwRef.current) pwRef.current.focus();
   }, []);
+  const sendReset = async () => {
+    if (!resetEmail.trim()) {
+      setErr("Bitte E-Mail eingeben.");
+      return;
+    }
+    setErr("");
+    setLoading(true);
+    const {
+      error
+    } = await sb.auth.resetPasswordForEmail(resetEmail.trim());
+    setLoading(false);
+    if (error) {
+      setErr("Fehler: " + error.message);
+      return;
+    }
+    setResetSent(true);
+  };
+
+  // Passwort-Vergessen-Ansicht
+  if (forgot) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fade",
+      style: {
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        padding: "20px",
+        position: "relative",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "salon-bg-2",
+      style: {
+        top: -150,
+        right: -150
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setForgot(false);
+        setErr("");
+        setResetSent(false);
+      },
+      style: {
+        background: "none",
+        border: "none",
+        color: "var(--muted)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 14,
+        padding: 8,
+        alignSelf: "flex-start",
+        position: "relative",
+        zIndex: 1
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "left",
+      s: 16
+    }), "Zurück"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        maxWidth: 420,
+        width: "100%",
+        margin: "0 auto",
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        marginBottom: 28
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 60,
+        height: 60,
+        borderRadius: 16,
+        background: "var(--accent-soft)",
+        color: "var(--accent)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        margin: "0 auto 18px"
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "shield",
+      s: 28
+    })), /*#__PURE__*/React.createElement("h1", {
+      className: "serif",
+      style: {
+        fontSize: 28,
+        fontWeight: 600,
+        marginBottom: 6
+      }
+    }, "Passwort vergessen"), !resetSent && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 14
+      }
+    }, "Wir schicken dir einen Reset-Link per E-Mail.")), resetSent ? /*#__PURE__*/React.createElement("div", {
+      className: "card-a",
+      style: {
+        padding: 28,
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--accent)",
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "check",
+      s: 32
+    })), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontWeight: 600,
+        fontSize: 16,
+        marginBottom: 8
+      }
+    }, "E-Mail versandt!"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 13,
+        marginBottom: 20
+      }
+    }, "Bitte prüfe dein Postfach (auch Spam) und klicke den Link in der E-Mail."), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-g",
+      onClick: () => {
+        setForgot(false);
+        setResetSent(false);
+      },
+      style: {
+        padding: 12,
+        fontSize: 14
+      }
+    }, "Zurück zum Login")) : /*#__PURE__*/React.createElement("div", {
+      className: "card-elevated",
+      style: {
+        padding: 28
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "inp",
+      type: "email",
+      placeholder: "Deine E-Mail",
+      value: resetEmail,
+      onChange: e => setResetEmail(e.target.value),
+      autoComplete: "email"
+    }), err && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--error)",
+        fontSize: 13
+      }
+    }, err), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-accent",
+      disabled: loading,
+      onClick: sendReset,
+      style: {
+        padding: 15,
+        fontSize: 15
+      }
+    }, loading ? "Wird gesendet…" : "Reset-Link senden")))));
+  }
   const submit = async () => {
     setErr("");
     if (!f.email || !f.password) {
@@ -2000,7 +2174,24 @@ function Auth({
       marginTop: 4,
       fontSize: 15
     }
-  }, loading ? "Bitte warten…" : isReg ? "Salon erstellen" : "Einloggen"))), prefillEmail ? /*#__PURE__*/React.createElement("p", {
+  }, loading ? "Bitte warten…" : isReg ? "Salon erstellen" : "Einloggen"), !isReg && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setForgot(true);
+      setResetEmail(f.email || prefillEmail || "");
+      setErr("");
+    },
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      cursor: "pointer",
+      fontSize: 12,
+      textAlign: "center",
+      textDecoration: "underline",
+      padding: "4px 0"
+    }
+  }, "Passwort vergessen?"))), prefillEmail ? /*#__PURE__*/React.createElement("p", {
     style: {
       textAlign: "center",
       fontSize: 13,
@@ -2042,6 +2233,139 @@ function Auth({
       textDecoration: "underline"
     }
   }, isReg ? "Einloggen" : "Registrieren"))));
+}
+
+// ─── RECOVERY (neues Passwort nach Reset-Link) ────────────────
+function Recovery({
+  onDone
+}) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+  const save = async () => {
+    if (pw.length < 6) {
+      setErr("Mind. 6 Zeichen.");
+      return;
+    }
+    setErr("");
+    setLoading(true);
+    const {
+      error
+    } = await sb.auth.updateUser({
+      password: pw
+    });
+    setLoading(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    setDone(true);
+    setTimeout(onDone, 2000);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fade",
+    style: {
+      minHeight: "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      padding: 20,
+      background: "var(--bg)"
+    }
+  }, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 420,
+      width: "100%",
+      margin: "0 auto",
+      textAlign: "center"
+    }
+  }, done ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      borderRadius: "50%",
+      background: "var(--accent-soft)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 16px",
+      color: "var(--accent)"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "check",
+    s: 28
+  })), /*#__PURE__*/React.createElement("h2", {
+    className: "serif",
+    style: {
+      fontSize: 26,
+      marginBottom: 8
+    }
+  }, "Passwort geändert"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "var(--muted)",
+      fontSize: 14
+    }
+  }, "Du wirst weitergeleitet…")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 60,
+      height: 60,
+      borderRadius: 16,
+      background: "linear-gradient(135deg,var(--accent),var(--accent2))",
+      color: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 18px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "shield",
+    s: 26
+  })), /*#__PURE__*/React.createElement("h1", {
+    className: "serif",
+    style: {
+      fontSize: 28,
+      fontWeight: 600,
+      marginBottom: 8
+    }
+  }, "Neues Passwort"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "var(--muted)",
+      fontSize: 14,
+      marginBottom: 28
+    }
+  }, "Bitte wähle ein neues Passwort für deinen Account."), /*#__PURE__*/React.createElement("div", {
+    className: "card-elevated",
+    style: {
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    type: "password",
+    value: pw,
+    onChange: e => setPw(e.target.value),
+    placeholder: "Neues Passwort (mind. 6 Zeichen)",
+    autoComplete: "new-password",
+    style: {
+      marginBottom: 12
+    }
+  }), err && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "var(--error)",
+      fontSize: 13,
+      marginBottom: 12,
+      textAlign: "left"
+    }
+  }, err), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    disabled: loading,
+    onClick: save,
+    style: {
+      width: "100%",
+      padding: 15,
+      fontSize: 15
+    }
+  }, loading ? "Speichern…" : "Passwort speichern")))));
 }
 
 // ─── SHEET BASE ───────────────────────────────────────────────
@@ -3535,6 +3859,232 @@ function WaLogSheet({
   }, new Date(s.sentAt).toLocaleString("de-DE"))))));
 }
 
+// ─── STATISTIK SEKTION ───────────────────────────────────────
+function StatsSection({
+  bookings,
+  services,
+  staff
+}) {
+  const weekStart = (() => {
+    const d = new Date(),
+      day = d.getDay();
+    const mon = new Date(d);
+    mon.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+    return mon.toISOString().split('T')[0];
+  })();
+  const monthStart = new Date().toISOString().slice(0, 7) + '-01';
+  const lastMonthStart = (() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7) + '-01';
+  })();
+  const lastMonthEnd = (() => {
+    const d = new Date();
+    d.setDate(0);
+    return d.toISOString().split('T')[0];
+  })();
+  const ok = bookings.filter(b => b.status !== 'cancelled');
+  const thisWeekB = ok.filter(b => b.date >= weekStart);
+  const thisMonthB = ok.filter(b => b.date >= monthStart);
+  const lastMonthB = ok.filter(b => b.date >= lastMonthStart && b.date <= lastMonthEnd);
+  const rev = bs => bs.reduce((s, b) => {
+    const svc = services.find(sv => sv.id === b.serviceId);
+    return s + (Number(svc?.price) || 0);
+  }, 0);
+  const svcMap = {};
+  ok.forEach(b => {
+    const name = services.find(sv => sv.id === b.serviceId)?.name || '–';
+    svcMap[name] = (svcMap[name] || 0) + 1;
+  });
+  const topSvcs = Object.entries(svcMap).sort((a, b2) => b2[1] - a[1]).slice(0, 4);
+  const maxC = topSvcs[0]?.[1] || 1;
+  const staffMap = {};
+  if (staff.length > 1) {
+    ok.forEach(b => {
+      const name = staff.find(m => m.id === b.staffId)?.name || '–';
+      staffMap[name] = (staffMap[name] || 0) + 1;
+    });
+  }
+  const topStaff = Object.entries(staffMap).sort((a, b2) => b2[1] - a[1]).slice(0, 3);
+  const weekRev = rev(thisWeekB),
+    monthRev = rev(thisMonthB),
+    lastRev = rev(lastMonthB);
+  const monthDelta = lastRev > 0 ? Math.round((monthRev - lastRev) / lastRev * 100) : null;
+  if (ok.length === 0) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "serif",
+    style: {
+      fontSize: 22,
+      fontWeight: 600,
+      letterSpacing: "-.01em",
+      marginBottom: 14
+    }
+  }, "Statistik"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Diese Woche"), /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      color: "var(--accent)",
+      fontSize: 30
+    }
+  }, thisWeekB.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      marginTop: 2
+    }
+  }, "Buchungen"), weekRev > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--accent2)",
+      marginTop: 4
+    }
+  }, weekRev, " €")), /*#__PURE__*/React.createElement("div", {
+    className: "stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Dieser Monat"), /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      color: "var(--accent)",
+      fontSize: 30
+    }
+  }, thisMonthB.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      marginTop: 2
+    }
+  }, "Buchungen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 4
+    }
+  }, monthRev > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--accent2)"
+    }
+  }, monthRev, " €"), monthDelta !== null && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: monthDelta >= 0 ? "var(--success)" : "var(--error)"
+    }
+  }, monthDelta >= 0 ? "+" : "", monthDelta, "% vs. letzten Monat")))), topSvcs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 12
+    }
+  }, "Top Leistungen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, topSvcs.map(([name, count]) => /*#__PURE__*/React.createElement("div", {
+    key: name
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13,
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      maxWidth: "78%"
+    }
+  }, name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "var(--accent)",
+      flexShrink: 0
+    }
+  }, count, "×")), /*#__PURE__*/React.createElement("div", {
+    className: "pbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pfill",
+    style: {
+      width: `${Math.round(count / maxC * 100)}%`
+    }
+  })))))), topStaff.length > 1 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 12
+    }
+  }, "Team-Auslastung"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, topStaff.map(([name, count]) => /*#__PURE__*/React.createElement("div", {
+    key: name
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13,
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500
+    }
+  }, name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "var(--accent)"
+    }
+  }, count, "×")), /*#__PURE__*/React.createElement("div", {
+    className: "pbar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pfill",
+    style: {
+      width: `${Math.round(count / (topStaff[0][1] || 1) * 100)}%`
+    }
+  })))))));
+}
+
 // ─── DASHBOARD ───────────────────────────────────────────────
 function Dashboard({
   state,
@@ -4270,7 +4820,11 @@ function Dashboard({
       n: "wa",
       s: 14
     }), "Erinnerung senden"))));
-  })))), tab === "bookings" && /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement(StatsSection, {
+    bookings: bookings,
+    services: services,
+    staff: staff
+  })), tab === "bookings" && /*#__PURE__*/React.createElement("div", {
     className: "page fade"
   }, /*#__PURE__*/React.createElement("header", {
     style: {
@@ -5133,21 +5687,23 @@ function Settings({
       fontSize: 13
     }
   }, "Upgrade"))), [{
-    icon: "wa",
+    icon: "sick",
     title: "Krank-Modus",
-    desc: "WhatsApp-Nachrichten an Kunden",
+    desc: "Kunden informieren",
     onClick: () => setSheet("sick"),
-    wa: true
+    sick: true
   }, {
     icon: "msg",
     title: "WA-Vorlage",
     desc: "Nachrichtentext anpassen",
-    onClick: () => setSheet("template")
+    onClick: () => setSheet("template"),
+    wa: true
   }, {
     icon: "wa",
     title: "Nachrichten-Verlauf",
     desc: `${waCount} versendete Nachrichten`,
-    onClick: () => setSheet("walog")
+    onClick: () => setSheet("walog"),
+    wa: true
   }, {
     icon: "clock",
     title: "Verfügbarkeiten",
@@ -5175,20 +5731,18 @@ function Settings({
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      gap: 14,
-      border: item.wa ? "1px solid rgba(37,211,102,.25)" : undefined,
-      background: item.wa ? "linear-gradient(135deg,#fff,#f0fdf4)" : undefined
+      gap: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 40,
       height: 40,
       borderRadius: 10,
-      background: item.wa ? "var(--wa-soft)" : "var(--accent-soft)",
+      background: item.sick ? "var(--error-soft)" : item.wa ? "var(--wa-soft)" : "var(--accent-soft)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: item.wa ? "var(--wa-dark)" : "var(--accent)",
+      color: item.sick ? "var(--error)" : item.wa ? "var(--wa-dark)" : "var(--accent)",
       flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement(I, {
@@ -7643,6 +8197,9 @@ function App() {
           }
           setAuthChecked(true);
         }
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setPage('recovery');
+        setAuthChecked(true);
       } else if (event === 'SIGNED_IN') {
         loadSalonData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
@@ -7789,6 +8346,11 @@ function App() {
   }
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), page === "home" && /*#__PURE__*/React.createElement(Landing, {
     go: go
+  }), page === "recovery" && /*#__PURE__*/React.createElement(Recovery, {
+    onDone: () => {
+      setPage('login');
+      setPageProps({});
+    }
   }), page === "login" && /*#__PURE__*/React.createElement(Auth, {
     mode: "login",
     go: go,
