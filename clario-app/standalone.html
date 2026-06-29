@@ -1692,21 +1692,29 @@ function Landing({
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────
+const EMAIL_KEY = "slotly_last_email";
 function Auth({
   mode,
   onLogin,
-  go
+  go,
+  prefillEmail
 }) {
   const [f, setF] = useState({
     name: "",
-    email: "",
+    email: prefillEmail || "",
     password: "",
     salonName: "",
     slug: ""
   });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const pwRef = useRef(null);
   const isReg = mode === "register";
+
+  // Auto-fokus Passwort wenn E-Mail vorausgefüllt → triggert iOS Face ID / Touch ID
+  useEffect(() => {
+    if (!isReg && prefillEmail && pwRef.current) pwRef.current.focus();
+  }, []);
   const submit = async () => {
     setErr("");
     if (!f.email || !f.password) {
@@ -1751,6 +1759,9 @@ function Auth({
           setErr("Salon konnte nicht angelegt werden.");
           return;
         }
+        try {
+          localStorage.setItem(EMAIL_KEY, f.email);
+        } catch {}
         onLogin({
           name: f.salonName,
           slug,
@@ -1778,6 +1789,9 @@ function Auth({
           setErr("Kein Salon gefunden. Bitte registrieren.");
           return;
         }
+        try {
+          localStorage.setItem(EMAIL_KEY, f.email);
+        } catch {}
         onLogin({
           name: salon.name,
           slug: salon.slug,
@@ -1815,7 +1829,7 @@ function Auth({
       left: -100,
       opacity: .4
     }
-  }), /*#__PURE__*/React.createElement("button", {
+  }), !prefillEmail && /*#__PURE__*/React.createElement("button", {
     onClick: () => go("home"),
     style: {
       background: "none",
@@ -1879,7 +1893,7 @@ function Auth({
       color: "var(--muted)",
       fontSize: 14
     }
-  }, isReg ? "In 2 Minuten online buchbar." : "Meld dich in deinem Salon an.")), /*#__PURE__*/React.createElement("form", {
+  }, isReg ? "In 2 Minuten online buchbar." : prefillEmail ? "Bitte bestätigen, um fortzufahren." : "Meld dich in deinem Salon an.")), /*#__PURE__*/React.createElement("form", {
     className: "card-elevated",
     style: {
       padding: 28
@@ -1960,6 +1974,7 @@ function Auth({
       email: e.target.value
     }))
   }), /*#__PURE__*/React.createElement("input", {
+    ref: pwRef,
     className: "inp",
     type: "password",
     name: "password",
@@ -1985,7 +2000,30 @@ function Auth({
       marginTop: 4,
       fontSize: 15
     }
-  }, loading ? "Bitte warten…" : isReg ? "Salon erstellen" : "Einloggen"))), /*#__PURE__*/React.createElement("p", {
+  }, loading ? "Bitte warten…" : isReg ? "Salon erstellen" : "Einloggen"))), prefillEmail ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      textAlign: "center",
+      fontSize: 13,
+      color: "var(--muted)",
+      marginTop: 20
+    }
+  }, "Nicht du? ", /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      try {
+        localStorage.removeItem(EMAIL_KEY);
+      } catch {}
+      go("home");
+    },
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--accent)",
+      cursor: "pointer",
+      fontSize: 13,
+      fontWeight: 600,
+      textDecoration: "underline"
+    }
+  }, "Anderen Account nutzen")) : /*#__PURE__*/React.createElement("p", {
     style: {
       textAlign: "center",
       fontSize: 13,
@@ -3730,24 +3768,22 @@ function Dashboard({
     style: {
       padding: 16,
       textAlign: "left",
-      cursor: "pointer",
-      border: "1px solid rgba(37,211,102,.25)",
-      background: "linear-gradient(135deg,#fff,#f0fdf4)"
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      background: "var(--wa-soft)",
+      background: "var(--error-soft)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "var(--wa-dark)",
+      color: "var(--error)",
       marginBottom: 10
     }
   }, /*#__PURE__*/React.createElement(I, {
-    n: "wa",
+    n: "sick",
     s: 18
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3760,7 +3796,7 @@ function Dashboard({
       fontSize: 11,
       color: "var(--muted)"
     }
-  }, "WhatsApp-Nachrichten")), /*#__PURE__*/React.createElement("button", {
+  }, "Kunden informieren")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setSheet("newBooking"),
     className: "card lift",
     style: {
@@ -7588,7 +7624,25 @@ function App() {
       }
     } = sb.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION') {
-        if (session) loadSalonData(session.user.id);else setAuthChecked(true);
+        if (session) {
+          loadSalonData(session.user.id);
+        } else {
+          // Keine Session: wenn E-Mail bekannt → direkt zur Login-Form (überspringt Landing)
+          const lastEmail = (() => {
+            try {
+              return localStorage.getItem(EMAIL_KEY) || "";
+            } catch {
+              return "";
+            }
+          })();
+          if (lastEmail) {
+            setPage('login');
+            setPageProps({
+              prefillEmail: lastEmail
+            });
+          }
+          setAuthChecked(true);
+        }
       } else if (event === 'SIGNED_IN') {
         loadSalonData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
@@ -7738,11 +7792,13 @@ function App() {
   }), page === "login" && /*#__PURE__*/React.createElement(Auth, {
     mode: "login",
     go: go,
-    onLogin: onLogin
+    onLogin: onLogin,
+    prefillEmail: pageProps.prefillEmail || ""
   }), page === "register" && /*#__PURE__*/React.createElement(Auth, {
     mode: "register",
     go: go,
-    onLogin: onLogin
+    onLogin: onLogin,
+    prefillEmail: ""
   }), page === "onboarding" && /*#__PURE__*/React.createElement(OnboardingWizard, {
     state: state,
     setState: setState,
