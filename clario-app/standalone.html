@@ -452,12 +452,13 @@ function I({
 }
 
 // ─── QR CODE ─────────────────────────────────────────────────
+// Render-Größe: 240px — Bild-Auflösung: 600px (2.5× für Retina/AMOLED, scharf scannbar)
 function QR({
   text,
-  size = 200
+  display = 240
 }) {
   const [err, setErr] = useState(false);
-  const url = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=${size}x${size}&color=172033&bgcolor=ffffff&margin=2&format=png`;
+  const src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=600x600&color=000000&bgcolor=ffffff&margin=4&ecc=H&format=png`;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-block",
@@ -469,29 +470,34 @@ function QR({
     }
   }, err ? /*#__PURE__*/React.createElement("div", {
     style: {
-      width: size,
-      height: size,
+      width: display,
+      height: display,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      gap: 6,
+      gap: 8,
       color: "var(--muted)",
-      fontSize: 11,
+      fontSize: 12,
       textAlign: "center",
-      padding: 8
+      padding: 12
     }
-  }, /*#__PURE__*/React.createElement("div", null, "QR-Code nicht verfügbar"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, "QR-Code nicht verfügbar"), /*#__PURE__*/React.createElement("div", {
     style: {
       wordBreak: "break-all",
-      fontSize: 9,
-      color: "var(--accent)"
+      fontSize: 10,
+      color: "var(--accent)",
+      lineHeight: 1.4
     }
   }, text)) : /*#__PURE__*/React.createElement("img", {
-    src: url,
+    src: src,
     alt: "QR Code",
-    width: size,
-    height: size,
+    width: display,
+    height: display,
     style: {
       display: "block",
       borderRadius: 4
