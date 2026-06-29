@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-t</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-u</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-t</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-u</p>
       </div>
     </div>
 
@@ -1889,7 +1889,9 @@ function buildVortagRow(row,tc,zc,sc,nc,pc,ec){
   if(!tisch||tisch==='\xa0'||!/^\d/.test(tisch)) return null;
   const zimmer=row[zc]!=null?String(row[zc]).trim():'';
   const status=row[sc]!=null?String(row[sc]).trim():'';
-  const nachname=row[nc]!=null?String(row[nc]).trim():'';
+  // Anrede-Präfix entfernen ("Hr. Hämmer" → "Hämmer"), damit der Vortags-Name mit der
+  // An-/Abreise-Datei ("Hämmer") übereinstimmt und der Dedup greift.
+  const nachname=(row[nc]!=null?String(row[nc]).trim():'').replace(/^(Hr|Fr|Herr|Frau)\.?\s+/i,'').trim();
   const pax=row[pc]!=null?String(row[pc]).trim():'2';
   const extras=row[ec]!=null?String(row[ec]).trim():'';
   return{Tisch:tisch,Zimmernummer:zimmer,Status:status,Nachname:nachname,AnzahlPersonen:pax||'2',Extras:extras};
@@ -2462,7 +2464,7 @@ function getMappedRows(){
         if(!mapped[k]) mapped[k]=row[k];
       });
       const zimmer=String(mapped.Zimmernummer||'').trim().toLowerCase();
-      const nachname=String(mapped.Nachname||'').trim().toLowerCase();
+      const nachname=String(mapped.Nachname||'').replace(/^(Hr|Fr|Herr|Frau)\.?\s+/i,'').trim().toLowerCase();
       // Dedup primär über Zimmer+Nachname — so verschmelzen Vortags-/In-Haus-Zeile
       // (ohne GastID) und An-/Abreise-Zeile DESSELBEN Gasts zu einem Objekt. Sonst
       // entstehen Doppel-Objekte (Gast an zwei Tischen, überhöhte Zählung). Zimmerwechsel
