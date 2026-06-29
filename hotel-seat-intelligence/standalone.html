@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-s</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-t</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-s</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-t</p>
       </div>
     </div>
 
@@ -1433,6 +1433,31 @@ function setStatus(msg,state=''){
   el('stxt').textContent=msg;
   const d=el('sdot');
   d.className='dot'+(state?' '+state:'');
+}
+
+// ── Berechnungs-Feedback: Lade-Overlay + Erfolgs-Toast (professionelle Rückmeldung) ──
+function showCalcOverlay(){
+  let ov=el('calc-overlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='calc-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(9,15,23,.72);backdrop-filter:blur(3px);';
+    ov.innerHTML='<div style="width:46px;height:46px;border:3px solid rgba(200,168,75,.25);border-top-color:#C8A84B;border-radius:50%;animation:calcspin .8s linear infinite"></div><div style="color:#C8A84B;font-size:14px;font-weight:600;letter-spacing:.3px">Tischplan wird berechnet…</div>';
+    document.body.appendChild(ov);
+    if(!el('calc-spin-style')){const s=document.createElement('style');s.id='calc-spin-style';s.textContent='@keyframes calcspin{to{transform:rotate(360deg)}}@keyframes toastin{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}';document.head.appendChild(s);}
+  }
+  ov.style.display='flex';
+}
+function hideCalcOverlay(){const ov=el('calc-overlay');if(ov) ov.style.display='none';}
+function showCalcToast(){
+  const st=computeHouseStats();
+  let t=el('calc-toast');
+  if(!t){t=document.createElement('div');t.id='calc-toast';document.body.appendChild(t);}
+  t.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:9999;background:#13371f;border:1px solid #2e7d4f;color:#e6f5ec;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 6px 22px rgba(0,0,0,.4);animation:toastin .25s ease;max-width:92vw;text-align:center;';
+  t.textContent=`✓ Tischplan aktualisiert — ${st.gaestePax} Gäste, ${st.platziertPax} platziert, ${st.tischeFrei} Tische frei`;
+  t.style.display='block';
+  clearTimeout(showCalcToast._t);
+  showCalcToast._t=setTimeout(()=>{if(t)t.style.display='none';},2600);
 }
 function getTodayStr(){
   const d=new Date();
@@ -3481,6 +3506,15 @@ function runCalc(){
       warns.push({level:'yellow',msg:`Zimmer ${z} an mehreren Tischen (${tIds.join(', ')}) — bitte prüfen (Zimmerwechsel/Abreise oder Gruppierung)`});
     }
   });
+
+  // Quellen-Abgleich: bestätigt, dass der Plan 100% zu den Dateien passt
+  const qa=verifyQuellenAbgleich();
+  if(qa.fails.length===0&&qa.dups.length===0){
+    warns.push({level:'green',msg:`Quellen-Abgleich bestanden ✓ — Anreisen/Abreisen und alle Gäste stimmen mit den hochgeladenen Dateien überein${qa.ohneTisch>0?` (${qa.ohneTisch} noch ohne Tisch)`:''}`});
+  } else {
+    qa.fails.forEach(i=>warns.push({level:'red',msg:`Quellen-Abgleich: ${i.label} stimmt nicht (${i.ist} ≠ ${i.soll}) — bitte prüfen`}));
+    if(qa.dups.length) warns.push({level:'red',msg:`Quellen-Abgleich: ${qa.dups.length} Gast/Gäste doppelt verbucht (${qa.dups.join(', ')}) — bitte prüfen`});
+  }
   warnings=warns;
 
   // Phase 3: Hochstufungs-Optimierung — attraktive Tische nicht leer lassen
@@ -4127,9 +4161,12 @@ function quickCalcPreview(){
   const dm=el('dash-date');if(dm&&dm.value&&el('ref-date')) el('ref-date').value=dm.value;
   const meal=el('dash-meal');if(meal&&el('slot-sel')) el('slot-sel').value=meal.value;
   currentStep=2;
+  showCalcOverlay(); // sichtbares Feedback, auch wenn die Rechnung schnell ist
   setTimeout(()=>{
     runCalc();
-  },200);
+    // Mindestanzeige, damit die Aktion wahrnehmbar ist, dann Erfolgs-Toast
+    setTimeout(()=>{hideCalcOverlay();showCalcToast();},400);
+  },140);
 }
 
 // ── updateStartPhase ──────────────────────────────────────────
@@ -5168,13 +5205,18 @@ function goTab(t){
 // nie wieder auseinanderlaufen können. Ersetzt die frühere große rote Warnbox auf beiden
 // Seiten durch einen dezenten Badge am Button "Hinweise prüfen".
 function updateHinweiseBadge(){
-  const reds=calcDone?warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length:0;
+  const open=w=>!resolvedWarnings.has(w.msg);
+  const reds=calcDone?warnings.filter(w=>w.level==='red'&&open(w)).length:0;
+  const yellows=calcDone?warnings.filter(w=>w.level==='yellow'&&open(w)).length:0;
+  const total=reds+yellows;
+  // Rot, wenn kritische Punkte offen sind; sonst Orange für reine Hinweise.
+  const farbe=reds>0?'#E5484D':'#E8943A';
   const db=el('dash-hinweise-badge');
-  if(db){ db.textContent=reds; db.style.display=reds>0?'flex':'none'; }
+  if(db){ db.textContent=total; db.style.display=total>0?'flex':'none'; db.style.background=farbe; }
   const pill=el('dl-hinweise-pill');
   const pb=el('dl-hinweise-badge');
-  if(pill) pill.style.display=reds>0?'flex':'none';
-  if(pb) pb.textContent=reds;
+  if(pill) pill.style.display=total>0?'flex':'none';
+  if(pb){ pb.textContent=total; pb.style.background=farbe; }
 }
 function updateNextActionBar(){
   const bar=el('next-action-bar');
@@ -5329,6 +5371,27 @@ function computeHouseStats(){
     ohneTischPax:px(unseated),ohneTischZimmer:unseated.length,
     tischeGesamt:tische.length,tischeBelegt:belegt.length,tischeFrei:tische.length-belegt.length
   };
+}
+
+// ── Quellen-Abgleich: prüft nach jeder Berechnung, dass der Plan 100% zu den
+// hochgeladenen Dateien passt. Zähl-Basis = Zeilen/Zimmer (robust gegen die
+// Kinder-PAX-Anpassung, die Personen verändern kann). Liefert grünes Bestanden
+// oder rote Abweichungen.
+function verifyQuellenAbgleich(){
+  const st=computeHouseStats();
+  const rowCount=key=>{const f=parsedFiles[key];return (f&&f.rows)?f.rows.length:null;};
+  const items=[];
+  const anRows=rowCount('ankuenfte'); if(anRows!=null) items.push({label:'Anreise-Zimmer = Anreise-Datei',ist:st.anZimmer,soll:anRows});
+  const abRows=rowCount('abreisen'); if(abRows!=null) items.push({label:'Abreise-Zimmer = Abreise-Datei',ist:st.abZimmer,soll:abRows});
+  items.push({label:'platziert + ohne Tisch = Gäste',ist:st.platziertZimmer+st.ohneTischZimmer,soll:st.gaesteZimmer});
+  items.push({label:'belegte + freie Tische = Tische gesamt',ist:st.tischeBelegt+st.tischeFrei,soll:st.tischeGesamt});
+  const seen={},dups=new Set();
+  (assignedGuests||[]).forEach(g=>{
+    const k=String(g.zimmer||'').trim().toLowerCase()+'|'+String(g.nachname||'').trim().toLowerCase();
+    if(k!=='|'){ if(seen[k]) dups.add(k); else seen[k]=1; }
+  });
+  const fails=items.filter(i=>i.ist!==i.soll);
+  return{items,fails,dups:[...dups],ohneTisch:st.ohneTischPax,st};
 }
 
 // ── DASHBOARD ──
