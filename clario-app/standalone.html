@@ -1,26 +1,51 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#0B1C33"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Slotly"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<link rel="manifest" href="manifest.json"/>
-<title>Slotly · Terminbuchung</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" onerror="window.__cdnFail=1"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" onerror="window.__cdnFail=1"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="window.__cdnFail=1"></script>
-<style>#err{display:none;position:fixed;inset:0;background:#0B1C33;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:16;padding:32;text-align:center;font-family:system-ui,sans-serif;z-index:9999}#err svg{opacity:.6}#err h2{font-size:20px;font-weight:600;margin:0}#err p{font-size:14px;opacity:.7;margin:0;max-width:280px;line-height:1.5}#err button{margin-top:8px;padding:12px 28px;background:#4FD1C5;color:#0B1C33;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07101e">
+  <meta name="description" content="Slotly – Terminbuchung für deinen Salon">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Slotly">
+  <title>Slotly · Salon Terminbuchung</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
+  <style>
+    html,body{margin:0;padding:0;background:#07101e;font-family:'Inter',system-ui,sans-serif;}
+    #root{min-height:100dvh;}
+    #splash{position:fixed;inset:0;background:linear-gradient(135deg,#07101e 0%,#0d1e38 50%,#07101e 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;}
+    #splash svg{width:72px;height:72px;}
+    #splash p{color:rgba(255,255,255,.5);font-size:14px;margin-top:16px;letter-spacing:.5px;}
+    #err{display:none;position:fixed;inset:0;background:#07101e;color:#e8f0f8;font-family:'Inter',sans-serif;padding:40px 24px;font-size:14px;line-height:1.6;z-index:99999;}
+  </style>
 </head>
 <body>
-<div id="err"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h2>Verbindungsproblem</h2><p>Slotly konnte nicht geladen werden. Bitte prüfe deine Internetverbindung.</p><button onclick="location.reload()">Erneut versuchen</button></div>
-<div id="root"></div>
-<script>// ─── CDN GUARD ───────────────────────────────────────────────
+  <div id="err"></div>
+  <div id="splash">
+    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="72" height="72" rx="18" fill="rgba(201,168,90,.15)"/>
+      <path d="M22 22h28a4 4 0 014 4v12a4 4 0 01-4 4H22a4 4 0 01-4-4V26a4 4 0 014-4z" fill="#c9a85a"/>
+      <circle cx="36" cy="50" r="5" fill="rgba(201,168,90,.7)"/>
+      <circle cx="24" cy="50" r="3.5" fill="rgba(201,168,90,.4)"/>
+      <circle cx="48" cy="50" r="3.5" fill="rgba(201,168,90,.4)"/>
+    </svg>
+    <p>Slotly wird geladen…</p>
+  </div>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" onerror="window.__cdnFail=1"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" onerror="window.__cdnFail=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="window.__cdnFail=1"></script>
+  <script>
+if(window.__cdnFail){var e=document.getElementById('err');if(e){e.style.display='block';e.innerHTML='<h2 style="color:#c9a85a;margin:0 0 12px">Ladefehler</h2><p>Bitte Internetverbindung prüfen und Seite neu laden.</p>';}}
+</script>
+  <script>
+// ─── CDN GUARD ───────────────────────────────────────────────
 if (!window.React || !window.ReactDOM || !window.supabase) {
   var _e = document.getElementById('err');
   if (_e) _e.style.display = 'flex';
@@ -4779,9 +4804,12 @@ function Dashboard({
         via: 'online'
       }));
       setState(s => {
+        const sbIds = new Set(fresh.map(b => b.id));
+        const localOnly = (s.bookings || []).filter(b => b.id && !sbIds.has(b.id) && b.id.startsWith('b_'));
+        const merged = [...fresh, ...localOnly];
         const next = {
           ...s,
-          bookings: fresh
+          bookings: merged
         };
         saveState(next);
         return next;
@@ -6919,8 +6947,25 @@ function BookingPage({
         return;
       }
     } else {
+      setSubmitting(true);
+      let bookingId = "b_" + Date.now();
+      if (salon.supabaseId) {
+        const {
+          data: inserted
+        } = await sb.from('bookings').insert({
+          salon_id: salon.supabaseId,
+          staff_id: selStaff.id,
+          service_id: selSvc.id,
+          customer_name: form.name.trim(),
+          customer_phone: form.phone.trim(),
+          date: selDate,
+          start_time: selTime,
+          status: 'confirmed'
+        }).select('id').single();
+        if (inserted?.id) bookingId = inserted.id;
+      }
       const newBooking = {
-        id: "b_" + Date.now(),
+        id: bookingId,
         date: selDate,
         startTime: selTime,
         serviceId: selSvc.id,
@@ -6936,10 +6981,15 @@ function BookingPage({
         via: "online",
         createdAt: new Date().toISOString()
       };
-      setState(s => ({
-        ...s,
-        bookings: [...s.bookings, newBooking]
-      }));
+      setState(s => {
+        const next = {
+          ...s,
+          bookings: [...s.bookings, newBooking]
+        };
+        saveState(next);
+        return next;
+      });
+      setSubmitting(false);
     }
     setStep(5);
   };
@@ -9559,7 +9609,6 @@ function App() {
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 try {
-  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 } catch (e) {
   document.getElementById("err").style.display = "flex";
   console.error("Slotly boot error:", e);
@@ -9570,6 +9619,19 @@ window.onerror = function (msg, src, row, col, err) {
   }
 };
 
-</script>
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+if(!window.__cdnFail){
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+}
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+    }
+    window.addEventListener('load', () => {
+      const s = document.getElementById('splash');
+      setTimeout(() => { if(s){s.style.opacity='0'; setTimeout(()=>s.remove(),400);} }, 600);
+    });
+  </script>
 </body>
 </html>
