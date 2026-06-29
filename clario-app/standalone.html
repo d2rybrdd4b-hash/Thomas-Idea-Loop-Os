@@ -12,12 +12,14 @@
 <title>Slotly · Terminbuchung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="document.getElementById('err').style.display='flex'"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>#err{display:none;position:fixed;inset:0;background:#0B1C33;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:16;padding:32;text-align:center;font-family:system-ui,sans-serif;z-index:9999}#err svg{opacity:.6}#err h2{font-size:20px;font-weight:600;margin:0}#err p{font-size:14px;opacity:.7;margin:0;max-width:280px;line-height:1.5}#err button{margin-top:8px;padding:12px 28px;background:#4FD1C5;color:#0B1C33;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}</style>
 </head>
 <body>
+<div id="err"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h2>Verbindungsproblem</h2><p>Slotly konnte nicht geladen werden. Bitte prüfe deine Internetverbindung.</p><button onclick="location.reload()">Erneut versuchen</button></div>
 <div id="root"></div>
 <script>
 // ─── REACT GLOBALS (from CDN) ────────────────────────────────
@@ -8605,7 +8607,17 @@ function App() {
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+} catch(e) {
+  document.getElementById("err").style.display="flex";
+  console.error("Slotly boot error:", e);
+}
+window.onerror = function(msg,src,row,col,err) {
+  if(document.getElementById("root").innerHTML.trim()==="") {
+    document.getElementById("err").style.display="flex";
+  }
+};
 
 </script>
 </body>
