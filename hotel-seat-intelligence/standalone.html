@@ -943,15 +943,15 @@ details.set-adv .adv-body{padding-top:12px;}
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="1" onclick="goStep(1)">
-      <div class="snum">1</div><span class="slabel">Gäste&nbsp;laden</span>
+      <div class="snum">1</div><span class="slabel" data-i18n="start.stepLoad">Gäste&nbsp;laden</span>
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="4" onclick="goStep(4)">
-      <div class="snum">2</div><span class="slabel">Tischplan</span>
+      <div class="snum">2</div><span class="slabel" data-i18n="start.stepPlan">Tischplan</span>
     </div>
     <div class="harrow">›</div>
     <div class="hstep" data-step="5" onclick="goStep(5)">
-      <div class="snum">3</div><span class="slabel">Exportieren</span>
+      <div class="snum">3</div><span class="slabel" data-i18n="start.stepExport">Exportieren</span>
     </div>
   </div>
   <div id="hdr-right">
@@ -961,7 +961,7 @@ details.set-adv .adv-body{padding-top:12px;}
       <i class="theme-pill-icon">☀</i>
     </div>
     <div class="dot" id="sdot"></div>
-    <div id="stxt">Bereit</div>
+    <div id="stxt" data-i18n="start.ready">Bereit</div>
   </div>
 </div>
 
@@ -975,7 +975,7 @@ details.set-adv .adv-body{padding-top:12px;}
     <div id="next-action-bar" style="display:none"></div>
 
     <div class="dash-hotel">
-      <h2 id="dash-hotel-title">Tages-Tischplan</h2>
+      <h2 id="dash-hotel-title" data-i18n="start.title">Tages-Tischplan</h2>
       <div class="dash-meta-row">
         <span class="dash-meta-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/></svg>
@@ -988,7 +988,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ae</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-af</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1004,13 +1004,13 @@ details.set-adv .adv-body{padding-top:12px;}
       <div id="tgst-setup" style="display:none">
         <div class="tgst-setup">
           <div class="tgst-setup-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></div>
-          <div class="tgst-setup-tit">Einmalig einrichten</div>
-          <div class="tgst-setup-sub">
-            Lade deine Tischplan-Vorlage hoch — einmalig, dann dauerhaft gespeichert.<br>
+          <div class="tgst-setup-tit" data-i18n="start.setupTitle">Einmalig einrichten</div>
+          <div class="tgst-setup-sub" data-i18n="start.setupSub">
+            Lade deine Tischplan-Vorlage hoch — einmalig, dann dauerhaft gespeichert.
             Danach: täglich eine Datei rein, fertiger Tischplan raus.
           </div>
           <input type="file" id="fi-tgst-vorlage" accept=".xlsx,.xls" style="display:none" onchange="loadTischplanVorlage(this)">
-          <button class="btn btn-gold" style="min-width:220px;margin-bottom:16px" onclick="el('fi-tgst-vorlage').click()">
+          <button class="btn btn-gold" style="min-width:220px;margin-bottom:16px" onclick="el('fi-tgst-vorlage').click()" data-i18n="start.uploadTemplate">
             Tischplan-Vorlage hochladen
           </button>
         </div>
@@ -1019,15 +1019,15 @@ details.set-adv .adv-body{padding-top:12px;}
       <!-- Phase B+C: Vorlage geladen — täglicher Workflow -->
       <div id="tgst-daily" style="display:none">
         <div class="tgst-badge">
-          <span class="inline-ico" style="margin-right:3px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Vorlage bereit
+          <span class="inline-ico" style="margin-right:3px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span data-i18n="start.templateReady">Vorlage bereit</span>
           <button class="tgst-badge-clear" onclick="clearTemplate()" title="Vorlage entfernen">✕</button>
         </div>
 
         <!-- Tagesdateien: Vortag / Anreisen / Abreisen nebeneinander in einer Reihe -->
         <div class="tgst-section-hdr">
-          <span class="tgst-section-tit">Dateien hochladen</span>
+          <span class="tgst-section-tit" data-i18n="start.uploadFiles">Dateien hochladen</span>
           <span class="tgst-section-info" title="Vortag, Anreisen und Abreisen jeweils als Tagesexport hochladen">
-            Benötigte Dateien
+            <span data-i18n="start.requiredFiles">Benötigte Dateien</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </span>
         </div>
@@ -1040,8 +1040,8 @@ details.set-adv .adv-body{padding-top:12px;}
               onclick="el('fi-tgst-vortag').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
               <span class="tgst-upload-btn-chev">›</span>
-              <span class="tgst-upload-btn-tit">Vortag</span>
-              <span class="tgst-upload-btn-sub">Datei laden</span>
+              <span class="tgst-upload-btn-tit" data-i18n="start.prevDay">Vortag</span>
+              <span class="tgst-upload-btn-sub" data-i18n="start.loadFile">Datei laden</span>
             </button>
             <div id="tgst-vortag-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1058,8 +1058,8 @@ details.set-adv .adv-body{padding-top:12px;}
               onclick="el('fi-tgst-ankuenfte').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
               <span class="tgst-upload-btn-chev">›</span>
-              <span class="tgst-upload-btn-tit">Anreisen</span>
-              <span class="tgst-upload-btn-sub">Datei laden</span>
+              <span class="tgst-upload-btn-tit" data-i18n="start.arrivals">Anreisen</span>
+              <span class="tgst-upload-btn-sub" data-i18n="start.loadFile">Datei laden</span>
             </button>
             <div id="tgst-ankuenfte-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1076,8 +1076,8 @@ details.set-adv .adv-body{padding-top:12px;}
               onclick="el('fi-tgst-abreisen').click()">
               <span class="tgst-upload-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
               <span class="tgst-upload-btn-chev">›</span>
-              <span class="tgst-upload-btn-tit">Abreisen</span>
-              <span class="tgst-upload-btn-sub">Datei laden</span>
+              <span class="tgst-upload-btn-tit" data-i18n="start.departures">Abreisen</span>
+              <span class="tgst-upload-btn-sub" data-i18n="start.loadFile">Datei laden</span>
             </button>
             <div id="tgst-abreisen-loaded" class="tgst-file-loaded" style="display:none">
               <span class="tgst-file-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1089,7 +1089,7 @@ details.set-adv .adv-body{padding-top:12px;}
 
         <!-- Berechnen-Button (Phase C) -->
         <button class="btn btn-gold qu-calc-btn" id="btn-tgst-calc" style="display:none;width:100%"
-          onclick="quickCalcPreview()">
+          onclick="quickCalcPreview()" data-i18n="start.calcBtn">
           Intelligente Tischzuweisung
         </button>
 
@@ -1111,32 +1111,32 @@ details.set-adv .adv-body{padding-top:12px;}
             <span class="cockpit-ring-ico" id="cockpit-ring-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </div>
           <div class="cockpit-status-body">
-            <div class="cockpit-status-tit">Tischplan bereit</div>
-            <div class="cockpit-status-sub" id="qu-done-sub">Gäste verteilt</div>
+            <div class="cockpit-status-tit" data-i18n="start.planReady">Tischplan bereit</div>
+            <div class="cockpit-status-sub" id="qu-done-sub" data-i18n="start.guestsPlaced">Gäste verteilt</div>
           </div>
         </div>
         <div class="cockpit-kpis">
           <div class="ckpi ckpi-green">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
             <div class="ckpi-val" id="ds-gaeste">—</div>
-            <div class="ckpi-lbl">Gäste</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiGuests">Gäste</div>
           </div>
           <div class="ckpi ckpi-blue">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
             <div class="ckpi-val" id="ds-ankuenfte">—</div>
-            <div class="ckpi-lbl">Ankünfte</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiArrivals">Ankünfte</div>
             <div class="ckpi-pax" id="ds-ankuenfte-pax"></div>
           </div>
           <div class="ckpi">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 7 15 12 10 17"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
             <div class="ckpi-val" id="ds-abreisen">—</div>
-            <div class="ckpi-lbl">Abreisen</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiDepartures">Abreisen</div>
             <div class="ckpi-pax" id="ds-abreisen-pax"></div>
           </div>
           <div class="ckpi">
             <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
             <div class="ckpi-val" id="ds-tische">—</div>
-            <div class="ckpi-lbl">Frei</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiFree">Frei</div>
           </div>
         </div>
       </div>
@@ -1144,7 +1144,7 @@ details.set-adv .adv-body{padding-top:12px;}
       <!-- Einzige Aktion unter der Statuskarte: Hinweise prüfen (Tischplan/Drucklisten waren redundant zur unteren Navigation) -->
       <div class="dash-actions-row">
         <button class="cockpit-secondary dash-hinweise-btn" onclick="toggleWarnDetails()">
-          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Hinweise prüfen
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span data-i18n="start.checkHints">Hinweise prüfen</span>
           <span class="dash-badge" id="dash-hinweise-badge">0</span>
         </button>
       </div>
@@ -1154,16 +1154,16 @@ details.set-adv .adv-body{padding-top:12px;}
         <div class="warn-summary" id="warn-summary"></div>
         <div id="warn-sections"></div>
         <div id="s4-proceed-note" class="hidden">
-          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Alle kritischen Hinweise geklärt.
+          <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span><span data-i18n="start.allCriticalResolved">Alle kritischen Hinweise geklärt.</span>
         </div>
       </div>
 
       <!-- Vorschau: Gästeliste -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px">
-        <h3 style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)">
+        <h3 style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim)" data-i18n="start.guestlistPreview">
           GÄSTELISTE — VORSCHAU
         </h3>
-        <input type="text" id="s3-search" placeholder="Zimmer oder Name…"
+        <input type="text" id="s3-search" placeholder="Zimmer oder Name…" data-i18n-ph="start.searchPh"
           style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:10px;width:160px"
           oninput="filterPlan(this.value)">
       </div>
@@ -1309,7 +1309,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ae · 30.06.2026</span>
+          <span class="set-version">v.25.06-af · 30.06.2026</span>
         </div>
       </div>
 
@@ -1706,6 +1706,16 @@ let LANG = localStorage.getItem('hsi_lang') || 'de';
 const I18N = {
   de:{
     'nav.start':'Start','nav.lists':'Drucklisten','nav.settings':'Einstellungen',
+    'start.stepLoad':'Gäste laden','start.stepPlan':'Tischplan','start.stepExport':'Exportieren','start.ready':'Bereit',
+    'start.title':'Tages-Tischplan','start.setupTitle':'Einmalig einrichten',
+    'start.setupSub':'Lade deine Tischplan-Vorlage hoch — einmalig, dann dauerhaft gespeichert. Danach: täglich eine Datei rein, fertiger Tischplan raus.',
+    'start.uploadTemplate':'Tischplan-Vorlage hochladen','start.templateReady':'Vorlage bereit',
+    'start.uploadFiles':'Dateien hochladen','start.requiredFiles':'Benötigte Dateien',
+    'start.prevDay':'Vortag','start.arrivals':'Anreisen','start.departures':'Abreisen','start.loadFile':'Datei laden',
+    'start.calcBtn':'Intelligente Tischzuweisung','start.recalcBtn':'↻ Tischplan neu berechnen','start.planReady':'Tischplan bereit','start.guestsPlaced':'Gäste verteilt',
+    'start.kpiGuests':'Gäste','start.kpiArrivals':'Ankünfte','start.kpiDepartures':'Abreisen','start.kpiFree':'Frei',
+    'start.checkHints':'Hinweise prüfen','start.allCriticalResolved':'Alle kritischen Hinweise geklärt.',
+    'start.guestlistPreview':'GÄSTELISTE — VORSCHAU','start.searchPh':'Zimmer oder Name…',
     'set.title':'Einstellungen','set.subtitle':'Verwalten Sie Ihr Hotelprofil, Sprache und Support — einmal einrichten, täglich bereit.',
     'set.ready':'Alles eingerichtet','set.toStart':'Zum Start →','set.missingTemplate':'Bitte Tischplan-Vorlage hochladen, um loszulegen.',
     'set.profile':'Hotelprofil','set.profileSub':'Erscheint im Tischplan-Export und in den Drucklisten.',
@@ -1720,6 +1730,16 @@ const I18N = {
   },
   en:{
     'nav.start':'Home','nav.lists':'Print lists','nav.settings':'Settings',
+    'start.stepLoad':'Load guests','start.stepPlan':'Table plan','start.stepExport':'Export','start.ready':'Ready',
+    'start.title':'Daily table plan','start.setupTitle':'One-time setup',
+    'start.setupSub':'Upload your table-plan template once — it is then saved permanently. After that: one file in each day, finished table plan out.',
+    'start.uploadTemplate':'Upload table-plan template','start.templateReady':'Template ready',
+    'start.uploadFiles':'Upload files','start.requiredFiles':'Required files',
+    'start.prevDay':'Previous day','start.arrivals':'Arrivals','start.departures':'Departures','start.loadFile':'Load file',
+    'start.calcBtn':'Smart table assignment','start.recalcBtn':'↻ Recalculate table plan','start.planReady':'Table plan ready','start.guestsPlaced':'Guests placed',
+    'start.kpiGuests':'Guests','start.kpiArrivals':'Arrivals','start.kpiDepartures':'Departures','start.kpiFree':'Free',
+    'start.checkHints':'Review notices','start.allCriticalResolved':'All critical notices resolved.',
+    'start.guestlistPreview':'GUEST LIST — PREVIEW','start.searchPh':'Room or name…',
     'set.title':'Settings','set.subtitle':'Manage your hotel profile, language and support — set up once, ready every day.',
     'set.ready':'All set up','set.toStart':'Go to Home →','set.missingTemplate':'Please upload a table-plan template to get started.',
     'set.profile':'Hotel profile','set.profileSub':'Appears on the table-plan export and the print lists.',
@@ -1741,7 +1761,10 @@ function applyLang(){
   // Sprach-Umschalter aktiv markieren
   document.querySelectorAll('[data-lang-btn]').forEach(b=>{ b.classList.toggle('seg-act', b.getAttribute('data-lang-btn')===LANG); });
 }
-function setLang(v){ LANG=(v==='en')?'en':'de'; localStorage.setItem('hsi_lang',LANG); applyLang(); }
+function setLang(v){ LANG=(v==='en')?'en':'de'; localStorage.setItem('hsi_lang',LANG); applyLang();
+  // Dynamisch gesetzte Texte (z.B. Berechnen-Button, Dashboard) auffrischen
+  try{ if(typeof updateStartPhase==='function') updateStartPhase(); if(typeof updateDashboard==='function') updateDashboard(); }catch(e){}
+}
 // Rückwärtskompatibel (alter Aufruf)
 function loadLangPref(){ applyLang(); }
 function saveLangPref(v){ setLang(v); }
@@ -4298,7 +4321,7 @@ function updateStartPhase(){
     if(loadAb) loadAb.style.display=hasAbreisen?'flex':'none';
     if(fnAb) fnAb.textContent=quickAbreisenFileName||'Abreisen geladen';
     if(calcBtn) calcBtn.style.display=hasFile?'block':'none';
-    if(calcBtn) calcBtn.textContent=calcDone?'↻ Tischplan neu berechnen':'Intelligente Tischzuweisung';
+    if(calcBtn) calcBtn.textContent=calcDone?t('start.recalcBtn'):t('start.calcBtn');
   }
   if(calcDone){
     // Cockpit download button
