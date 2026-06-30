@@ -41,6 +41,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" onerror="window.__cdnFail=1"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" onerror="window.__cdnFail=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="window.__cdnFail=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
   <script>
 if(window.__cdnFail){var e=document.getElementById('err');if(e){e.style.display='block';e.innerHTML='<h2 style="color:#c9a85a;margin:0 0 12px">Ladefehler</h2><p>Bitte Internetverbindung prüfen und Seite neu laden.</p>';}}
 </script>
@@ -237,13 +238,19 @@ a{color:inherit;text-decoration:none}
 `;
 
 // ─── HELPERS ─────────────────────────────────────────────────
+function localDateStr(d) {
+  const y = d.getFullYear(),
+    m = String(d.getMonth() + 1).padStart(2, '0'),
+    day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function today() {
-  return new Date().toISOString().split("T")[0];
+  return localDateStr(new Date());
 }
 function tomorrow() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 function fmtLong(d) {
   const dt = new Date(d),
@@ -277,7 +284,7 @@ function nextDays(n) {
   }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   });
 }
 function genSlots(sH, eH, dur) {
@@ -382,7 +389,17 @@ function playNotif() {
 
 // ─── STORAGE ─────────────────────────────────────────────────
 const KEY = "slotly_v1";
-const BOOKING_BASE = "https://d2rybrdd4b-hash.github.io/Thomas-Idea-Loop-Os/clario-app/standalone.html?salon=";
+const BOOKING_BASE = (() => {
+  try {
+    const {
+      origin,
+      pathname
+    } = window.location;
+    return `${origin}${pathname}?salon=`;
+  } catch {
+    return "https://d2rybrdd4b-hash.github.io/Thomas-Idea-Loop-Os/clario-app/standalone.html?salon=";
+  }
+})();
 const DEFAULT_WA_TEMPLATE = `Hallo {kunde},
 
 leider muss ich Ihren Termin am {datum} um {uhrzeit} Uhr absagen, da {grund}.
@@ -487,13 +504,30 @@ function I({
 }
 
 // ─── QR CODE ─────────────────────────────────────────────────
-// Render-Größe: 240px — Bild-Auflösung: 600px (2.5× für Retina/AMOLED, scharf scannbar)
+// Wird lokal im Browser erzeugt (window.qrcode aus CDN-Lib) — es verlässt keine
+// Salon-/Kundendaten den Browser, anders als bei einem externen QR-API-Aufruf.
 function QR({
   text,
   display = 240
 }) {
+  const [dataUrl, setDataUrl] = useState(null);
   const [err, setErr] = useState(false);
-  const src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=600x600&color=000000&bgcolor=ffffff&margin=4&ecc=H&format=png`;
+  useEffect(() => {
+    setErr(false);
+    setDataUrl(null);
+    try {
+      if (!window.qrcode) {
+        setErr(true);
+        return;
+      }
+      const qr = window.qrcode(0, 'H');
+      qr.addData(text);
+      qr.make();
+      setDataUrl(qr.createDataURL(8, 4));
+    } catch {
+      setErr(true);
+    }
+  }, [text]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "inline-block",
@@ -503,7 +537,7 @@ function QR({
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow)"
     }
-  }, err ? /*#__PURE__*/React.createElement("div", {
+  }, err || !dataUrl ? /*#__PURE__*/React.createElement("div", {
     style: {
       width: display,
       height: display,
@@ -521,7 +555,7 @@ function QR({
     style: {
       fontWeight: 600
     }
-  }, "QR-Code nicht verfügbar"), /*#__PURE__*/React.createElement("div", {
+  }, err ? "QR-Code nicht verfügbar" : "Lädt …"), err && /*#__PURE__*/React.createElement("div", {
     style: {
       wordBreak: "break-all",
       fontSize: 10,
@@ -529,15 +563,15 @@ function QR({
       lineHeight: 1.4
     }
   }, text)) : /*#__PURE__*/React.createElement("img", {
-    src: src,
+    src: dataUrl,
     alt: "QR Code",
     width: display,
     height: display,
     style: {
       display: "block",
-      borderRadius: 4
-    },
-    onError: () => setErr(true)
+      borderRadius: 4,
+      imageRendering: "pixelated"
+    }
   }));
 }
 
@@ -4219,18 +4253,18 @@ function AnalyticsSection({
       day = d.getDay(),
       mon = new Date(d);
     mon.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-    return mon.toISOString().split('T')[0];
+    return localDateStr(mon);
   })();
-  const monthStart = now.toISOString().slice(0, 7) + '-01';
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const lastMonthStart = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7) + '-01';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   })();
   const lastMonthEnd = (() => {
     const d = new Date();
     d.setDate(0);
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
   })();
   const rev = bs => bs.reduce((s, b) => s + (Number(services.find(sv => sv.id === b.serviceId)?.price) || 0), 0);
   const weekB = ok.filter(b => b.date >= weekStart);
@@ -9650,6 +9684,7 @@ function App() {
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 try {
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 } catch (e) {
   document.getElementById("err").style.display = "flex";
   console.error("Slotly boot error:", e);
@@ -9659,11 +9694,6 @@ window.onerror = function (msg, src, row, col, err) {
     document.getElementById("err").style.display = "flex";
   }
 };
-
-// ─── RENDER ──────────────────────────────────────────────────────────────────
-if(!window.__cdnFail){
-  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-}
   </script>
   <script>
     if ('serviceWorker' in navigator) {
