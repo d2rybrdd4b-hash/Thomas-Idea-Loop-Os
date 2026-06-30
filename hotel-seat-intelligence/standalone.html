@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-x</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-y</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-x</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-y</p>
       </div>
     </div>
 
@@ -4637,6 +4637,16 @@ async function buildFilledTischplanSheet(){
     if(g&&g.check_in&&g.check_out){const n=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);return n>0?n:'';}
     return '';
   };
+  // ── 1:1 nach Hotelier-Vorlage: die hochgeladene Vorlage dient als Schablone.
+  // Struktur (führende Spalte, graue Abschnitts-Überschriften, Notiz-Sektionen, Info-Zeile)
+  // wird übernommen; nur die Gastdaten je Tisch werden eingefüllt — KEINE Kategorie-Farben.
+  if(tischplanTemplate&&Object.keys(tischplanMap||{}).length>0){
+    fillTischplanFromTemplate(ws,guestsByTable);
+    buildSortierungZimmerSheet(wb,ws);
+    buildTischeKombiSheet(wb);
+    return{wb,ws,guestsByTable};
+  }
+  // ── Fallback (keine Vorlage hochgeladen): frisches, eigenes Layout ──
   // Style-Helfer
   const thinBorder={style:'thin',color:{argb:'FFCCCCCC'}};
   const allBorders={top:thinBorder,bottom:thinBorder,left:thinBorder,right:thinBorder};
@@ -4813,6 +4823,80 @@ function buildTischeKombiSheet(wb){
   [10,10,10,10].forEach((w,i)=>{ws.getColumn(i+1).width=w;});
 }
 
+// Befüllt das Tischplan-Blatt 1:1 nach der hochgeladenen Hotelier-Vorlage: die Vorlage
+// dient als Schablone (Zeilenstruktur, führende Leerspalte, graue Abschnitts-Überschriften,
+// Notiz-Sektionen, Spaltenbreiten, verbundene Zellen). Pro echter Tischzeile werden nur die
+// Gastfelder (Zimmer/Status/Gastname/Pax/Extras) mit der heutigen Zuweisung überschrieben;
+// alle übrigen Zellen bleiben unverändert. KEINE Kategorie-Farben (wie Mappe3).
+function fillTischplanFromTemplate(ws,guestsByTable){
+  const wbT=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true});
+  const sn=wbT.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wbT.SheetNames[0];
+  const wsT=wbT.Sheets[sn];
+  const range=XLSX.utils.decode_range(wsT['!ref']||'A1:Z200');
+  const tcell=(r,c)=>wsT[XLSX.utils.encode_cell({r,c})]||null;
+  const thin={style:'thin',color:{argb:'FFCCCCCC'}};
+  const borders={top:thin,bottom:thin,left:thin,right:thin};
+  // Excel-Zeile (0-basiert) → {tid, block} für echte Tischzeilen
+  const rowToEntry={};
+  Object.entries(tischplanMap).forEach(([tid,e])=>{ rowToEntry[e.r]={tid,block:e.block||(tischplanBlocks[0]||{})}; });
+  // Gastfelder je Tisch (heutige Zuweisung); kein Gast → Felder leeren
+  const guestVals=tid=>{
+    const gs=guestsByTable[tid]||[];
+    if(!gs.length) return {zimmer:'',status:'',name:'',pax:'',extras:''};
+    const statusOf=g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
+    if(gs.length===1){
+      const g=gs[0];
+      return {zimmer:String(g.zimmer||''),status:statusOf(g),name:[g.nachname,g.vorname].filter(Boolean).join(', '),
+        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ')};
+    }
+    return {
+      zimmer:gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', '),
+      status:[...new Set(gs.map(statusOf).filter(Boolean))].join('/'),
+      name:[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))].join(' + '),
+      pax:paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0)),
+      extras:[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | ')
+    };
+  };
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const entry=rowToEntry[r];
+    const block=entry?entry.block:null;
+    const gv=entry?guestVals(entry.tid):null;
+    const xlRow=ws.getRow(r+1);
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const tc=tcell(r,c);
+      let val=tc!=null?tc.v:null;
+      if(entry&&block){
+        if(c===block.zimmerCol) val=gv.zimmer;
+        else if(c===block.statusCol) val=gv.status;
+        else if(c===block.gastnameCol) val=gv.name;
+        else if(c===block.paxCol) val=gv.pax;
+        else if(c===block.extrasCol) val=gv.extras;
+      }
+      const xc=xlRow.getCell(c+1);
+      xc.value=(val!=null&&val!=='')?val:null;
+      xc.font={size:9};
+      xc.alignment={vertical:'middle',horizontal:'left',wrapText:false};
+      // graue Abschnitts-Füllung der Vorlage reproduzieren (z.B. "10er BOX")
+      const rgb=tc&&tc.s&&tc.s.fgColor&&tc.s.fgColor.rgb;
+      if(rgb&&/ADADAD/i.test(String(rgb))){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFADADAD'}}; xc.font={size:9,bold:true}; }
+      if(entry) xc.border=borders; // dünne Rahmen nur auf echten Tischzeilen
+    }
+    if(entry) xlRow.height=16;
+  }
+  // Spaltenbreiten + verbundene Zellen aus der Vorlage übernehmen
+  (wsT['!cols']||[]).forEach((cw,i)=>{ const w=cw&&(cw.wch||cw.width); if(w) ws.getColumn(i+1).width=w; });
+  (wsT['!merges']||[]).forEach(m=>{ try{ ws.mergeCells(m.s.r+1,m.s.c+1,m.e.r+1,m.e.c+1); }catch(e){} });
+  // Info-Zeile (Zeile 1) aktualisieren: Bearbeiter-Kürzel → APP, Zeit-Dezimal → aktuelle Uhrzeit
+  const now=new Date();
+  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const r0=ws.getRow(1);
+  r0.eachCell((cell,col)=>{
+    const v=cell.value;
+    if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){ cell.value='APP'; const nx=r0.getCell(col+1); if(typeof nx.value==='number'||nx.value==null||nx.value==='') nx.value=timeStr; }
+    else if(typeof v==='number'&&v>0&&v<1){ cell.value=timeStr; }
+  });
+}
+
 // Die Kopfzeile der Hotelier-Vorlage enthält pro Block ein Kürzel + eine Excel-
 // Uhrzeit-Dezimalzahl (z.B. "LH" + 0,3418 = 8:12 Uhr), die festhält, wer die Datei
 // zuletzt gespeichert hat. Dieser Wert wird unverändert durchgereicht, obwohl unsere
@@ -4869,18 +4953,31 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
     if(sheet!==tischplanWs) wb.removeWorksheet(sheet.id);
   });
   const ws2=wb.addWorksheet('Sortierung Zimmer');
-  const headers=['Zimmer','Nachname','Vorname','PAX','Kinder','Tisch','Status','VIP','Allergie','Bemerkung'];
-  ws2.addRow(headers);
-  ws2.getRow(1).font={bold:true};
+  // Gleiche Spaltenform wie Mappe3: führende Leerspalte (A) + Tisch/Zimmer/Status/Gastname/Pax/Extras
+  ws2.getColumn(1).width=2;
+  [['Tisch',8],['Zimmer',10],['Status',8],['Gastname',26],['Pax',6],['Extras',44]].forEach((c,i)=>{ws2.getColumn(i+2).width=c[1];});
+  const now=new Date();
+  const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
+  const dateStr=now.toLocaleDateString('de-DE');
+  ws2.addRow(['',hotelName,'','APP',timeStr,dateStr,'']);
+  ws2.getRow(1).getCell(2).font={bold:true,size:11};
+  ws2.addRow([]);
+  const thin={style:'thin',color:{argb:'FFCCCCCC'}};
+  const borders={top:thin,bottom:thin,left:thin,right:thin};
+  const hdr=ws2.addRow(['','Tisch','Zimmer','Status','Gastname','Pax','Extras']);
+  for(let c=2;c<=7;c++){hdr.getCell(c).font={bold:true,size:9};hdr.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};hdr.getCell(c).border=borders;hdr.getCell(c).alignment={vertical:'middle',horizontal:'center'};}
   const rows=(assignedGuests||[]).slice().sort((a,b)=>(parseInt(a.zimmer)||9999)-(parseInt(b.zimmer)||9999));
   rows.forEach(g=>{
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-    ws2.addRow([g.zimmer||'',g.nachname||'',g.vorname||'',g.pax||1,g.kinder||0,
-      g.zugewiesener_tisch||'—',statusStr,g.vip?'VIP':'',g.allergie||'',g.bemerkung||'']);
+    const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
+    const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
+    const r=ws2.addRow(['',g.zugewiesener_tisch||'',g.zimmer||'',statusStr,name,paxLabel(g.pax||1,g.kinder||0),extras]);
+    r.height=16;
+    for(let c=2;c<=7;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
+    r.getCell(6).alignment={vertical:'middle',horizontal:'center'};
   });
-  autoFitColumns(ws2,1,ws2.rowCount,1,headers.length);
-  // Zimmer-Spalte (col 1) auf max. 9 Einheiten deckeln
-  const zc=ws2.getColumn(1);if((zc.width||0)>9)zc.width=9;
+  ws2.views=[{state:'frozen',xSplit:0,ySplit:3}];
   return ws2;
 }
 
