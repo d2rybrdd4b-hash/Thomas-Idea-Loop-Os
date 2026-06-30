@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ab</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ac</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-ab</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-ac</p>
       </div>
     </div>
 
@@ -4893,7 +4893,12 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     else if(entry) naCell.value=(gv.naechte!==''&&gv.naechte!=null)?gv.naechte:null;
     // 2) EINHEITLICHES Styling über alle Datenspalten B..lastOut — unabhängig davon,
     // wie die Vorlage die einzelnen Zellen gefärbt hat → durchgehende graue Bänder + Rahmen.
-    if(!isInfo){
+    if(isInfo){
+      // Info-/Übersichts-Kopfzeile (TW/Uhrzeit/Datum/Restaurant) in der hellblauen
+      // Vorlagen-Farbe wie Mappe3 (C1E5F5) — durchgehend über alle Datenspalten.
+      for(let oc=2;oc<=lastOut;oc++){ const xc=xlRow.getCell(oc); xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC1E5F5'}}; xc.font={size:10,bold:true}; xc.border=borders; }
+      xlRow.height=20;
+    } else {
       for(let oc=2;oc<=lastOut;oc++){
         const xc=xlRow.getCell(oc);
         if(isSection){ xc.fill=gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
