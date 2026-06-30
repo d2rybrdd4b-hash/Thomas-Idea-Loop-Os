@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-z</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aa</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-z</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-aa</p>
       </div>
     </div>
 
@@ -4872,6 +4872,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     const block=entry?entry.block:null;
     const gv=entry?guestVals(entry.tid):null;
     const xlRow=ws.getRow(r+1);
+    let rowGray=false; // Abschnittszeile? (graue Füllung in der Vorlage)
     for(let c=range.s.c;c<=range.e.c;c++){
       const tc=tcell(r,c);
       let val=tc!=null?tc.v:null;
@@ -4888,13 +4889,15 @@ function fillTischplanFromTemplate(ws,guestsByTable){
       xc.font=isHeader?{size:9,bold:true}:{size:9};
       xc.alignment={vertical:'middle',horizontal:'left',wrapText:false};
       const rgb=tc&&tc.s&&tc.s.fgColor&&tc.s.fgColor.rgb;
-      if(rgb&&/ADADAD/i.test(String(rgb))){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFADADAD'}}; xc.font={size:9,bold:true}; }
-      if(entry||isHeader) xc.border=borders;
+      if(rgb&&/ADADAD/i.test(String(rgb))){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFADADAD'}}; xc.font={size:9,bold:true}; xc.border=borders; rowGray=true; }
+      else if(entry||isHeader) xc.border=borders;
     }
-    // Nächte-Spalte: Kopf beschriften, Tischzeilen mit Nächtezahl (aus echten Quelldaten)
+    // Nächte-Spalte: Kopf beschriften, Tischzeilen mit Nächtezahl, Abschnittszeilen grau
+    // durchziehen (sonst weiße Lücke im grauen Balken an der eingefügten Spalte).
     const naCell=xlRow.getCell(naColXl);
     if(isHeader){ naCell.value='Nächte'; naCell.font={size:9,bold:true}; naCell.alignment={vertical:'middle',horizontal:'center'}; naCell.border=borders; }
     else if(entry){ naCell.value=(gv.naechte!==''&&gv.naechte!=null)?gv.naechte:null; naCell.font={size:9}; naCell.alignment={vertical:'middle',horizontal:'center'}; naCell.border=borders; }
+    else if(rowGray){ naCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFADADAD'}}; naCell.border=borders; }
     if(entry) xlRow.height=16;
   }
   // Spaltenbreiten + Merges aus der Vorlage (ebenfalls ab Extras um eins verschoben)
@@ -5143,7 +5146,10 @@ function buildSheetPreviewHtml(ws,range){
       const v=fmtCellValue(cell);
       const span=spanAt[`${r},${c}`];
       const spanAttr=span?` colspan="${span.colSpan}" rowspan="${span.rowSpan}"`:'';
-      html+=`<td${spanAttr} style="border:1px solid #ccc;padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
+      // Rahmen nur auf echten Tabellenzellen (mit Rahmen oder Füllung gesetzt) — leere
+      // Abstandszeilen bleiben linienfrei, damit die Struktur klar bleibt.
+      const bd=cell.border, hasBorder=(bd&&(bd.top||bd.bottom||bd.left||bd.right))||(cell.fill&&cell.fill.type==='pattern');
+      html+=`<td${spanAttr} style="${hasBorder?'border:1px solid #ccc;':''}padding:1px 3px;${fillToCss(cell.fill)}">${v.replace(/</g,'&lt;')}</td>`;
     }
     html+='</tr>';
   }
