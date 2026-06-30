@@ -1,4 +1,4 @@
-const CACHE = 'slotly-v1';
+const CACHE = 'slotly-v2';
 const SHELL = [
   './standalone.html',
   './manifest.json',
@@ -22,10 +22,24 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first für Supabase API; Cache-first für App-Shell
-  if (e.request.url.includes('supabase.co')) {
+  const url = e.request.url;
+  const isHtml = e.request.mode === 'navigate' || url.includes('standalone.html') || url.endsWith('/');
+  if (url.includes('supabase.co')) {
+    // Network-first für Supabase API
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+  } else if (isHtml) {
+    // Network-first für die App-HTML, damit Updates ohne Hänger ankommen
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
   } else {
+    // Cache-first für statische Assets (Icons, Manifest)
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request).then(res => {
         if (res && res.status === 200 && e.request.method === 'GET') {
