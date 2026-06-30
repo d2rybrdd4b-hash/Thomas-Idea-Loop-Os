@@ -953,7 +953,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-y</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-z</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1261,7 +1261,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Version</div>
-        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-y</p>
+        <p style="font-size:11px;color:var(--dim)">Stand: 25.06.2026 · Build: v.25.06-z</p>
       </div>
     </div>
 
@@ -4836,29 +4836,39 @@ function fillTischplanFromTemplate(ws,guestsByTable){
   const tcell=(r,c)=>wsT[XLSX.utils.encode_cell({r,c})]||null;
   const thin={style:'thin',color:{argb:'FFCCCCCC'}};
   const borders={top:thin,bottom:thin,left:thin,right:thin};
-  // Excel-Zeile (0-basiert) → {tid, block} für echte Tischzeilen
   const rowToEntry={};
   Object.entries(tischplanMap).forEach(([tid,e])=>{ rowToEntry[e.r]={tid,block:e.block||(tischplanBlocks[0]||{})}; });
-  // Gastfelder je Tisch (heutige Zuweisung); kein Gast → Felder leeren
+  const block0=tischplanBlocks[0]||{};
+  const tischCol=block0.tischCol!=null?block0.tischCol:1;
+  const extrasCol=block0.extrasCol!=null?block0.extrasCol:6;
+  // Ab der Extras-Spalte wird um eine Spalte nach rechts verschoben — dort wird die
+  // neue "Nächte"-Spalte (ExcelJS-1-basiert = extrasCol+1) eingefügt.
+  const naColXl=extrasCol+1;
+  let headerRowIdx=-1;
+  for(let r=range.s.r;r<=range.e.r;r++){ if(String((tcell(r,tischCol)||{}).v||'').trim().toLowerCase()==='tisch'){headerRowIdx=r;break;} }
+  const naechteOf=g=>{ if(g&&g.check_in&&g.check_out){const n=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);return n>0?n:'';} return ''; };
   const guestVals=tid=>{
     const gs=guestsByTable[tid]||[];
-    if(!gs.length) return {zimmer:'',status:'',name:'',pax:'',extras:''};
     const statusOf=g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
+    if(!gs.length) return {zimmer:'',status:'',name:'',pax:'',extras:'',naechte:''};
     if(gs.length===1){
       const g=gs[0];
       return {zimmer:String(g.zimmer||''),status:statusOf(g),name:[g.nachname,g.vorname].filter(Boolean).join(', '),
-        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ')};
+        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | '),naechte:naechteOf(g)};
     }
+    const gn=gs.map(naechteOf).filter(v=>v!=='');
     return {
       zimmer:gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', '),
       status:[...new Set(gs.map(statusOf).filter(Boolean))].join('/'),
       name:[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))].join(' + '),
       pax:paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0)),
-      extras:[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | ')
+      extras:[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | '),
+      naechte:gn.length?Math.max(...gn):''
     };
   };
   for(let r=range.s.r;r<=range.e.r;r++){
     const entry=rowToEntry[r];
+    const isHeader=(r===headerRowIdx);
     const block=entry?entry.block:null;
     const gv=entry?guestVals(entry.tid):null;
     const xlRow=ws.getRow(r+1);
@@ -4872,20 +4882,25 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         else if(c===block.paxCol) val=gv.pax;
         else if(c===block.extrasCol) val=gv.extras;
       }
-      const xc=xlRow.getCell(c+1);
+      const outCol=(c<extrasCol)?(c+1):(c+2); // ab Extras eine Spalte nach rechts (Nächte eingefügt)
+      const xc=xlRow.getCell(outCol);
       xc.value=(val!=null&&val!=='')?val:null;
-      xc.font={size:9};
+      xc.font=isHeader?{size:9,bold:true}:{size:9};
       xc.alignment={vertical:'middle',horizontal:'left',wrapText:false};
-      // graue Abschnitts-Füllung der Vorlage reproduzieren (z.B. "10er BOX")
       const rgb=tc&&tc.s&&tc.s.fgColor&&tc.s.fgColor.rgb;
       if(rgb&&/ADADAD/i.test(String(rgb))){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFADADAD'}}; xc.font={size:9,bold:true}; }
-      if(entry) xc.border=borders; // dünne Rahmen nur auf echten Tischzeilen
+      if(entry||isHeader) xc.border=borders;
     }
+    // Nächte-Spalte: Kopf beschriften, Tischzeilen mit Nächtezahl (aus echten Quelldaten)
+    const naCell=xlRow.getCell(naColXl);
+    if(isHeader){ naCell.value='Nächte'; naCell.font={size:9,bold:true}; naCell.alignment={vertical:'middle',horizontal:'center'}; naCell.border=borders; }
+    else if(entry){ naCell.value=(gv.naechte!==''&&gv.naechte!=null)?gv.naechte:null; naCell.font={size:9}; naCell.alignment={vertical:'middle',horizontal:'center'}; naCell.border=borders; }
     if(entry) xlRow.height=16;
   }
-  // Spaltenbreiten + verbundene Zellen aus der Vorlage übernehmen
-  (wsT['!cols']||[]).forEach((cw,i)=>{ const w=cw&&(cw.wch||cw.width); if(w) ws.getColumn(i+1).width=w; });
-  (wsT['!merges']||[]).forEach(m=>{ try{ ws.mergeCells(m.s.r+1,m.s.c+1,m.e.r+1,m.e.c+1); }catch(e){} });
+  // Spaltenbreiten + Merges aus der Vorlage (ebenfalls ab Extras um eins verschoben)
+  (wsT['!cols']||[]).forEach((cw,i)=>{ const w=cw&&(cw.wch||cw.width); if(w){ ws.getColumn((i<extrasCol)?(i+1):(i+2)).width=w; } });
+  ws.getColumn(naColXl).width=8;
+  (wsT['!merges']||[]).forEach(m=>{ try{ const sc=(m.s.c<extrasCol)?m.s.c+1:m.s.c+2, ec=(m.e.c<extrasCol)?m.e.c+1:m.e.c+2; ws.mergeCells(m.s.r+1,sc,m.e.r+1,ec); }catch(e){} });
   // Info-Zeile (Zeile 1) aktualisieren: Bearbeiter-Kürzel → APP, Zeit-Dezimal → aktuelle Uhrzeit
   const now=new Date();
   const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -4955,27 +4970,29 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
   const ws2=wb.addWorksheet('Sortierung Zimmer');
   // Gleiche Spaltenform wie Mappe3: führende Leerspalte (A) + Tisch/Zimmer/Status/Gastname/Pax/Extras
   ws2.getColumn(1).width=2;
-  [['Tisch',8],['Zimmer',10],['Status',8],['Gastname',26],['Pax',6],['Extras',44]].forEach((c,i)=>{ws2.getColumn(i+2).width=c[1];});
+  [['Tisch',8],['Zimmer',10],['Status',8],['Gastname',26],['Pax',6],['Nächte',8],['Extras',44]].forEach((c,i)=>{ws2.getColumn(i+2).width=c[1];});
   const now=new Date();
   const timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
   const dateStr=now.toLocaleDateString('de-DE');
-  ws2.addRow(['',hotelName,'','APP',timeStr,dateStr,'']);
+  ws2.addRow(['',hotelName,'','APP',timeStr,dateStr,'','']);
   ws2.getRow(1).getCell(2).font={bold:true,size:11};
   ws2.addRow([]);
   const thin={style:'thin',color:{argb:'FFCCCCCC'}};
   const borders={top:thin,bottom:thin,left:thin,right:thin};
-  const hdr=ws2.addRow(['','Tisch','Zimmer','Status','Gastname','Pax','Extras']);
-  for(let c=2;c<=7;c++){hdr.getCell(c).font={bold:true,size:9};hdr.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};hdr.getCell(c).border=borders;hdr.getCell(c).alignment={vertical:'middle',horizontal:'center'};}
+  const naechteOf=g=>{ if(g&&g.check_in&&g.check_out){const n=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);return n>0?n:'';} return ''; };
+  const hdr=ws2.addRow(['','Tisch','Zimmer','Status','Gastname','Pax','Nächte','Extras']);
+  for(let c=2;c<=8;c++){hdr.getCell(c).font={bold:true,size:9};hdr.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};hdr.getCell(c).border=borders;hdr.getCell(c).alignment={vertical:'middle',horizontal:'center'};}
   const rows=(assignedGuests||[]).slice().sort((a,b)=>(parseInt(a.zimmer)||9999)-(parseInt(b.zimmer)||9999));
   rows.forEach(g=>{
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
     const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
     const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
-    const r=ws2.addRow(['',g.zugewiesener_tisch||'',g.zimmer||'',statusStr,name,paxLabel(g.pax||1,g.kinder||0),extras]);
+    const r=ws2.addRow(['',g.zugewiesener_tisch||'',g.zimmer||'',statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
     r.height=16;
-    for(let c=2;c<=7;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
+    for(let c=2;c<=8;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
     r.getCell(6).alignment={vertical:'middle',horizontal:'center'};
+    r.getCell(7).alignment={vertical:'middle',horizontal:'center'};
   });
   ws2.views=[{state:'frozen',xSplit:0,ySplit:3}];
   return ws2;
