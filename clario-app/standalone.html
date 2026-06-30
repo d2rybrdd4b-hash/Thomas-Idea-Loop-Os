@@ -3526,6 +3526,34 @@ function TemplateSheet({
 }
 
 // ─── AVAIL SHEET ──────────────────────────────────────────────
+const AVAIL_DEFAULT = {
+  start: "09:00",
+  end: "18:00",
+  days: [1, 2, 3, 4, 5],
+  blocked: []
+};
+const DOW = [{
+  n: 1,
+  l: "Mo"
+}, {
+  n: 2,
+  l: "Di"
+}, {
+  n: 3,
+  l: "Mi"
+}, {
+  n: 4,
+  l: "Do"
+}, {
+  n: 5,
+  l: "Fr"
+}, {
+  n: 6,
+  l: "Sa"
+}, {
+  n: 0,
+  l: "So"
+}];
 function AvailSheet({
   state,
   update,
@@ -3533,35 +3561,37 @@ function AvailSheet({
   showToast
 }) {
   const [selStaff, setSelStaff] = useState(state.staff[0]?.id);
-  const [draft, setDraft] = useState(state.avail[selStaff] || {});
+  const [draft, setDraft] = useState(state.availability[selStaff] || AVAIL_DEFAULT);
+  const [newBlock, setNewBlock] = useState("");
   useEffect(() => {
-    setDraft(state.avail[selStaff] || {});
-  }, [selStaff, state.avail]);
-  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-  const toggle = day => {
+    setDraft(state.availability[selStaff] || AVAIL_DEFAULT);
+  }, [selStaff, state.availability]);
+  const toggleDay = dow => {
     setDraft(d => {
-      if (d[day]?.length) {
-        const c = {
-          ...d
-        };
-        delete c[day];
-        return c;
-      }
+      const days = d.days || [];
       return {
         ...d,
-        [day]: ["09:00", "18:00"]
+        days: days.includes(dow) ? days.filter(x => x !== dow) : [...days, dow].sort()
       };
     });
   };
-  const updTime = (day, idx, val) => {
+  const addBlock = () => {
+    if (!newBlock) return;
     setDraft(d => {
-      const t = [...(d[day] || ["09:00", "18:00"])];
-      t[idx] = val;
+      const blocked = d.blocked || [];
+      if (blocked.includes(newBlock)) return d;
       return {
         ...d,
-        [day]: t
+        blocked: [...blocked, newBlock].sort()
       };
     });
+    setNewBlock("");
+  };
+  const removeBlock = date => {
+    setDraft(d => ({
+      ...d,
+      blocked: (d.blocked || []).filter(x => x !== date)
+    }));
   };
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
@@ -3577,71 +3607,152 @@ function AvailSheet({
     key: m.id,
     value: m.id
   }, m.name))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Uhrzeiten"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    className: "inp",
+    value: draft.start,
+    onChange: e => setDraft(d => ({
+      ...d,
+      start: e.target.value
+    })),
+    style: {
+      padding: "10px 12px",
+      fontSize: 14
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--muted)"
+    }
+  }, "—"), /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    className: "inp",
+    value: draft.end,
+    onChange: e => setDraft(d => ({
+      ...d,
+      end: e.target.value
+    })),
+    style: {
+      padding: "10px 12px",
+      fontSize: 14
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Arbeitstage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 20,
+      flexWrap: "wrap"
+    }
+  }, DOW.map(({
+    n,
+    l
+  }) => {
+    const active = (draft.days || []).includes(n);
+    return /*#__PURE__*/React.createElement("button", {
+      key: n,
+      onClick: () => toggleDay(n),
+      style: {
+        padding: "8px 12px",
+        borderRadius: 10,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+        border: "1px solid var(--border)",
+        background: active ? "var(--accent)" : "var(--bg2)",
+        color: active ? "#fff" : "var(--ink2)"
+      }
+    }, l);
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Urlaub / Sperrtage"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      marginBottom: 10
+    }
+  }, "An diesen Tagen sind online keine Termine für ", state.staff.find(m => m.id === selStaff)?.name || "diese Person", " buchbar."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: "inp",
+    value: newBlock,
+    min: today(),
+    onChange: e => setNewBlock(e.target.value),
+    style: {
+      padding: "10px 12px",
+      fontSize: 14
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-g",
+    onClick: addBlock,
+    style: {
+      padding: "10px 14px"
+    }
+  }, "+")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 8,
-      marginBottom: 18
+      gap: 6,
+      marginBottom: 20
     }
-  }, days.map(day => {
-    const active = !!draft[day]?.length;
-    return /*#__PURE__*/React.createElement("div", {
-      key: day,
-      className: "card",
-      style: {
-        padding: "12px 14px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: active ? 10 : 0
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontWeight: 600,
-        fontSize: 14
-      }
-    }, day), /*#__PURE__*/React.createElement("div", {
-      className: `toggle ${active ? "on" : ""}`,
-      onClick: () => toggle(day)
-    })), active && /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "time",
-      className: "inp",
-      value: draft[day][0],
-      onChange: e => updTime(day, 0, e.target.value),
-      style: {
-        padding: "10px 12px",
-        fontSize: 14
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, "—"), /*#__PURE__*/React.createElement("input", {
-      type: "time",
-      className: "inp",
-      value: draft[day][1],
-      onChange: e => updTime(day, 1, e.target.value),
-      style: {
-        padding: "10px 12px",
-        fontSize: 14
-      }
-    })));
-  })), /*#__PURE__*/React.createElement("button", {
+  }, (draft.blocked || []).length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, "Keine Sperrtage eingetragen."), (draft.blocked || []).map(date => /*#__PURE__*/React.createElement("div", {
+    key: date,
+    className: "card",
+    style: {
+      padding: "8px 12px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, fmtLong(date)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeBlock(date),
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--error)",
+      cursor: "pointer",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "Entfernen")))), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-p",
     onClick: () => {
       update(s => ({
         ...s,
-        avail: {
-          ...s.avail,
+        availability: {
+          ...s.availability,
           [selStaff]: draft
         }
       }));
@@ -6351,14 +6462,13 @@ function Dashboard({
           ...stf,
           id: nid
         }],
-        avail: {
-          ...st.avail,
+        availability: {
+          ...st.availability,
           [nid]: {
-            Mo: ["09:00", "18:00"],
-            Di: ["09:00", "18:00"],
-            Mi: ["09:00", "18:00"],
-            Do: ["09:00", "18:00"],
-            Fr: ["09:00", "17:00"]
+            start: "09:00",
+            end: "18:00",
+            days: [1, 2, 3, 4, 5],
+            blocked: []
           }
         }
       }));
@@ -6932,13 +7042,16 @@ function BookingPage({
 
   const activeStaff = state.staff.filter(s => !s.sick);
   const svcStaff = selSvc ? activeStaff.filter(s => !selSvc.staffIds || selSvc.staffIds.length === 0 || selSvc.staffIds.includes(s.id)) : activeStaff;
+  const isBlockedDate = selStaff && ((state.availability || {})[selStaff.id]?.blocked || []).includes(selDate);
   const slots = (() => {
     if (!selSvc || !selStaff || !selDate) return [];
     const avail = (state.availability || {})[selStaff.id] || {
       start: "09:00",
       end: "18:00",
-      days: [1, 2, 3, 4, 5]
+      days: [1, 2, 3, 4, 5],
+      blocked: []
     };
+    if ((avail.blocked || []).includes(selDate)) return [];
     const dow = new Date(selDate + "T12:00:00").getDay();
     if (!(avail.days || [1, 2, 3, 4, 5]).includes(dow)) return [];
     const dur = selSvc.duration || 30;
@@ -7464,7 +7577,7 @@ function BookingPage({
       fontSize: 13,
       marginBottom: 16
     }
-  }, "Keine freien Zeiten an diesem Tag.") : /*#__PURE__*/React.createElement("div", {
+  }, isBlockedDate ? `${selStaff.name} hat an diesem Tag Urlaub / ist nicht verfügbar.` : "Keine freien Zeiten an diesem Tag.") : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr 1fr",
@@ -8452,7 +8565,8 @@ async function syncToSb(salonId, staff, services, availability) {
       availJson[mappedId] = {
         start: a.start,
         end: a.end,
-        days: a.days || []
+        days: a.days || [],
+        blocked: a.blocked || []
       };
     });
     const {
@@ -8533,7 +8647,8 @@ function OnboardingWizard({
       avail[m.id] = {
         start: openStart,
         end: openEnd,
-        days
+        days,
+        blocked: []
       };
     });
     const {
@@ -9167,13 +9282,22 @@ function App() {
           if (!availMap[r.staff_id]) availMap[r.staff_id] = {
             start: r.start_time,
             end: r.end_time,
-            days: []
+            days: [],
+            blocked: []
           };
           availMap[r.staff_id].days.push(r.day_of_week);
         });
-        if (Object.keys(availMap).length === 0 && salon.avail_json) {
+        if (salon.avail_json) {
           try {
-            Object.assign(availMap, JSON.parse(salon.avail_json));
+            const fromJson = JSON.parse(salon.avail_json);
+            Object.entries(fromJson).forEach(([sid, a]) => {
+              if (!availMap[sid]) availMap[sid] = {
+                start: a.start,
+                end: a.end,
+                days: a.days || [],
+                blocked: a.blocked || []
+              };else availMap[sid].blocked = a.blocked || [];
+            });
           } catch (e) {}
         }
         const bookings = (bkRows || []).map(b => ({
@@ -9244,10 +9368,24 @@ function App() {
           if (!availMap[r.staff_id]) availMap[r.staff_id] = {
             start: r.start_time,
             end: r.end_time,
-            days: []
+            days: [],
+            blocked: []
           };
           availMap[r.staff_id].days.push(r.day_of_week);
         });
+        if (salon.avail_json) {
+          try {
+            const fromJson = JSON.parse(salon.avail_json);
+            Object.entries(fromJson).forEach(([sid, a]) => {
+              if (!availMap[sid]) availMap[sid] = {
+                start: a.start,
+                end: a.end,
+                days: a.days || [],
+                blocked: a.blocked || []
+              };else availMap[sid].blocked = a.blocked || [];
+            });
+          } catch (e) {}
+        }
         const _svcById = Object.fromEntries((svcRows || []).map(sv => [sv.id, sv]));
         const _staffById = Object.fromEntries((staffRows || []).map(m => [m.id, m]));
         const sbBookings = (bkRows || []).map(b => ({
