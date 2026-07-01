@@ -988,7 +988,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ag</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ah</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1309,7 +1309,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ag · 30.06.2026</span>
+          <span class="set-version">v.25.06-ah · 01.07.2026</span>
         </div>
       </div>
 
@@ -1718,6 +1718,31 @@ const I18N = {
     'start.guestlistPreview':'GÄSTELISTE — VORSCHAU','start.searchPh':'Zimmer oder Name…',
     'export.title':'Export','export.noPlan':'Noch kein Tischplan berechnet','export.showPreview':'Excel-Vorschau anzeigen','export.download':'Excel-Vorlage herunterladen','export.downloaded':'Datei heruntergeladen','export.backToStart':'← Zurück zum Start',
     'na.filesLoaded':'Dateien geladen — Tischplan noch nicht berechnet','na.calc':'Tischplan berechnen','na.noData':'Noch keine Daten — schnell loslegen mit Demo','na.startDemo':'Demo starten',
+    'warn.crit':'Kritisch','warn.hint':'Hinweis','warn.hints':'Hinweise','warn.done':'Erledigt','warn.checked':'Geprüft','warn.info':'Info',
+    'warn.mustResolve':'muss gelöst werden','warn.pleaseCheck':'bitte prüfen','warn.okOrResolved':'OK oder gelöst',
+    'warn.whatsWrong':'Was ist los?','warn.impact':'Auswirkung','warn.whatToDo':'Was tun?',
+    'warn.markChecked':'Als geprüft markieren','warn.confirm':'Bestätigen','warn.ignoreToday':'Für heute ignorieren','warn.undo':'↩ Rückgängig',
+    'warn.secCrit':'Kritisch — vor dem Export lösen','warn.secHints':'Hinweise — prüfen und bestätigen','warn.secReviewed':'Geprüft — werden im Übergabebericht dokumentiert','warn.secAuto':'Automatisch gelöst','warn.autofix':'Auto-Fix',
+    'warn.barCrit':'kritische Punkte vor dem Export lösen — der Export ist gesperrt, bis alle roten Punkte geklärt sind.','warn.barHints':'Hinweise zur Prüfung — bitte einzeln bestätigen oder ignorieren.','warn.allChecked':'Alle Punkte geprüft — Export und Druck sind freigegeben.','warn.none':'Keine Warnungen — alles in Ordnung!',
+    'w.1.t':'Keine Gästedaten geladen','w.1.a':'Ohne Gästedaten kann kein Tischplan erstellt werden.','w.1.l':'Lade eine PMS-Datei hoch oder nutze die Demo-Daten.','w.1.fx':'Demo-Daten laden',
+    'w.2.t':'Keine Tische vorhanden','w.2.a':'Die App kann Gäste nicht platzieren — Grundriss fehlt.','w.2.l':'Standard-Tischkonfiguration laden oder Tische manuell anlegen.','w.2.fx':'Standard-Tische laden',
+    'w.3.t':'Personenzahl fehlt','w.3.a':'Der Tisch könnte zu klein geplant werden — Überbelegung droht.','w.3.l':'Personenzahl ergänzen oder Standardwert 2 automatisch setzen.','w.3.fx':'Standardwert 2 setzen',
+    'w.4.t':'Reisegruppe wurde aufgeteilt','w.4.a':'Gäste einer Gruppe sitzen an verschiedenen Tischen — möglicherweise unerwünscht.','w.4.l':'Größeren freien Tisch wählen oder Aufteilung bewusst bestätigen.',
+    'w.5.t':'Automatisch auf Ausweichtisch gesetzt','w.5.a':'Das System hat den Gast automatisch auf einen freien Ausweichtisch platziert — alle Gäste sind untergebracht.','w.5.l':'Nur prüfen, ob der Ausweichtisch passt — sonst keine Aktion nötig.',
+    'w.6.t':'Tisch ist überbelegt','w.6.a':'Mehr Gäste als Sitzplätze — der Plan ist so nicht umsetzbar.','w.6.l':'Gäste auf einen anderen Tisch verschieben oder Kapazität erhöhen.',
+    'w.7.t':'Stammtisch doppelt belegt','w.7.a':'Zwei Gäste wurden für denselben Tisch vorgemerkt — einer bekommt keinen Platz.','w.7.l':'Nächsten freien Tisch in gleicher Zone zuweisen.',
+    'w.8.t':'Bleibegast-Tisch ist bereits vergeben','w.8.a':'Ein Stammgast sitzt heute woanders als gestern — kann für Verwirrung sorgen.','w.8.l':'Alten Tisch freigeben oder neue Platzierung bestätigen.',
+    'w.9.t':'VIP-Gast nicht optimal platziert','w.9.a':'Der Gast könnte schlechter platziert sein als erwartet — mögliche Beschwerde.','w.9.l':'Fensterplatz, ruhige Zone oder bevorzugten Tisch manuell wählen.',
+    'w.10.t':'Tisch für VIP reserviert','w.10.a':'','w.10.l':'Tisch ist für einen zukünftigen VIP-Gast geblockt — kein Handlungsbedarf.',
+    'w.11.t':'Sonderwunsch nicht berücksichtigt','w.11.a':'Service oder Küche müssen diesen Hinweis manuell prüfen.','w.11.l':'Passenden Tisch wählen oder Hinweis im Servicebericht vermerken.',
+    'w.12.t':'Essenszeit nicht gesetzt','w.12.a':'Gäste könnten unverteilt alle zur gleichen Zeit kommen.','w.12.l':'Standard-Essenszeit 19:00 Uhr setzen oder manuell anpassen.','w.12.fx':'Standard 19:00 setzen',
+    'w.13.t':'Kein freier Tisch für diesen Gast','w.13.a':'Gast bleibt ohne Tischzuweisung — er steht nicht im Plan.','w.13.l':'Tischkonfiguration prüfen: zu wenig Tische oder zu kleine Kapazität.',
+    'w.14.t':'Gastname kommt doppelt vor','w.14.a':'Möglicher PMS-Datenfehler oder tatsächliche Doppelbuchung.','w.14.l':'PMS-Datei auf Duplikate prüfen und ggf. bereinigen.',
+    'w.15.t':'Mögliche Reisegruppe erkannt','w.15.a':'Gäste könnten zusammengehören und einen gemeinsamen Tisch wünschen.','w.15.l':'Prüfen ob Gruppe an benachbarten Tischen platziert werden soll.',
+    'w.16.t':'Stammtisch nicht mehr vorhanden','w.16.a':'Der Vortages-Tisch existiert nicht mehr oder wurde umbenannt.','w.16.l':'Tischkonfiguration prüfen oder Gast neu zuweisen.',
+    'w.17.t':'Zimmer-Sonderregel konnte nicht erfüllt werden','w.17.a':'Zimmer-spezifische Tischzuweisung ist fehlgeschlagen.','w.17.l':'Tischverfügbarkeit prüfen und Sonderregel ggf. anpassen.',
+    'w.18.t':'Kapazitätsgrenze überschritten','w.18.a':'Die Gruppe ist größer als der Tisch erlaubt.','w.18.l':'Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.',
+    'w.19.t':'PMS-Daten unvollständig','w.19.a':'Fehlende Felder reduzieren die Genauigkeit der Tischzuweisung.','w.19.l':'Unter "Daten prüfen" das fehlende Feld manuell zuweisen.',
     'set.title':'Einstellungen','set.subtitle':'Verwalten Sie Ihr Hotelprofil, Sprache und Support — einmal einrichten, täglich bereit.',
     'set.ready':'Alles eingerichtet','set.toStart':'Zum Start →','set.missingTemplate':'Bitte Tischplan-Vorlage hochladen, um loszulegen.',
     'set.profile':'Hotelprofil','set.profileSub':'Erscheint im Tischplan-Export und in den Drucklisten.',
@@ -1744,6 +1769,31 @@ const I18N = {
     'start.guestlistPreview':'GUEST LIST — PREVIEW','start.searchPh':'Room or name…',
     'export.title':'Export','export.noPlan':'No table plan calculated yet','export.showPreview':'Show Excel preview','export.download':'Download Excel file','export.downloaded':'File downloaded','export.backToStart':'← Back to Home',
     'na.filesLoaded':'Files loaded — table plan not calculated yet','na.calc':'Calculate table plan','na.noData':'No data yet — get started quickly with the demo','na.startDemo':'Start demo',
+    'warn.crit':'Critical','warn.hint':'Notice','warn.done':'Done','warn.checked':'Reviewed','warn.info':'Info',
+    'warn.mustResolve':'to resolve','warn.pleaseCheck':'to review','warn.okOrResolved':'OK or resolved',
+    'warn.whatsWrong':'What\'s wrong?','warn.impact':'Impact','warn.whatToDo':'What to do?',
+    'warn.markChecked':'Mark as reviewed','warn.confirm':'Confirm','warn.ignoreToday':'Ignore for today','warn.undo':'↩ Undo',
+    'warn.secCrit':'Critical — resolve before export','warn.secHints':'Notices — review and confirm','warn.secReviewed':'Reviewed — documented in the handover report','warn.secAuto':'Automatically resolved','warn.autofix':'Auto-fix',
+    'warn.barCrit':'critical points to resolve before export — export is locked until all red points are cleared.','warn.barHints':'notices to review — please confirm or ignore each one.','warn.allChecked':'All points reviewed — export and print are unlocked.','warn.none':'No warnings — everything in order!',
+    'w.1.t':'No guest data loaded','w.1.a':'Without guest data, no table plan can be created.','w.1.l':'Upload a PMS file or use the demo data.','w.1.fx':'Load demo data',
+    'w.2.t':'No tables available','w.2.a':'The app cannot place guests — the floor plan is missing.','w.2.l':'Load the default table configuration or create tables manually.','w.2.fx':'Load default tables',
+    'w.3.t':'Number of persons missing','w.3.a':'The table could be planned too small — overbooking risk.','w.3.l':'Add the number of persons or set the default value of 2 automatically.','w.3.fx':'Set default 2',
+    'w.4.t':'Travel group was split','w.4.a':'Guests of one group sit at different tables — possibly unintended.','w.4.l':'Choose a larger free table or deliberately confirm the split.',
+    'w.5.t':'Automatically placed at fallback table','w.5.a':'The system automatically placed the guest at a free fallback table — all guests are seated.','w.5.l':'Just check that the fallback table fits — otherwise no action needed.',
+    'w.6.t':'Table is overbooked','w.6.a':'More guests than seats — the plan is not feasible this way.','w.6.l':'Move guests to another table or increase capacity.',
+    'w.7.t':'Regular table double-booked','w.7.a':'Two guests were earmarked for the same table — one gets no seat.','w.7.l':'Assign the next free table in the same zone.',
+    'w.8.t':'Returning-guest table is already taken','w.8.a':'A regular sits somewhere different than yesterday — may cause confusion.','w.8.l':'Free up the old table or confirm the new placement.',
+    'w.9.t':'VIP guest not optimally placed','w.9.a':'The guest could be placed worse than expected — possible complaint.','w.9.l':'Manually choose a window seat, quiet zone or preferred table.',
+    'w.10.t':'Table reserved for VIP','w.10.a':'','w.10.l':'Table is blocked for a future VIP guest — no action needed.',
+    'w.11.t':'Special request not considered','w.11.a':'Service or kitchen must check this note manually.','w.11.l':'Choose a suitable table or note the request in the service report.',
+    'w.12.t':'Meal time not set','w.12.a':'Guests could all arrive at the same time, unspread.','w.12.l':'Set the default meal time of 19:00 or adjust manually.','w.12.fx':'Set default 19:00',
+    'w.13.t':'No free table for this guest','w.13.a':'Guest remains without a table assignment — not in the plan.','w.13.l':'Check the table configuration: too few tables or too little capacity.',
+    'w.14.t':'Guest name appears twice','w.14.a':'Possible PMS data error or an actual double booking.','w.14.l':'Check the PMS file for duplicates and clean up if needed.',
+    'w.15.t':'Possible travel group detected','w.15.a':'Guests could belong together and want a shared table.','w.15.l':'Check whether the group should be placed at neighbouring tables.',
+    'w.16.t':'Regular table no longer exists','w.16.a':'The previous day\'s table no longer exists or was renamed.','w.16.l':'Check the table configuration or reassign the guest.',
+    'w.17.t':'Room special rule could not be met','w.17.a':'Room-specific table assignment failed.','w.17.l':'Check table availability and adjust the special rule if needed.',
+    'w.18.t':'Capacity limit exceeded','w.18.a':'The group is larger than the table allows.','w.18.l':'Choose a table with more capacity or raise the PAX limit.',
+    'w.19.t':'PMS data incomplete','w.19.a':'Missing fields reduce the accuracy of the table assignment.','w.19.l':'Under "Check data", assign the missing field manually.',
     'set.title':'Settings','set.subtitle':'Manage your hotel profile, language and support — set up once, ready every day.',
     'set.ready':'All set up','set.toStart':'Go to Home →','set.missingTemplate':'Please upload a table-plan template to get started.',
     'set.profile':'Hotel profile','set.profileSub':'Appears on the table-plan export and the print lists.',
@@ -1767,7 +1817,9 @@ function applyLang(){
 }
 function setLang(v){ LANG=(v==='en')?'en':'de'; localStorage.setItem('hsi_lang',LANG); applyLang();
   // Dynamisch gesetzte Texte (z.B. Berechnen-Button, Dashboard) auffrischen
-  try{ if(typeof updateStartPhase==='function') updateStartPhase(); if(typeof updateDashboard==='function') updateDashboard(); }catch(e){}
+  try{ if(typeof updateStartPhase==='function') updateStartPhase(); if(typeof updateDashboard==='function') updateDashboard();
+    const wd=el('warn-details-wrap'); if(wd&&wd.style.display!=='none'&&typeof renderWarnings==='function') renderWarnings();
+  }catch(e){}
 }
 // Rückwärtskompatibel (alter Aufruf)
 function loadLangPref(){ applyLang(); }
@@ -3821,18 +3873,18 @@ function renderWarnings(){
   el('warn-summary').innerHTML=`
     <div class="wscard red">
       <div class="wsc-n">${reds.length}</div>
-      <div class="wsc-l">Kritisch</div>
-      <div class="wsc-sub">muss gelöst werden</div>
+      <div class="wsc-l">${t('warn.crit')}</div>
+      <div class="wsc-sub">${t('warn.mustResolve')}</div>
     </div>
     <div class="wscard yellow">
       <div class="wsc-n">${yellows.length}</div>
-      <div class="wsc-l">Hinweise</div>
-      <div class="wsc-sub">bitte prüfen</div>
+      <div class="wsc-l">${t('warn.secHints')==='Notices — review and confirm'?'Notices':t('warn.hint')+'e'}</div>
+      <div class="wsc-sub">${t('warn.pleaseCheck')}</div>
     </div>
     <div class="wscard green">
       <div class="wsc-n">${greens.length+resolvedList.length}</div>
-      <div class="wsc-l">Erledigt</div>
-      <div class="wsc-sub">OK oder gelöst</div>
+      <div class="wsc-l">${t('warn.done')}</div>
+      <div class="wsc-sub">${t('warn.okOrResolved')}</div>
     </div>
   `;
 
@@ -3845,34 +3897,33 @@ function renderWarnings(){
   // Status banner
   let statusBar='';
   if(reds.length>0){
-    const noun=reds.length===1?'kritischer Punkt muss':'kritische Punkte müssen';
-    statusBar=`<div class="w-status-bar red"><span class="inline-ico">${icoLock}</span>${reds.length} ${noun} gelöst werden — Export ist gesperrt, bis alle roten Punkte geklärt sind.</div>`;
+    statusBar=`<div class="w-status-bar red"><span class="inline-ico">${icoLock}</span>${reds.length} ${t('warn.barCrit')}</div>`;
   } else if(yellows.length>0){
-    statusBar=`<div class="w-status-bar yellow"><span class="inline-ico">${icoTriangle}</span>${yellows.length} Hinweis${yellows.length===1?' zur Prüfung':'e zur Prüfung'} — bitte einzeln bestätigen oder ignorieren.</div>`;
+    statusBar=`<div class="w-status-bar yellow"><span class="inline-ico">${icoTriangle}</span>${yellows.length} ${t('warn.barHints')}</div>`;
   } else {
-    statusBar=`<div class="w-status-bar green"><span class="inline-ico">${icoCheckCircle}</span>Alle Punkte geprüft — Export und Druck sind freigegeben.</div>`;
+    statusBar=`<div class="w-status-bar green"><span class="inline-ico">${icoCheckCircle}</span>${t('warn.allChecked')}</div>`;
   }
 
   // Sections
   let html=statusBar;
   if(reds.length>0){
-    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoDot}</span>Kritisch — vor dem Export lösen</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoDot}</span>${t('warn.secCrit')}</h3>
     <div class="warn-list">${reds.map(w=>warnItem(w,'red')).join('')}</div></div>`;
   }
   if(yellows.length>0){
-    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoTriangle}</span>Hinweise — prüfen und bestätigen</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoTriangle}</span>${t('warn.secHints')}</h3>
     <div class="warn-list">${yellows.map(w=>warnItem(w,'yellow')).join('')}</div></div>`;
   }
   if(resolvedList.length>0){
-    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>Geprüft — werden im Übergabebericht dokumentiert</h3>
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>${t('warn.secReviewed')}</h3>
     <div class="warn-list">${resolvedList.map(w=>warnItem(w,'',true)).join('')}</div></div>`;
   }
   if(greens.length>0){
-    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>Automatisch gelöst</h3>
-    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="witem-hdr"><span class="wico">${icoCheckCircle}</span><span class="wbadge green">Auto-Fix</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>${t('warn.secAuto')}</h3>
+    <div class="warn-list">${greens.map(w=>`<div class="witem green"><div class="witem-hdr"><span class="wico">${icoCheckCircle}</span><span class="wbadge green">${t('warn.autofix')}</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
   }
   if(reds.length===0&&yellows.length===0&&greens.length===0&&resolvedList.length===0){
-    html+=`<div style="text-align:center;padding:40px;color:var(--green);font-size:14px"><span class="inline-ico">${icoCheckCircle}</span>Keine Warnungen — alles in Ordnung!</div>`;
+    html+=`<div style="text-align:center;padding:40px;color:var(--green);font-size:14px"><span class="inline-ico">${icoCheckCircle}</span>${t('warn.none')}</div>`;
   }
 
   el('warn-sections').innerHTML=html;
@@ -3884,113 +3935,61 @@ function renderWarnings(){
 }
 
 function enrichWarning(w){
-  let title='',problem='',auswirkung='',loesung='',autofix=null;
   const m=w.msg||'';
+  let key=null,autofixFn=null;
 
   if(m.includes('Keine Gästedaten')||m.includes('Keine Gäste gefunden')){
-    title='Keine Gästedaten geladen';
-    problem=m;
-    auswirkung='Ohne Gästedaten kann kein Tischplan erstellt werden.';
-    loesung='Lade eine PMS-Datei hoch oder nutze die Demo-Daten.';
-    autofix={label:'Demo-Daten laden',fn:'autoFixLadeDemo'};
+    key='w.1'; autofixFn='autoFixLadeDemo';
   } else if(m.includes('Keine Tische')||m.includes('keine Tische')){
-    title='Keine Tische vorhanden';
-    problem=m;
-    auswirkung='Die App kann Gäste nicht platzieren — Grundriss fehlt.';
-    loesung='Standard-Tischkonfiguration laden oder Tische manuell anlegen.';
-    autofix={label:'Standard-Tische laden',fn:'autoFixLadeTische'};
+    key='w.2'; autofixFn='autoFixLadeTische';
   } else if(m.includes('Personenzahl')||(m.includes('PAX')&&!m.includes('Max PAX'))){
-    title='Personenzahl fehlt';
-    problem=m;
-    auswirkung='Der Tisch könnte zu klein geplant werden — Überbelegung droht.';
-    loesung='Personenzahl ergänzen oder Standardwert 2 automatisch setzen.';
-    autofix={label:'Standardwert 2 setzen',fn:'autoFixPersonenzahl'};
+    key='w.3'; autofixFn='autoFixPersonenzahl';
   } else if(m.includes('getrennt')||m.includes('aufgeteilt')){
-    title='Reisegruppe wurde aufgeteilt';
-    problem=m;
-    auswirkung='Gäste einer Gruppe sitzen an verschiedenen Tischen — möglicherweise unerwünscht.';
-    loesung='Größeren freien Tisch wählen oder Aufteilung bewusst bestätigen.';
+    key='w.4';
   } else if(m.includes('Ausweich Tisch')||m.includes('Notplatzierung')){
-    title='Automatisch auf Ausweichtisch gesetzt';
-    problem=m;
-    auswirkung='Das System hat den Gast automatisch auf einen freien Ausweichtisch platziert — alle Gäste sind untergebracht.';
-    loesung='Nur prüfen, ob der Ausweichtisch passt — sonst keine Aktion nötig.';
+    key='w.5';
   } else if(m.includes('überbelegt')||m.includes('Überbelegung')||m.includes('überfüllt')){
-    title='Tisch ist überbelegt';
-    problem=m;
-    auswirkung='Mehr Gäste als Sitzplätze — der Plan ist so nicht umsetzbar.';
-    loesung='Gäste auf einen anderen Tisch verschieben oder Kapazität erhöhen.';
+    key='w.6';
   } else if(m.includes('bereits belegt')){
-    title='Stammtisch doppelt belegt';
-    problem=m;
-    auswirkung='Zwei Gäste wurden für denselben Tisch vorgemerkt — einer bekommt keinen Platz.';
-    loesung='Nächsten freien Tisch in gleicher Zone zuweisen.';
+    key='w.7';
   } else if(m.includes('Bleibegast')||m.includes('bisherige')){
-    title='Bleibegast-Tisch ist bereits vergeben';
-    problem=m;
-    auswirkung='Ein Stammgast sitzt heute woanders als gestern — kann für Verwirrung sorgen.';
-    loesung='Alten Tisch freigeben oder neue Platzierung bestätigen.';
+    key='w.8';
   } else if(m.includes('VIP')&&(m.includes('Zone')||m.includes('Tisch')||m.includes('Fenster'))){
-    title='VIP-Gast nicht optimal platziert';
-    problem=m;
-    auswirkung='Der Gast könnte schlechter platziert sein als erwartet — mögliche Beschwerde.';
-    loesung='Fensterplatz, ruhige Zone oder bevorzugten Tisch manuell wählen.';
+    key='w.9';
   } else if(m.includes('freigehalten')){
-    title='Tisch für VIP reserviert';
-    problem=m;
-    auswirkung='';
-    loesung='Tisch ist für einen zukünftigen VIP-Gast geblockt — kein Handlungsbedarf.';
+    key='w.10';
   } else if(m.includes('Sonderwunsch')||m.includes('Sonderhinweis')){
-    title='Sonderwunsch nicht berücksichtigt';
-    problem=m;
-    auswirkung='Service oder Küche müssen diesen Hinweis manuell prüfen.';
-    loesung='Passenden Tisch wählen oder Hinweis im Servicebericht vermerken.';
+    key='w.11';
   } else if(m.includes('EssenZeit')||m.includes('Essenszeit')||m.includes('Slot')||m.includes('Zeitfenster')){
-    title='Essenszeit nicht gesetzt';
-    problem=m;
-    auswirkung='Gäste könnten unverteilt alle zur gleichen Zeit kommen.';
-    loesung='Standard-Essenszeit 19:00 Uhr setzen oder manuell anpassen.';
-    autofix={label:'Standard 19:00 setzen',fn:'autoFixEssenszeit'};
+    key='w.12'; autofixFn='autoFixEssenszeit';
   } else if(m.includes('Kein passender Tisch')){
-    title='Kein freier Tisch für diesen Gast';
-    problem=m;
-    auswirkung='Gast bleibt ohne Tischzuweisung — er steht nicht im Plan.';
-    loesung='Tischkonfiguration prüfen: zu wenig Tische oder zu kleine Kapazität.';
+    key='w.13';
   } else if(m.includes('Doppelname')){
-    title='Gastname kommt doppelt vor';
-    problem=m;
-    auswirkung='Möglicher PMS-Datenfehler oder tatsächliche Doppelbuchung.';
-    loesung='PMS-Datei auf Duplikate prüfen und ggf. bereinigen.';
+    key='w.14';
   } else if(m.includes('Gleicher Nachname')){
-    title='Mögliche Reisegruppe erkannt';
-    problem=m;
-    auswirkung='Gäste könnten zusammengehören und einen gemeinsamen Tisch wünschen.';
-    loesung='Prüfen ob Gruppe an benachbarten Tischen platziert werden soll.';
+    key='w.15';
   } else if(m.includes('nicht gefunden')){
-    title='Stammtisch nicht mehr vorhanden';
-    problem=m;
-    auswirkung='Der Vortages-Tisch existiert nicht mehr oder wurde umbenannt.';
-    loesung='Tischkonfiguration prüfen oder Gast neu zuweisen.';
+    key='w.16';
   } else if(m.includes('Sonderregel')){
-    title='Zimmer-Sonderregel konnte nicht erfüllt werden';
-    problem=m;
-    auswirkung='Zimmer-spezifische Tischzuweisung ist fehlgeschlagen.';
-    loesung='Tischverfügbarkeit prüfen und Sonderregel ggf. anpassen.';
+    key='w.17';
   } else if(m.includes('Max PAX')){
-    title='Kapazitätsgrenze überschritten';
-    problem=m;
-    auswirkung='Die Gruppe ist größer als der Tisch erlaubt.';
-    loesung='Tisch mit mehr Kapazität wählen oder PAX-Limit erhöhen.';
+    key='w.18';
   } else if(m.includes('Empfohlenes Feld')){
-    title='PMS-Daten unvollständig';
-    problem=m;
-    auswirkung='Fehlende Felder reduzieren die Genauigkeit der Tischzuweisung.';
-    loesung='Unter "Daten prüfen" das fehlende Feld manuell zuweisen.';
+    key='w.19';
+  }
+
+  let title,problem=m,auswirkung,loesung,autofix=null;
+  if(key){
+    title=t(key+'.t');
+    auswirkung=t(key+'.a','');
+    loesung=t(key+'.l','');
+    if(autofixFn){
+      const lbl=t(key+'.fx','');
+      if(lbl) autofix={label:lbl,fn:autofixFn};
+    }
   } else {
     title=m.length>70?m.slice(0,67)+'…':m;
-    problem=m;
-    auswirkung='';
-    loesung='';
+    auswirkung=''; loesung='';
   }
   return{...w,title,problem,auswirkung,loesung,autofix};
 }
@@ -4004,20 +4003,20 @@ function warnItem(w,cls,resolved=false){
     '':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
   };
   const ico=icoMap[cls]||icoMap[''];
-  const badgeLabel={'red':'Kritisch','yellow':'Hinweis','green':'Erledigt','':'Geprüft'}[cls]||(resolved?'Geprüft':'Info');
+  const badgeLabel={'red':t('warn.crit'),'yellow':t('warn.hint'),'green':t('warn.done'),'':t('warn.checked')}[cls]||(resolved?t('warn.checked'):t('warn.info'));
   const id=btoa(encodeURIComponent(w.msg)).slice(0,12);
   const enc=encodeURIComponent(w.msg);
   const badgeCls=resolved?'resolved':cls;
 
   let rows='';
   if(ew.problem&&ew.problem!==ew.title){
-    rows+=`<div class="wrow problem"><span class="wrow-label">Was ist los?</span><span class="wrow-text">${ew.problem}</span></div>`;
+    rows+=`<div class="wrow problem"><span class="wrow-label">${t('warn.whatsWrong')}</span><span class="wrow-text">${ew.problem}</span></div>`;
   }
   if(ew.auswirkung){
-    rows+=`<div class="wrow auswirkung"><span class="wrow-label">Auswirkung</span><span class="wrow-text">${ew.auswirkung}</span></div>`;
+    rows+=`<div class="wrow auswirkung"><span class="wrow-label">${t('warn.impact')}</span><span class="wrow-text">${ew.auswirkung}</span></div>`;
   }
   if(ew.loesung){
-    rows+=`<div class="wrow loesung"><span class="wrow-label">Was tun?</span><span class="wrow-text">${ew.loesung}</span></div>`;
+    rows+=`<div class="wrow loesung"><span class="wrow-label">${t('warn.whatToDo')}</span><span class="wrow-text">${ew.loesung}</span></div>`;
   }
 
   let actions='';
@@ -4026,20 +4025,20 @@ function warnItem(w,cls,resolved=false){
       actions+=`<button class="btn-autofix" onclick="${ew.autofix.fn}('${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>${ew.autofix.label}</button>`;
     }
     if(cls==='red'){
-      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Als geprüft markieren</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>${t('warn.markChecked')}</button>`;
     }
     if(cls==='yellow'){
-      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Bestätigen</button>`;
-      actions+=`<button class="btn btn-ghost btn-sm" style="color:var(--dim);font-size:9px" onclick="markResolved('${id}','${enc}')">Für heute ignorieren</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" onclick="markResolved('${id}','${enc}')"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>${t('warn.confirm')}</button>`;
+      actions+=`<button class="btn btn-ghost btn-sm" style="color:var(--dim);font-size:9px" onclick="markResolved('${id}','${enc}')">${t('warn.ignoreToday')}</button>`;
     }
   } else {
-    actions+=`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${enc}')">↩ Rückgängig</button>`;
+    actions+=`<button class="btn btn-ghost btn-sm" onclick="unmarkResolved('${enc}')">${t('warn.undo')}</button>`;
   }
 
   return`<div class="witem ${resolved?'resolved':cls}" id="wi-${id}">
     <div class="witem-hdr">
       <span class="wico">${resolved?icoMap.green:ico}</span>
-      <span class="wbadge ${badgeCls}">${resolved?'Geprüft':badgeLabel}</span>
+      <span class="wbadge ${badgeCls}">${resolved?t('warn.checked'):badgeLabel}</span>
       <span class="wtitle">${ew.title}</span>
     </div>
     <div class="witem-body">
