@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ai</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aj</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ai · 01.07.2026</span>
+          <span class="set-version">v.25.06-aj · 01.07.2026</span>
         </div>
       </div>
 
@@ -1451,6 +1451,13 @@ details.set-adv .adv-body{padding-top:12px;}
           <div class="dl-ico"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
           <h4 data-i18n="dl.tab.t">Tische & Kombis</h4>
           <p data-i18n="dl.tab.d">Kapazitäten & Auslastung — für die Küche.</p>
+          <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+
+        <div class="dl-card" onclick="printUebergabebericht()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg></div>
+          <h4 data-i18n="dl.rep.t">Übergabebericht</h4>
+          <p data-i18n="dl.rep.d">Schicht-Übergabe fürs Serviceteam — VIP, Allergien, Freigabe.</p>
           <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -1802,7 +1809,19 @@ const I18N = {
     'dl.pv.t':'Vorschau','dl.pv.d':'Plan am Bildschirm prüfen, bevor du druckst.','dl.pv.cta':'Ansehen',
     'dl.room.t':'Sortierung Zimmer','dl.room.d':'Druckliste nach Zimmernummer — für die Rezeption.',
     'dl.tab.t':'Tische & Kombis','dl.tab.d':'Kapazitäten & Auslastung — für die Küche.',
+    'dl.rep.t':'Übergabebericht','dl.rep.d':'Schicht-Übergabe fürs Serviceteam — VIP, Allergien, Freigabe.',
     'dl.p.roomTitle':'Sortierung Zimmer','dl.p.tabTitle':'Tische & Kombinationen','dl.p.printBtn':'Drucken','dl.p.noData':'Keine Daten vorhanden.','dl.p.popup':'Pop-up blockiert — bitte für diese Seite erlauben.',
+    'ub.title':'Übergabebericht','ub.created':'Erstellt','ub.shift':'Schicht','ub.o_clock':'Uhr',
+    'ub.mealBreakfast':'Frühstück','ub.mealLunch':'Mittagsservice','ub.mealDinner':'Abendservice','ub.mealAll':'Ganztags',
+    'ub.st.guests':'Gäste','ub.st.tables':'Tische belegt','ub.st.vip':'VIP','ub.st.allergy':'Allergien','ub.st.kids':'Fam. m. Kind',
+    'ub.secGuests':'Besondere Gäste — bitte vom Service beachten','ub.noSpecial':'Keine besonderen Gäste markiert.',
+    'ub.c.table':'Tisch','ub.c.room':'Zimmer','ub.c.guest':'Gast','ub.c.hint':'Hinweis','ub.c.mark':'Merkmal','ub.c.status':'Status',
+    'ub.tag.vip':'VIP','ub.tag.allergy':'Allergie','ub.tag.bday':'Geburtstag','ub.tag.special':'Sonderw.',
+    'ub.secHints':'Hinweise & Prüfungen','ub.noHints':'Keine Hinweise.','ub.hintChecked':'Geprüft','ub.hintCrit':'Kritisch','ub.hintOpen':'Offen',
+    'ub.secNotes':'Notizen fürs Service','ub.notesHint':'Handschriftlich ergänzen',
+    'ub.secRelease':'Freigabe','ub.relOk':'Tischplan freigegeben','ub.relOkSub':'Alle Gäste platziert · keine offenen kritischen Hinweise · geprüft und dokumentiert.',
+    'ub.relOpen':'Freigabe offen','ub.relOpenSub':'kritische Hinweise offen — bitte vor Servicebeginn klären.',
+    'ub.langzeit':'Langzeit','ub.nights':'Nächte',
     'dl.c.room':'Zimmer','dl.c.guest':'Gastname','dl.c.pax':'Pax','dl.c.table':'Tisch','dl.c.status':'Status','dl.c.note':'Bemerkung','dl.c.nights':'Nächte',
     'dl.c.zone':'Zone','dl.c.cap':'Plätze','dl.c.occ':'Belegt','dl.c.free':'Frei','dl.c.cat':'Kategorie',
     'dl.st.an':'Anreise','dl.st.ab':'Abreise','dl.st.anab':'An/Ab','dl.st.house':'Haus',
@@ -1862,7 +1881,19 @@ const I18N = {
     'dl.pv.t':'Preview','dl.pv.d':'Check the plan on screen before you print.','dl.pv.cta':'View',
     'dl.room.t':'Sort by room','dl.room.d':'Print list by room number — for the front desk.',
     'dl.tab.t':'Tables & combos','dl.tab.d':'Capacities & occupancy — for the kitchen.',
+    'dl.rep.t':'Handover report','dl.rep.d':'Shift handover for the service team — VIP, allergies, release.',
     'dl.p.roomTitle':'Sort by room','dl.p.tabTitle':'Tables & combinations','dl.p.printBtn':'Print','dl.p.noData':'No data available.','dl.p.popup':'Pop-up blocked — please allow it for this page.',
+    'ub.title':'Handover report','ub.created':'Created','ub.shift':'Shift','ub.o_clock':'',
+    'ub.mealBreakfast':'Breakfast','ub.mealLunch':'Lunch service','ub.mealDinner':'Dinner service','ub.mealAll':'All day',
+    'ub.st.guests':'Guests','ub.st.tables':'Tables occupied','ub.st.vip':'VIP','ub.st.allergy':'Allergies','ub.st.kids':'Fam. w. kids',
+    'ub.secGuests':'Special guests — please note in service','ub.noSpecial':'No special guests flagged.',
+    'ub.c.table':'Table','ub.c.room':'Room','ub.c.guest':'Guest','ub.c.hint':'Note','ub.c.mark':'Flag','ub.c.status':'Status',
+    'ub.tag.vip':'VIP','ub.tag.allergy':'Allergy','ub.tag.bday':'Birthday','ub.tag.special':'Special',
+    'ub.secHints':'Notices & checks','ub.noHints':'No notices.','ub.hintChecked':'Reviewed','ub.hintCrit':'Critical','ub.hintOpen':'Open',
+    'ub.secNotes':'Notes for service','ub.notesHint':'Add by hand',
+    'ub.secRelease':'Release','ub.relOk':'Table plan released','ub.relOkSub':'All guests placed · no open critical notices · reviewed and documented.',
+    'ub.relOpen':'Release pending','ub.relOpenSub':'critical notices open — please resolve before service starts.',
+    'ub.langzeit':'Long stay','ub.nights':'nights',
     'dl.c.room':'Room','dl.c.guest':'Guest','dl.c.pax':'Pax','dl.c.table':'Table','dl.c.status':'Status','dl.c.note':'Note','dl.c.nights':'Nights',
     'dl.c.zone':'Zone','dl.c.cap':'Seats','dl.c.occ':'Occ.','dl.c.free':'Free','dl.c.cat':'Category',
     'dl.st.an':'Arrival','dl.st.ab':'Departure','dl.st.anab':'Arr/Dep','dl.st.house':'In-house',
@@ -5602,6 +5633,144 @@ function printTischeKombis(){
     'K'+(tb.kategorie||'')
   ]}));
   openPrintDoc(t('dl.p.tabTitle'),headers,body);
+}
+
+// ── Übergabebericht: Schicht-Übergabeblatt fürs Serviceteam ──
+function ubMealName(){
+  const v=(el('slot-sel')&&el('slot-sel').value)||(el('dash-meal')&&el('dash-meal').value)||'abend';
+  const map={fruehstueck:'ub.mealBreakfast',mittag:'ub.mealLunch',abend:'ub.mealDinner',alle:'ub.mealAll'};
+  return t(map[v]||'ub.mealDinner');
+}
+// Filtert nur die Gäste, die der Service aktiv beachten muss (quellenbasiert, nichts erfunden).
+function ubSpecialGuests(){
+  const out=[];
+  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const bem=(g.bemerkung||'');
+    const isBday=/geburtstag|geburtst|birthday|b-?day/i.test(bem);
+    const isSpecial=/rollstuhl|wheelchair|barrierefrei|sonderwunsch|special\s*request/i.test(bem);
+    const hasAllergy=!!(g.allergie&&String(g.allergie).trim());
+    const isVip=!!g.vip;
+    if(!(hasAllergy||isVip||isBday||isSpecial)) return;
+    let tag;
+    if(hasAllergy) tag={cls:'al',lbl:t('ub.tag.allergy')};
+    else if(isVip) tag={cls:'vip',lbl:t('ub.tag.vip')};
+    else if(isBday) tag={cls:'gb',lbl:t('ub.tag.bday')};
+    else tag={cls:'rz',lbl:t('ub.tag.special')};
+    let hint=hasAllergy?('⚠ '+g.allergie):'';
+    if(bem){ hint = hint ? (hint+' · '+bem) : bem; }
+    if(!hint && isVip){ const n=gNights(g); hint = n?(t('ub.langzeit')+' '+n+' '+t('ub.nights')):t('ub.tag.vip'); }
+    out.push({tisch:g.zugewiesener_tisch,zimmer:g.zimmer||'',name:((g.nachname||'')+(g.vorname?', '+g.vorname:'')).trim(),hint,tag});
+  });
+  const order={al:0,vip:1,gb:2,rz:3};
+  out.sort((a,b)=>(order[a.tag.cls]-order[b.tag.cls])||String(a.tisch).localeCompare(String(b.tisch),undefined,{numeric:true}));
+  return out;
+}
+function printUebergabebericht(){
+  if(!calcDone||!(assignedGuests||[]).length){ setStatus(t('export.noPlan'),'err'); return; }
+  const st=computeHouseStats();
+  const seated=assignedGuests.filter(g=>g.zugewiesener_tisch);
+  const vipN=seated.filter(g=>g.vip).length;
+  const alN=seated.filter(g=>g.allergie&&String(g.allergie).trim()).length;
+  const kidN=seated.filter(g=>g.kinder>0).length;
+  const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg));
+  const specials=ubSpecialGuests();
+  const released=reds.length===0;
+  const hotel=dlHotelName();
+
+  const hintRows=[];
+  reds.slice(0,6).forEach(w=>hintRows.push({stCls:'al',st:t('ub.hintCrit'),txt:enrichWarning(w).title}));
+  warnings.filter(w=>resolvedWarnings.has(w.msg)).slice(0,8).forEach(w=>hintRows.push({stCls:'gb',st:t('ub.hintChecked'),txt:enrichWarning(w).title}));
+
+  const win=window.open('','_blank');
+  if(!win){ setStatus(t('dl.p.popup'),'err'); return; }
+
+  const specialsHtml=specials.length
+    ? specials.map(s=>`<tr><td>${esc(s.tisch)}</td><td>${esc(s.zimmer)}</td><td>${esc(s.name)}</td><td>${esc(s.hint)}</td><td><span class="tag ${s.tag.cls}">${esc(s.tag.lbl)}</span></td></tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:#8a97a6;padding:16px">${esc(t('ub.noSpecial'))}</td></tr>`;
+  const hintsHtml=hintRows.length
+    ? hintRows.map(h=>`<tr><td><span class="tag ${h.stCls}">${esc(h.st)}</span></td><td>${esc(h.txt)}</td></tr>`).join('')
+    : `<tr><td colspan="2" style="text-align:center;color:#8a97a6;padding:16px">${esc(t('ub.noHints'))}</td></tr>`;
+  const relBox=released
+    ? `<div class="rel"><div class="ic">&#10003;</div><div><div class="rt">${esc(t('ub.relOk'))}</div><div class="rs">${esc(t('ub.relOkSub'))}</div></div></div>`
+    : `<div class="rel open"><div class="ic">!</div><div><div class="rt">${esc(t('ub.relOpen'))}</div><div class="rs">${reds.length} ${esc(t('ub.relOpenSub'))}</div></div></div>`;
+
+  const doc=`<!DOCTYPE html><html lang="${LANG}"><head><meta charset="utf-8"><title>${esc(hotel+' — '+t('ub.title'))}</title>
+<style>
+@page{margin:14mm}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a2532;margin:0;padding:30px 34px;background:#fff}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #C8A84B;padding-bottom:12px;margin-bottom:18px}
+.hd .h{font-family:Georgia,'Palatino Linotype',serif;font-size:23px;font-weight:700;color:#12406b;line-height:1.1}
+.hd .s{font-size:12px;color:#5a6b7d;margin-top:4px}
+.hd .d{font-size:12px;color:#5a6b7d;text-align:right;white-space:nowrap;line-height:1.5}
+.hd .d b{color:#243447}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px}
+.stat{border:1px solid #e2e8ef;border-radius:10px;padding:12px 10px;text-align:center;background:#f9fbfc}
+.stat .v{font-size:24px;font-weight:800;color:#12406b;line-height:1}
+.stat .l{font-size:9px;color:#6b7c8d;text-transform:uppercase;letter-spacing:.5px;margin-top:5px}
+.stat.gold .v{color:#b7912f}
+.stat.red .v{color:#c0392b}
+.sec{margin-bottom:20px}
+.sec h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#12406b;border-left:3px solid #C8A84B;padding-left:9px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:#12406b;color:#fff;text-align:left;padding:6px 9px;font-size:9px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:6px 9px;border-bottom:1px solid #eef2f6;color:#243447;vertical-align:top}
+tr:nth-child(even) td{background:#f7f9fb}
+.tag{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:5px;white-space:nowrap}
+.tag.vip{background:#f3e9cf;color:#8a6d1a}
+.tag.al{background:#fdeaea;color:#b53838}
+.tag.gb{background:#e7f0fb;color:#2b6cb0}
+.tag.rz{background:#eae7fb;color:#5b4bb0}
+.rel{display:flex;align-items:center;gap:14px;border:1.5px solid #cbe7d3;background:#f2fbf5;border-radius:12px;padding:16px 18px}
+.rel.open{border-color:#f2d0a0;background:#fdf6ec}
+.rel .ic{width:40px;height:40px;border-radius:50%;background:#2ecc71;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:800}
+.rel.open .ic{background:#e8843a}
+.rel .rt{font-size:14px;font-weight:800;color:#1c7a44}
+.rel.open .rt{color:#b5651a}
+.rel .rs{font-size:11px;color:#5a6b7d;margin-top:2px}
+.notes{border:1px dashed #cbd5df;border-radius:10px;padding:12px 14px;min-height:52px}
+.notes .nh{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#8a97a6;margin-bottom:4px}
+.notes .nl{font-size:11px;color:#a7b3c0;line-height:2.2}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ft{margin-top:22px;padding-top:10px;border-top:1px solid #eef2f6;font-size:9.5px;color:#8a97a6;display:flex;justify-content:space-between}
+.pbtn{position:fixed;top:14px;right:14px;background:#C8A84B;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.15)}
+@media screen{.hd{padding-right:120px}}
+@media print{.pbtn{display:none}}
+</style></head><body>
+<button class="pbtn" onclick="window.print()">${esc(t('dl.p.printBtn'))}</button>
+<div class="hd">
+  <div><div class="h">${esc(hotel)}</div><div class="s">${esc(t('ub.title')+' — '+ubMealName())}</div></div>
+  <div class="d"><b>${esc(dlDateHuman())}</b><br>${esc(t('ub.shift'))}: ${esc(ubMealName())}</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="v">${st.gaestePax}</div><div class="l">${esc(t('ub.st.guests'))}</div></div>
+  <div class="stat"><div class="v">${st.tischeBelegt} / ${st.tischeGesamt}</div><div class="l">${esc(t('ub.st.tables'))}</div></div>
+  <div class="stat gold"><div class="v">${vipN}</div><div class="l">${esc(t('ub.st.vip'))}</div></div>
+  <div class="stat red"><div class="v">${alN}</div><div class="l">${esc(t('ub.st.allergy'))}</div></div>
+  <div class="stat"><div class="v">${kidN}</div><div class="l">${esc(t('ub.st.kids'))}</div></div>
+</div>
+<div class="sec">
+  <h3>${esc(t('ub.secGuests'))}</h3>
+  <table><thead><tr><th style="width:64px">${esc(t('ub.c.table'))}</th><th style="width:56px">${esc(t('ub.c.room'))}</th><th>${esc(t('ub.c.guest'))}</th><th style="width:230px">${esc(t('ub.c.hint'))}</th><th style="width:86px">${esc(t('ub.c.mark'))}</th></tr></thead><tbody>${specialsHtml}</tbody></table>
+</div>
+<div class="two">
+  <div class="sec" style="margin-bottom:0">
+    <h3>${esc(t('ub.secHints'))}</h3>
+    <table><thead><tr><th style="width:78px">${esc(t('ub.c.status'))}</th><th>${esc(t('ub.c.hint'))}</th></tr></thead><tbody>${hintsHtml}</tbody></table>
+  </div>
+  <div class="sec" style="margin-bottom:0">
+    <h3>${esc(t('ub.secNotes'))}</h3>
+    <div class="notes"><div class="nh">${esc(t('ub.notesHint'))}</div><div class="nl">________________________________<br>________________________________</div></div>
+  </div>
+</div>
+<div class="sec" style="margin-top:20px">
+  <h3>${esc(t('ub.secRelease'))}</h3>
+  ${relBox}
+</div>
+<div class="ft"><span>${esc(hotel)} · Hotel Seat Intelligence</span><span>${esc(t('ub.created'))}: ${esc(dlDateHuman())}</span></div>
+<script>setTimeout(function(){try{window.print()}catch(e){}},350)<\/script>
+</body></html>`;
+  win.document.open(); win.document.write(doc); win.document.close();
 }
 
 function updateDrucklistenState(){
