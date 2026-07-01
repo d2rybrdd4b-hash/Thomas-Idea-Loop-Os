@@ -401,7 +401,7 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
   transition:stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)}
 .cockpit-ring-ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:16px;font-weight:800;color:var(--green)}
-.cockpit-ring-ico svg{width:20px;height:20px}
+.cockpit-ring-ico svg{width:20px;height:20px;transform:none}
 .cockpit-status-body{flex:1;min-width:0}
 .cockpit-status-tit{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--green);margin-bottom:3px;letter-spacing:-.2px}
 .cockpit-status-sub{font-size:12px;color:var(--dim);line-height:1.4}
@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ak</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-al</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ak · 01.07.2026</span>
+          <span class="set-version">v.25.06-al · 01.07.2026</span>
         </div>
       </div>
 
@@ -6075,6 +6075,8 @@ function updateDashboard(){
     const abrPaxEl=el('ds-abreisen-pax');if(abrPaxEl) abrPaxEl.textContent=st.abZimmer+' Zimmer';
     const seated=assignedGuests.filter(g=>g.zugewiesener_tisch).length;
     animateRing(assignedGuests.length?Math.round(seated/assignedGuests.length*100):0);
+    // Ring-Icon wieder auf Haken setzen (der Leerzustand hatte es auf einen Kreis gesetzt)
+    const ringIcoOk=el('cockpit-ring-ico');if(ringIcoOk) ringIcoOk.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     el('ds-plan-sub').textContent='Tischplan ansehen →';
     el('ds-export-sub').textContent='Druckmappe öffnen →';
     const pv=el('ds-plan-val');if(pv) pv.textContent='Bereit';
