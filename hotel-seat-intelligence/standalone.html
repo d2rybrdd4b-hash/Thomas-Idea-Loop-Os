@@ -276,22 +276,38 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .ecard{display:none}
 .print-btns{display:none} /* replaced by dl-grid */
 /* Drucklisten-Karten */
-.dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.dl-cockpit{margin-bottom:6px}
+.dl-sec-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim);margin:18px 2px 11px}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
 .dl-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
-         padding:22px 16px;text-align:center;cursor:pointer;transition:all .22s;user-select:none}
+         padding:18px 15px 16px;text-align:left;cursor:pointer;transition:all .22s;user-select:none}
 .dl-card:hover{border-color:var(--gold);background:var(--gold-glow);transform:translateY(-2px)}
-.dl-ico{width:48px;height:48px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;
-        border-radius:14px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.15)}
-.dl-ico svg{width:24px;height:24px;stroke:var(--gold)}
-.dl-card h4{font-size:14px;font-weight:700;margin-bottom:5px}
-.dl-card p{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:10px}
-.dl-cta{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.3px}
+.dl-ico{width:44px;height:44px;margin:0 0 12px;display:flex;align-items:center;justify-content:center;
+        border-radius:13px;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.15)}
+.dl-ico svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:1.7}
+.dl-card h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.dl-card p{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:11px}
+.dl-cta{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.2px;display:flex;align-items:center;gap:5px}
+.dl-cta svg{width:13px;height:13px;stroke:var(--gold);fill:none;stroke-width:2}
+.dl-hero{grid-column:1/-1;display:flex;align-items:center;gap:16px;
+  background:linear-gradient(150deg,rgba(200,168,75,.16),rgba(200,168,75,.04));
+  border:1.5px solid rgba(200,168,75,.4);border-radius:16px;padding:18px 20px;cursor:pointer;
+  transition:all .22s;box-shadow:0 4px 22px rgba(200,168,75,.08)}
+.dl-hero:hover{border-color:var(--gold);transform:translateY(-2px)}
+.dl-hero .dl-ico{width:50px;height:50px;margin:0;flex-shrink:0;background:rgba(200,168,75,.14)}
+.dl-hero .dl-ico svg{width:26px;height:26px}
+.dl-hero-body{flex:1;min-width:0}
+.dl-hero-body h4{font-size:16px;font-weight:700;margin-bottom:3px}
+.dl-hero-body p{font-size:11.5px;color:var(--dim);line-height:1.45}
+.dl-hero-arrow{width:38px;height:38px;border-radius:11px;background:var(--gold);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center}
+.dl-hero-arrow svg{width:20px;height:20px;stroke:#0D1925;fill:none;stroke-width:2.4}
 .dl-empty{text-align:center;padding:36px 20px;background:var(--card);border:1px solid var(--border);
           border-radius:16px;margin-bottom:20px}
 .dl-empty-ico{font-size:36px;margin-bottom:12px}
 .dl-empty h3{font-size:16px;font-weight:700;margin-bottom:6px}
 .dl-empty p{font-size:12px;color:var(--dim);margin-bottom:16px}
-@media(max-width:520px){.dl-grid{grid-template-columns:1fr}}
+@media(max-width:380px){.dl-grid{grid-template-columns:1fr}}
 .ecard h4{font-size:12px;font-weight:600;margin-bottom:4px}
 .ecard p{font-size:10px;color:var(--dim);line-height:1.5;margin-bottom:12px}
 .export-main{text-align:center;margin-bottom:24px}
@@ -988,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ah</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ai</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1309,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ah · 01.07.2026</span>
+          <span class="set-version">v.25.06-ai · 01.07.2026</span>
         </div>
       </div>
 
@@ -1354,7 +1370,7 @@ details.set-adv .adv-body{padding-top:12px;}
 <!-- ─── DRUCKLISTEN (vereinfacht) ─── -->
 <div class="page" id="s5">
   <div class="page-hdr">
-    <h1 data-i18n="export.title">Export</h1>
+    <h1 data-i18n="dl.title">Drucklisten & Export</h1>
   </div>
   <div class="s5-inner">
     <button id="dl-hinweise-pill" class="dl-hinweise-pill" onclick="goTab(0);toggleWarnDetails()">
@@ -1368,14 +1384,78 @@ details.set-adv .adv-body{padding-top:12px;}
         <button class="btn btn-gold" onclick="goTab(0)" data-i18n="set.toStart">Zum Start →</button>
       </div>
     </div>
-    <div id="dl-cards" style="display:none;flex-direction:column;gap:12px">
-      <button class="btn btn-outline dl-action-btn" onclick="toggleExcelPreview()">
-        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span><span data-i18n="export.showPreview">Excel-Vorschau anzeigen</span>
-      </button>
-      <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:280px;border:1px solid var(--border);border-radius:8px;background:#fff;margin:-2px 0 2px"></div>
-      <button class="btn btn-gold dl-action-btn" onclick="exportToTischplanTemplate()">
-        <span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><span data-i18n="export.download">Excel-Vorlage herunterladen</span>
-      </button>
+    <div id="dl-cards" style="display:none;flex-direction:column;gap:0">
+
+      <!-- Cockpit-Kopf im Stil der Startseite -->
+      <div class="cockpit-hero dl-cockpit">
+        <div class="cockpit-status">
+          <div class="cockpit-ring">
+            <svg viewBox="0 0 60 60"><circle class="ring-bg" cx="30" cy="30" r="26"></circle><circle class="ring-fg" id="dlk-ring-fg" cx="30" cy="30" r="26"></circle></svg>
+            <span class="cockpit-ring-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
+          <div class="cockpit-status-body">
+            <div class="cockpit-status-tit" data-i18n="start.planReady">Tischplan bereit</div>
+            <div class="cockpit-status-sub" id="dlk-status-sub">—</div>
+          </div>
+        </div>
+        <div class="cockpit-kpis">
+          <div class="ckpi ckpi-green">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+            <div class="ckpi-val" id="dlk-gaeste">—</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiGuests">Gäste</div>
+          </div>
+          <div class="ckpi ckpi-green">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+            <div class="ckpi-val" id="dlk-an">—</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiArrivals">Anreise</div>
+          </div>
+          <div class="ckpi">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+            <div class="ckpi-val" id="dlk-ab">—</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiDepartures">Abreise</div>
+          </div>
+          <div class="ckpi ckpi-blue">
+            <div class="ckpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+            <div class="ckpi-val" id="dlk-frei">—</div>
+            <div class="ckpi-lbl" data-i18n="start.kpiFree">Frei</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dl-sec-lbl" data-i18n="dl.secMain">Hauptausgabe</div>
+      <div class="dl-grid">
+        <div class="dl-hero" onclick="exportToTischplanTemplate()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div>
+          <div class="dl-hero-body">
+            <h4 data-i18n="dl.dl.t">Tischplan herunterladen</h4>
+            <p data-i18n="dl.dl.d">Fertige Excel-Datei im Format deiner Vorlage — druckfertig.</p>
+          </div>
+          <div class="dl-hero-arrow"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        </div>
+
+        <div class="dl-card" onclick="toggleExcelPreview()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <h4 data-i18n="dl.pv.t">Vorschau</h4>
+          <p data-i18n="dl.pv.d">Plan am Bildschirm prüfen, bevor du druckst.</p>
+          <span class="dl-cta"><span data-i18n="dl.pv.cta">Ansehen</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+
+        <div class="dl-card" onclick="printSortierungZimmer()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="10" x2="9" y2="20"/></svg></div>
+          <h4 data-i18n="dl.room.t">Sortierung Zimmer</h4>
+          <p data-i18n="dl.room.d">Druckliste nach Zimmernummer — für die Rezeption.</p>
+          <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+
+        <div class="dl-card" onclick="printTischeKombis()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+          <h4 data-i18n="dl.tab.t">Tische & Kombis</h4>
+          <p data-i18n="dl.tab.d">Kapazitäten & Auslastung — für die Küche.</p>
+          <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+      </div>
+
+      <div id="excel-preview-wrap" style="display:none;overflow:auto;max-height:300px;border:1px solid var(--border);border-radius:12px;background:#fff;margin:8px 0 2px"></div>
     </div>
     <div id="s5-done" style="display:none"><span class="inline-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span><span data-i18n="export.downloaded">Datei heruntergeladen</span></div>
     <div class="bot">
@@ -1717,6 +1797,15 @@ const I18N = {
     'start.checkHints':'Hinweise prüfen','start.allCriticalResolved':'Alle kritischen Hinweise geklärt.',
     'start.guestlistPreview':'GÄSTELISTE — VORSCHAU','start.searchPh':'Zimmer oder Name…',
     'export.title':'Export','export.noPlan':'Noch kein Tischplan berechnet','export.showPreview':'Excel-Vorschau anzeigen','export.download':'Excel-Vorlage herunterladen','export.downloaded':'Datei heruntergeladen','export.backToStart':'← Zurück zum Start',
+    'dl.title':'Drucklisten & Export','dl.secMain':'Hauptausgabe','dl.print':'Drucken','dl.paxReady':'Gäste platziert — bereit zur Ausgabe & zum Druck',
+    'dl.dl.t':'Tischplan herunterladen','dl.dl.d':'Fertige Excel-Datei im Format deiner Vorlage — druckfertig.',
+    'dl.pv.t':'Vorschau','dl.pv.d':'Plan am Bildschirm prüfen, bevor du druckst.','dl.pv.cta':'Ansehen',
+    'dl.room.t':'Sortierung Zimmer','dl.room.d':'Druckliste nach Zimmernummer — für die Rezeption.',
+    'dl.tab.t':'Tische & Kombis','dl.tab.d':'Kapazitäten & Auslastung — für die Küche.',
+    'dl.p.roomTitle':'Sortierung Zimmer','dl.p.tabTitle':'Tische & Kombinationen','dl.p.printBtn':'Drucken','dl.p.noData':'Keine Daten vorhanden.','dl.p.popup':'Pop-up blockiert — bitte für diese Seite erlauben.',
+    'dl.c.room':'Zimmer','dl.c.guest':'Gastname','dl.c.pax':'Pax','dl.c.table':'Tisch','dl.c.status':'Status','dl.c.note':'Bemerkung','dl.c.nights':'Nächte',
+    'dl.c.zone':'Zone','dl.c.cap':'Plätze','dl.c.occ':'Belegt','dl.c.free':'Frei','dl.c.cat':'Kategorie',
+    'dl.st.an':'Anreise','dl.st.ab':'Abreise','dl.st.anab':'An/Ab','dl.st.house':'Haus',
     'na.filesLoaded':'Dateien geladen — Tischplan noch nicht berechnet','na.calc':'Tischplan berechnen','na.noData':'Noch keine Daten — schnell loslegen mit Demo','na.startDemo':'Demo starten',
     'warn.crit':'Kritisch','warn.hint':'Hinweis','warn.hints':'Hinweise','warn.done':'Erledigt','warn.checked':'Geprüft','warn.info':'Info',
     'warn.mustResolve':'muss gelöst werden','warn.pleaseCheck':'bitte prüfen','warn.okOrResolved':'OK oder gelöst',
@@ -1768,6 +1857,15 @@ const I18N = {
     'start.checkHints':'Review notices','start.allCriticalResolved':'All critical notices resolved.',
     'start.guestlistPreview':'GUEST LIST — PREVIEW','start.searchPh':'Room or name…',
     'export.title':'Export','export.noPlan':'No table plan calculated yet','export.showPreview':'Show Excel preview','export.download':'Download Excel file','export.downloaded':'File downloaded','export.backToStart':'← Back to Home',
+    'dl.title':'Print lists & export','dl.secMain':'Main output','dl.print':'Print','dl.paxReady':'guests placed — ready for output & print',
+    'dl.dl.t':'Download table plan','dl.dl.d':'Finished Excel file in your template format — ready to print.',
+    'dl.pv.t':'Preview','dl.pv.d':'Check the plan on screen before you print.','dl.pv.cta':'View',
+    'dl.room.t':'Sort by room','dl.room.d':'Print list by room number — for the front desk.',
+    'dl.tab.t':'Tables & combos','dl.tab.d':'Capacities & occupancy — for the kitchen.',
+    'dl.p.roomTitle':'Sort by room','dl.p.tabTitle':'Tables & combinations','dl.p.printBtn':'Print','dl.p.noData':'No data available.','dl.p.popup':'Pop-up blocked — please allow it for this page.',
+    'dl.c.room':'Room','dl.c.guest':'Guest','dl.c.pax':'Pax','dl.c.table':'Table','dl.c.status':'Status','dl.c.note':'Note','dl.c.nights':'Nights',
+    'dl.c.zone':'Zone','dl.c.cap':'Seats','dl.c.occ':'Occ.','dl.c.free':'Free','dl.c.cat':'Category',
+    'dl.st.an':'Arrival','dl.st.ab':'Departure','dl.st.anab':'Arr/Dep','dl.st.house':'In-house',
     'na.filesLoaded':'Files loaded — table plan not calculated yet','na.calc':'Calculate table plan','na.noData':'No data yet — get started quickly with the demo','na.startDemo':'Start demo',
     'warn.crit':'Critical','warn.hint':'Notice','warn.done':'Done','warn.checked':'Reviewed','warn.info':'Info',
     'warn.mustResolve':'to resolve','warn.pleaseCheck':'to review','warn.okOrResolved':'OK or resolved',
@@ -5408,11 +5506,110 @@ function exportExcel(){
 // ══════════════════════════════════════════════════════════════
 //  DRUCKLISTEN / EXPORT
 // ══════════════════════════════════════════════════════════════
+// Füllt den Cockpit-Kopf der Drucklisten-Seite aus derselben Quelle wie das Dashboard.
+function renderDrucklistenCockpit(){
+  if(!calcDone) return;
+  const st=computeHouseStats();
+  const set=(id,v)=>{const e=el(id);if(e)e.textContent=v;};
+  set('dlk-gaeste',st.gaestePax);
+  set('dlk-an',st.anPax);
+  set('dlk-ab',st.abPax);
+  set('dlk-frei',st.tischeFrei);
+  const seated=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch).length;
+  const total=(assignedGuests||[]).length;
+  const pct=total?Math.round(seated/total*100):0;
+  const fg=el('dlk-ring-fg'); if(fg) fg.style.strokeDashoffset=String(163.36*(1-pct/100));
+  set('dlk-status-sub', st.platziertPax+' '+t('dl.paxReady'));
+}
+
+// ── Druckansichten (eigene Fenster, papierartig, druckfertig) ──
+function gNights(g){
+  return (g&&g.check_in&&g.check_out)?Math.max(0,Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000)):'';
+}
+function dlStatusLabel(g){
+  const s=(g&&g.status)||'';
+  if(s==='AN') return t('dl.st.an');
+  if(s==='AB') return t('dl.st.ab');
+  if(s==='AN·AB'||s==='AN/AB') return t('dl.st.anab');
+  return t('dl.st.house');
+}
+function dlHotelName(){ const e=el('export-hotel'); return (e&&e.value)||localStorage.getItem('hsi_hotel')||'Hotel'; }
+function dlDateHuman(){
+  const ds=refDate||getTodayStr();
+  try{ return new Date(ds+'T12:00').toLocaleDateString(LANG==='en'?'en-GB':'de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+  catch(e){ return ds; }
+}
+function openPrintDoc(subtitle,headers,rows){
+  const th=headers.map(h=>`<th>${esc(h)}</th>`).join('');
+  const body=(rows&&rows.length)
+    ? rows.map(r=>`<tr>${r.cells.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${headers.length}" style="text-align:center;color:#8a97a6;padding:22px">${esc(t('dl.p.noData'))}</td></tr>`;
+  const hotel=dlHotelName();
+  const w=window.open('','_blank');
+  if(!w){ setStatus(t('dl.p.popup'),'err'); return; }
+  const doc=`<!DOCTYPE html><html lang="${LANG}"><head><meta charset="utf-8"><title>${esc(hotel+' — '+subtitle)}</title>
+<style>
+@page{margin:14mm}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a2532;margin:0;padding:24px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #C8A84B;padding-bottom:10px;margin-bottom:14px}
+.hd .h{font-family:Georgia,'Palatino Linotype',serif;font-size:20px;font-weight:700;color:#12406b}
+.hd .s{font-size:11.5px;color:#5a6b7d;margin-top:3px}
+.hd .d{font-size:11.5px;color:#5a6b7d;text-align:right;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#12406b;color:#fff;text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:6px 10px;border-bottom:1px solid #e8edf2;color:#243447}
+tr:nth-child(even) td{background:#f7f9fb}
+.ft{margin-top:16px;font-size:9.5px;color:#8a97a6;text-align:center}
+.pbtn{position:fixed;top:14px;right:14px;background:#C8A84B;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.15)}
+@media screen{.hd{padding-right:120px}}
+@media print{.pbtn{display:none}}
+</style></head><body>
+<button class="pbtn" onclick="window.print()">${esc(t('dl.p.printBtn'))}</button>
+<div class="hd"><div><div class="h">${esc(hotel)}</div><div class="s">${esc(subtitle)}</div></div><div class="d">${esc(dlDateHuman())}</div></div>
+<table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>
+<div class="ft">${esc(hotel)} · Hotel Seat Intelligence</div>
+<script>setTimeout(function(){try{window.print()}catch(e){}},350)<\/script>
+</body></html>`;
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+function printSortierungZimmer(){
+  if(!calcDone||!(assignedGuests||[]).length){ setStatus(t('export.noPlan'),'err'); return; }
+  const rows=[...assignedGuests].sort((a,b)=>((parseInt(a.zimmer)||99999)-(parseInt(b.zimmer)||99999)));
+  const headers=[t('dl.c.room'),t('dl.c.guest'),t('dl.c.pax'),t('dl.c.table'),t('dl.c.status'),t('dl.c.nights'),t('dl.c.note')];
+  const body=rows.map(g=>({cells:[
+    g.zimmer||'',
+    ((g.nachname||'')+(g.vorname?', '+g.vorname:'')).trim(),
+    (g.kinder>0)?`${g.pax} (${g.kinder})`:String(g.pax||''),
+    g.zugewiesener_tisch||'—',
+    dlStatusLabel(g),
+    String(gNights(g)),
+    g.allergie?('⚠ '+g.allergie+(g.bemerkung?' · '+g.bemerkung:'')):(g.bemerkung||'')
+  ]}));
+  openPrintDoc(t('dl.p.roomTitle'),headers,body);
+}
+function printTischeKombis(){
+  if(!calcDone||!(lastTables||[]).length){ setStatus(t('export.noPlan'),'err'); return; }
+  const tables=(lastTables||[]).filter(x=>x.aktiv)
+    .sort((a,b)=>String(a.tisch_id).localeCompare(String(b.tisch_id),undefined,{numeric:true}));
+  const headers=[t('dl.c.table'),t('dl.c.zone'),t('dl.c.cap'),t('dl.c.occ'),t('dl.c.free'),t('dl.c.cat')];
+  const body=tables.map(tb=>({cells:[
+    tb.tisch_id,
+    tb.zone||'',
+    String(tb.kapazitaet||''),
+    String(tb.belegtPax||0),
+    String(Math.max(0,(tb.kapazitaet||0)-(tb.belegtPax||0))),
+    'K'+(tb.kategorie||'')
+  ]}));
+  openPrintDoc(t('dl.p.tabTitle'),headers,body);
+}
+
 function updateDrucklistenState(){
   const noData=el('dl-no-data');
   const cards=el('dl-cards');
   if(noData) noData.style.display=calcDone?'none':'block';
   if(cards) cards.style.display=calcDone?'flex':'none';
+  if(calcDone) renderDrucklistenCockpit();
   updateHinweiseBadge();
 }
 
