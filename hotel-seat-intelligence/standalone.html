@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-al</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-am</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-al · 01.07.2026</span>
+          <span class="set-version">v.25.06-am · 01.07.2026</span>
         </div>
       </div>
 
@@ -1513,10 +1513,12 @@ function esc(v){
   return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 // Einladungslink + QR-Code in den Einstellungen (Link der aktuell geöffneten Seite, ohne Query/Hash)
+// Kurzer, professioneller Weiterempfehlungs-Link (statt der langen GitHub-Adresse).
+const APP_SHORT_LINK='https://tinyurl.com/Seat-Intel';
 function renderInviteLink(){
   const txt=el('invite-link-text'), qrBox=el('invite-qr');
   if(!txt||!qrBox) return;
-  const link=location.origin+location.pathname;
+  const link=APP_SHORT_LINK;
   txt.textContent=link;
   qrBox.innerHTML='';
   if(typeof qrcode==='function'){
@@ -1527,7 +1529,7 @@ function renderInviteLink(){
   }
 }
 function copyInviteLink(){
-  const link=location.origin+location.pathname;
+  const link=APP_SHORT_LINK;
   const btn=el('invite-copy-btn');
   const done=()=>{ if(!btn) return; const old=btn.textContent; btn.textContent='Kopiert ✓'; setTimeout(()=>{btn.textContent=old;},1500); };
   if(navigator.clipboard&&navigator.clipboard.writeText){
