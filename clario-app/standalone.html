@@ -5488,9 +5488,10 @@ function Dashboard({
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        alignItems: "baseline",
+        alignItems: "center",
         gap: 8,
-        marginBottom: 4
+        marginBottom: 4,
+        flexWrap: "wrap"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "serif",
@@ -5510,7 +5511,18 @@ function Dashboard({
         whiteSpace: "nowrap",
         color: "var(--ink)"
       }
-    }, b.customerName)), /*#__PURE__*/React.createElement("div", {
+    }, b.customerName), b.status === "pending" && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        background: "var(--warn-soft)",
+        color: "var(--warn)",
+        border: "1px solid var(--warn)",
+        borderRadius: 6,
+        padding: "2px 6px",
+        flexShrink: 0
+      }
+    }, "NEU")), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
         color: "var(--muted)",
@@ -7142,7 +7154,7 @@ function BookingPage({
         staffName: selStaff.name,
         customerName: form.name.trim(),
         customerPhone: form.phone.trim(),
-        status: "confirmed",
+        status: "pending",
         note: "",
         via: "online",
         createdAt: new Date().toISOString()
@@ -7673,19 +7685,17 @@ function BookingPage({
       color: "var(--ink)",
       marginBottom: 4
     }
-  }, "Termin bestätigt!"), /*#__PURE__*/React.createElement("p", {
+  }, "Termin angefragt!"), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 14,
       color: "var(--muted)",
       marginBottom: 4
     }
-  }, "Bis bald, ", form.name.split(" ")[0]), /*#__PURE__*/React.createElement("p", {
+  }, "Gleich bestätigt, ", form.name.split(" ")[0], " 👋"), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
       color: "var(--accent)",
-      fontWeight: 600
-    },
-    style: {
+      fontWeight: 600,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -7694,7 +7704,7 @@ function BookingPage({
   }, /*#__PURE__*/React.createElement(I, {
     n: "check",
     s: 12
-  }), " Deine Buchung ist gespeichert")), /*#__PURE__*/React.createElement("div", {
+  }), " Deine Anfrage ist gespeichert")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderRadius: 20,
