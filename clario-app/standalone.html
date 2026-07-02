@@ -7248,7 +7248,16 @@ function BookingPage({
       display: "flex",
       flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, salonId === 'demo' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--warn)",
+      color: "#fff",
+      padding: "9px 16px",
+      fontSize: 12.5,
+      fontWeight: 600,
+      textAlign: "center"
+    }
+  }, "🧪 Demo-Salon — Buchungen werden nicht gespeichert"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       borderBottom: "1px solid var(--border)",
