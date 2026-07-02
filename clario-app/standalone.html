@@ -1993,15 +1993,79 @@ function Landing({
 
 // ─── AUTH ─────────────────────────────────────────────────────
 const EMAIL_KEY = "slotly_last_email";
+
+// ─── DEMO-SALON (Landing-Page-Demo, ohne Datenbank) ──────────
+const DEMO_PUB = {
+  salonId: 'demo',
+  salon: {
+    name: 'Salon Muster',
+    slug: 'muster',
+    whatsapp: ''
+  },
+  staff: [{
+    id: 'demo-anna',
+    name: 'Anna',
+    color: '#C2512E',
+    active: true,
+    sick: false
+  }, {
+    id: 'demo-lisa',
+    name: 'Lisa',
+    color: '#178F7F',
+    active: true,
+    sick: false
+  }],
+  services: [{
+    id: 'demo-cut',
+    name: 'Damenhaarschnitt',
+    duration: 45,
+    price: 42,
+    buffer: 5
+  }, {
+    id: 'demo-mens',
+    name: 'Herrenhaarschnitt',
+    duration: 30,
+    price: 28,
+    buffer: 5
+  }, {
+    id: 'demo-color',
+    name: 'Färben & Schneiden',
+    duration: 90,
+    price: 95,
+    buffer: 10
+  }],
+  availability: {
+    'demo-anna': {
+      start: '09:00',
+      end: '18:00',
+      days: [1, 2, 3, 4, 5, 6],
+      blocked: []
+    },
+    'demo-lisa': {
+      start: '10:00',
+      end: '19:00',
+      days: [2, 3, 4, 5, 6],
+      blocked: []
+    }
+  },
+  bookings: []
+};
 function Auth({
   mode,
   onLogin,
   go,
   prefillEmail
 }) {
+  const storedEmail = (() => {
+    try {
+      return localStorage.getItem(EMAIL_KEY) || "";
+    } catch {
+      return "";
+    }
+  })();
   const [f, setF] = useState({
     name: "",
-    email: prefillEmail || "",
+    email: prefillEmail || storedEmail,
     password: "",
     salonName: "",
     slug: ""
@@ -7097,6 +7161,11 @@ function BookingPage({
     if (!selTime) return setErr("Bitte eine Uhrzeit wählen.");
     if (isPublic) {
       setSubmitting(true);
+      if (salonId === 'demo') {
+        setSubmitting(false);
+        setStep(5);
+        return;
+      }
       // Doppelbuchungs-Prüfung
       const {
         data: conflict
@@ -7117,7 +7186,7 @@ function BookingPage({
         customer_phone: form.phone.trim(),
         date: selDate,
         start_time: selTime,
-        status: 'confirmed'
+        status: 'pending'
       });
       setSubmitting(false);
       if (error) {
@@ -7138,7 +7207,7 @@ function BookingPage({
           customer_phone: form.phone.trim(),
           date: selDate,
           start_time: selTime,
-          status: 'confirmed'
+          status: 'pending'
         }).select('id').single();
         if (inserted?.id) bookingId = inserted.id;
       }
@@ -7867,7 +7936,7 @@ function BookingPage({
       fontSize: 12,
       color: "var(--muted)"
     }
-  }, "Optional — dein Termin ist bereits bestätigt.")), /*#__PURE__*/React.createElement("a", {
+  }, "Optional — der Salon bestätigt dir deinen Termin.")), /*#__PURE__*/React.createElement("a", {
     href: gcalLink(salon, selSvc, selStaff, selDate, selTime),
     target: "_blank",
     rel: "noopener",
@@ -9233,6 +9302,7 @@ function App() {
   const [toast, setToast] = useState(null);
   const [pubData, setPubData] = useState(null);
   const [pubLoading, setPubLoading] = useState(!!urlSalon);
+  const [pubError, setPubError] = useState(null); // 'notfound' | 'network'
   const [pubPage, setPubPage] = useState("booking");
   const [authChecked, setAuthChecked] = useState(!!urlSalon || cachedOnboarded);
   const [syncBanner, setSyncBanner] = useState(false); // zeigt "Verbindung erneuern"-Banner
@@ -9254,13 +9324,24 @@ function App() {
   // Public booking: lade Salon-Daten aus Supabase wenn ?salon= in URL
   useEffect(() => {
     if (!urlSalon) return;
+    if (urlSalon === 'muster') {
+      setPubData(DEMO_PUB);
+      setPubLoading(false);
+      return;
+    }
     const load = async () => {
       try {
         const {
           data: salon,
           error: salonErr
         } = await sb.from('salons').select('*').eq('slug', urlSalon).single();
+        if (salonErr && salonErr.code !== 'PGRST116') {
+          setPubError('network');
+          setPubLoading(false);
+          return;
+        }
         if (salonErr || !salon) {
+          setPubError('notfound');
           setPubLoading(false);
           return;
         }
@@ -9343,6 +9424,7 @@ function App() {
         });
       } catch (e) {
         console.error('Public booking load error:', e);
+        setPubError('network');
       } finally {
         setPubLoading(false);
       }
@@ -9702,7 +9784,25 @@ function App() {
     }, /*#__PURE__*/React.createElement(I, {
       n: "alert",
       s: 40
-    })), /*#__PURE__*/React.createElement("h2", {
+    })), pubError === 'network' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        fontSize: 20,
+        marginBottom: 8
+      }
+    }, "Verbindung fehlgeschlagen"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 14,
+        marginBottom: 18
+      }
+    }, "Bitte Internetverbindung prüfen und erneut versuchen."), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-accent",
+      style: {
+        padding: "13px 24px",
+        fontSize: 14
+      },
+      onClick: () => window.location.reload()
+    }, "Erneut versuchen")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", {
       style: {
         fontSize: 20,
         marginBottom: 8
@@ -9712,7 +9812,7 @@ function App() {
         color: "var(--muted)",
         fontSize: 14
       }
-    }, "Bitte den QR-Code oder Link beim Salon erfragen.")));
+    }, "Bitte den QR-Code oder Link beim Salon erfragen."))));
     const pubGo = dest => {
       setPubPage(dest);
       window.scrollTo(0, 0);
