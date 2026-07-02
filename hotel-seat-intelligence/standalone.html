@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-am</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-an</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-am · 01.07.2026</span>
+          <span class="set-version">v.25.06-an · 02.07.2026</span>
         </div>
       </div>
 
@@ -4478,6 +4478,11 @@ function loadTischplanVorlage(input){
     try{
       tischplanTemplate=e.target.result;
       parseTischplanTemplate(tischplanTemplate);
+      // Transparenz: was wurde aus der Vorlage wirklich erkannt? (Tische, Blöcke, Platzzahlen)
+      const nT=Object.keys(tischplanMap||{}).length;
+      const nK=Object.keys(tischplanKapazitaet||{}).length;
+      const nB=(tischplanBlocks||[]).length;
+      setStatus('Vorlage geladen: '+nT+' Tische'+(nB>1?' in '+nB+' Spaltenblöcken':'')+(nK>0?', Platzzahlen erkannt ('+nK+')':' — ⚠ keine Platzzahlen gefunden'),nK>0?'go':'warn');
     }catch(ex){setStatus('Fehler beim Lesen der Vorlage: '+ex.message,'err');}
   };
   reader.readAsArrayBuffer(file);
@@ -4547,6 +4552,26 @@ function parseTischplanTemplate(buf){
         for(const key in FIELD_LABELS){ if(label===FIELD_LABELS[key]&&block[key+'Col']==null) block[key+'Col']=cc; }
         // "Plätze"/"Sitzplätze"/"Kapazität" = echte Tischkapazität, die der Hotelier einträgt
         if(block.plaetzeCol==null&&/^(pl(ä|ae)tze|sitzpl(ä|ae)tze|kapazit(ä|ae)t)$/.test(label)) block.plaetzeCol=cc;
+      }
+      // Unbeschriftete Platzzahl-Spalte direkt rechts neben "Tisch" erkennen (reale
+      // Hotelier-Vorlagen wie "Tischplan_Blanco": Tischnummer | Platzzahl ohne Überschrift |
+      // Zimmer …). Nur übernehmen, wenn die Spalte keinem anderen Feld gehört, keine
+      // Überschrift trägt und die Datenzeilen dort mehrheitlich kleine Zahlen (1–20) haben.
+      if(block.plaetzeCol==null){
+        const cand=c+1;
+        const candLabel=norm(cv(headerRow,cand));
+        const taken=Object.keys(FIELD_LABELS).some(k=>block[k+'Col']===cand);
+        if(!taken&&candLabel===''){
+          let hits=0,total=0;
+          for(let rr=headerRow+1;rr<=Math.min(headerRow+60,range.e.r);rr++){
+            const tv=String(cv(rr,c)||'').trim();
+            if(!/^\d/.test(tv)) continue;
+            total++;
+            const pv=String(cv(rr,cand)||'').trim();
+            if(/^\d{1,2}$/.test(pv)&&parseInt(pv)>=1&&parseInt(pv)<=20) hits++;
+          }
+          if(total>=3&&hits/total>=0.6) block.plaetzeCol=cand;
+        }
       }
       const labelCol=block.extrasCol??block.paxCol??block.gastnameCol??block.statusCol??block.zimmerCol??c;
       // Bereichsname steht oberhalb der Kopfzeile, ggf. mit einer leeren Trennzeile
@@ -4890,6 +4915,23 @@ async function buildFilledTischplanSheet(){
   // wird übernommen; nur die Gastdaten je Tisch werden eingefüllt — KEINE Kategorie-Farben.
   if(tischplanTemplate&&Object.keys(tischplanMap||{}).length>0){
     fillTischplanFromTemplate(ws,guestsByTable);
+    // ── Selbstprüfung gegen stillen Gästeverlust (Lehre aus dem Panorama-Vorfall
+    // 01.07.2026): JEDER platzierte Gast muss im Tischplan-Blatt auftauchen. Wenn
+    // nicht, wird laut gewarnt statt eine unvollständige Mappe zu liefern.
+    const sheetVals=[];
+    ws.eachRow(row=>row.eachCell(c=>{ const v=c.value; if(v!=null&&typeof v!=='object') sheetVals.push(String(v)); }));
+    const hay=sheetVals.join('\n');
+    const missing=[];
+    Object.entries(guestsByTable).forEach(([tid,gs])=>{
+      const nm=String((gs[0]||{}).nachname||'').trim();
+      if(nm&&!hay.includes(nm)) missing.push('Tisch '+tid+' ('+nm+')');
+    });
+    if(missing.length){
+      const msg='Export unvollständig — '+missing.length+' belegte Tische fehlen im Tischplan-Blatt: '+missing.slice(0,6).join(', ')+(missing.length>6?' …':'')+'. Vorlage prüfen!';
+      if(!warnings.some(w=>w.msg===msg)) warnings.push({level:'red',msg});
+      try{updateHinweiseBadge();}catch(e){}
+      setStatus('⚠ '+msg,'err');
+    }
     buildSortierungZimmerSheet(wb,ws);
     buildTischeKombiSheet(wb);
     return{wb,ws,guestsByTable};
@@ -5116,6 +5158,72 @@ function fillTischplanFromTemplate(ws,guestsByTable){
       naechte:gn.length?Math.max(...gn):''
     };
   };
+
+  // ── MEHRBLOCK-VORLAGEN (z.B. "Tischplan_Blanco": Tische 6xx links, 7xx rechts in
+  // denselben Zeilen). Der Einzelblock-Pfad unten schreibt nur Block 1 — bei zwei
+  // Blöcken gingen dadurch ALLE Tische des rechten Blocks im Export verloren
+  // (Panorama-Vorfall 01.07.2026: Tische ab 711 leer, 28 Gäste ohne Zeile).
+  // Hier: jede Zeile über ALLE Blöcke schreiben, Zuordnung pro (Zeile, Block).
+  if((tischplanBlocks||[]).length>1){
+    const blocks=tischplanBlocks;
+    const maxCol=Math.max(...blocks.map(bl=>bl.extrasCol??bl.paxCol??bl.gastnameCol??bl.zimmerCol??bl.tischCol));
+    // Zeile → alle Tisch-Einträge dieser Zeile (ein Eintrag je Block, keine Kollisionen)
+    const rowEntries={};
+    Object.entries(tischplanMap).forEach(([tid,e])=>{ (rowEntries[e.r]=rowEntries[e.r]||[]).push({tid,e}); });
+    const rowHasGrayM=r=>{ for(let c=range.s.c;c<=maxCol;c++){ const x=tcell(r,c); if(x&&x.s&&x.s.fgColor&&grayish(x.s.fgColor.rgb)) return true; } return false; };
+    for(let r=range.s.r;r<=range.e.r;r++){
+      const xlRow=ws.getRow(r+1);
+      const isInfo=(r===range.s.r);
+      const isHeaderRow=blocks.some(bl=>txt(r,bl.tischCol).toLowerCase()==='tisch');
+      const entries=rowEntries[r]||[];
+      const hasTisch=blocks.some(bl=>/^\d/.test(txt(r,bl.tischCol)));
+      // 1) Vorlage 1:1 kopieren (inkl. Platzzahl-Spalten, Summen, Notizen)
+      for(let c=range.s.c;c<=maxCol;c++){
+        let val=tcell(r,c); val=val!=null?val.v:null;
+        xlRow.getCell(c+1).value=(val!=null&&val!=='')?val:null;
+      }
+      // 2) Gastfelder je Block-Eintrag mit den berechneten Daten überschreiben
+      entries.forEach(({tid,e})=>{
+        const bl=e.block||blocks[0];
+        const gv=guestVals(tid);
+        const setC=(col,v)=>{ if(col!=null) xlRow.getCell(col+1).value=(v!=null&&v!=='')?v:null; };
+        setC(bl.zimmerCol,gv.zimmer); setC(bl.statusCol,gv.status); setC(bl.gastnameCol,gv.name);
+        setC(bl.paxCol,gv.pax); setC(bl.extrasCol,gv.extras);
+      });
+      // 3) Einheitliches Styling über alle Spalten beider Blöcke
+      const isSection=!isInfo&&!isHeaderRow&&!hasTisch&&rowHasGrayM(r);
+      for(let c=range.s.c;c<=maxCol;c++){
+        const xc=xlRow.getCell(c+1);
+        if(isInfo){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC1E5F5'}}; xc.font={size:10,bold:true}; xc.border=borders; }
+        else if(isSection){ xc.fill=gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
+        else if(isHeaderRow){ xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'center'}; }
+        else if(hasTisch){ xc.font={size:9}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left',wrapText:false}; }
+      }
+      if(isInfo) xlRow.height=20; else if(hasTisch) xlRow.height=16;
+    }
+    // Spaltenbreiten je nach Feldtyp der Blöcke (Nächte-Spalte wird bei Mehrblock-Layouts
+    // NICHT eingeschoben — Layouttreue; Nächte stehen im Blatt "Sortierung Zimmer")
+    for(let c=range.s.c;c<=maxCol;c++){
+      let w=4;
+      blocks.forEach(bl=>{
+        if(c===bl.tischCol)w=7; else if(bl.plaetzeCol!=null&&c===bl.plaetzeCol)w=5;
+        else if(c===bl.zimmerCol)w=11; else if(c===bl.statusCol)w=7;
+        else if(c===bl.gastnameCol)w=24; else if(c===bl.paxCol)w=6; else if(c===bl.extrasCol)w=30;
+      });
+      ws.getColumn(c+1).width=w;
+    }
+    // Info-Zeile: Bearbeiter-Kürzel → APP, Zeit-Dezimal → aktuelle Uhrzeit (wie Einzelblock)
+    const nowM=new Date();
+    const timeStrM=String(nowM.getHours()).padStart(2,'0')+':'+String(nowM.getMinutes()).padStart(2,'0');
+    const r0M=ws.getRow(1);
+    r0M.eachCell((cell,col)=>{
+      const v=cell.value;
+      if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){ cell.value='APP'; const nx=r0M.getCell(col+1); if(typeof nx.value==='number'||nx.value==null||nx.value==='') nx.value=timeStrM; }
+      else{ const frac=timeFracFromValue(v); if(frac!=null) cell.value=timeStrM; }
+    });
+    return;
+  }
+
   for(let r=range.s.r;r<=range.e.r;r++){
     const xlRow=ws.getRow(r+1);
     const entry=rowToEntry[r];
