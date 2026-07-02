@@ -112,7 +112,25 @@ async function exportInvariants(page){
         if(!w.includes(nm)) wrongRow++;
       });
     }
-    return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,
+    // Überlange Extras OHNE Umbruch (Panorama-Feedback 02.07.: Text lief über die Spalte)
+    let noWrapLong=0;
+    const checkWrap=(sheet,cols,width)=>{ if(!sheet)return; sheet.eachRow(row=>cols.forEach(cn=>{
+      const c=row.getCell(cn); const t=c.value!=null?String(c.value):'';
+      if(t.length>width&&!(c.alignment&&c.alignment.wrapText)) noWrapLong++;
+    }));};
+    if(blocks.length>1) checkWrap(ws,blocks.filter(b=>b.extrasCol!=null).map(b=>b.extrasCol+1),30);
+    else if(blocks.length===1) checkWrap(ws,[(blocks[0].extrasCol??6)+2],46);
+    checkWrap(built.wb.getWorksheet('Sortierung Zimmer'),[8],44);
+    // Kopfzeile: Datum muss das PLANDATUM sein, nicht das der Vorlage
+    let headDateOk=true;
+    if(typeof planDatumDE==='function'){
+      const expected=planDatumDE();
+      ws.getRow(1).eachCell(c=>{
+        const t=typeof c.value==='string'?c.value.trim():'';
+        if(/^\d{1,2}\.\s*(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/.test(t)&&t!==expected) headDateOk=false;
+      });
+    }
+    return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,
       calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&(t.belegtPax||0)>0).length};
   });
 }
@@ -150,6 +168,8 @@ async function exportInvariants(page){
     check('Export baubar',ei.built===true);
     if(ei.built){
       check('Export-Selbstprüfung: kein Gast verloren',ei.exportMissing===0,ei.exportMissing+' Tische fehlen');
+      check('Lange Extras brechen um (kein Überlauf)',ei.noWrapLong===0,ei.noWrapLong+' Zellen ohne Umbruch');
+      check('Kopfzeile trägt das Plandatum (nicht das der Vorlage)',ei.headDateOk===true);
       if(sz.expectTemplate){
         check('7xx-Tischzeilen im Export vorhanden (≥30)',ei.t7Rows>=30,'nur '+ei.t7Rows+' — rechter Block fehlt?');
         check('7xx-Belegung Export == Berechnung',ei.t7Filled===ei.calcT7,ei.t7Filled+' ≠ '+ei.calcT7);

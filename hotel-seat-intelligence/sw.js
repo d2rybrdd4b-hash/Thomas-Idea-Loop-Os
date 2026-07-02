@@ -1,4 +1,4 @@
-const CACHE = 'hsi-v25.06-ao';
+const CACHE = 'hsi-v25.06-ap';
 
 // Kern-Dateien, die beim Installieren VORGELADEN werden — damit die App auch ohne
 // Internet vollständig läuft (inkl. Excel-Lesen/Schreiben über die lokalen Bibliotheken).

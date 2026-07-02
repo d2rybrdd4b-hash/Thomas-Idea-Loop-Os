@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ao</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ap</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ao · 02.07.2026</span>
+          <span class="set-version">v.25.06-ap · 02.07.2026</span>
         </div>
       </div>
 
@@ -4953,7 +4953,6 @@ async function buildFilledTischplanSheet(){
     row.getCell(7).alignment={vertical:'middle',horizontal:'left'}; // Extras
   }
   function applyDataStyle(row,katFill){
-    row.height=16;
     for(let c=1;c<=N;c++){
       const cell=row.getCell(c);
       cell.font={size:9};
@@ -4964,6 +4963,9 @@ async function buildFilledTischplanSheet(){
     }
     row.getCell(5).alignment={vertical:'middle',horizontal:'center'}; // PAX
     row.getCell(6).alignment={vertical:'middle',horizontal:'center'}; // Nächte
+    // Extras (7): Umbruch nach unten statt Überlauf; Zeile wächst mit dem Text
+    row.getCell(7).alignment={vertical:'middle',horizontal:'left',wrapText:true};
+    row.height=wrapHeight(row.getCell(7).value,30);
   }
   // Zeile 1: Info-Kopfzeile (Hotel, Datum, APP, Uhrzeit)
   const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
@@ -5118,6 +5120,44 @@ function buildTischeKombiSheet(wb){
 // Notiz-Sektionen, Spaltenbreiten, verbundene Zellen). Pro echter Tischzeile werden nur die
 // Gastfelder (Zimmer/Status/Gastname/Pax/Extras) mit der heutigen Zuweisung überschrieben;
 // alle übrigen Zellen bleiben unverändert. KEINE Kategorie-Farben (wie Mappe3).
+// ── Vorlagen-Optik-Helfer ──────────────────────────────────────────────
+// Office-Standard-Theme-Palette → ARGB, inkl. Tint (so speichert Excel die
+// hellgrauen Töne der Hotelier-Vorlage: z.B. theme0 tint -0.35 ≈ A6A6A6)
+function themeArgb(theme,tint){
+  const PAL=['FFFFFF','000000','E7E6E6','44546A','4472C4','ED7D31','A5A5A5','FFC000','5B9BD5','70AD47'];
+  const hex=PAL[theme];
+  if(hex==null) return null;
+  const t=tint||0;
+  const adj=v=>Math.max(0,Math.min(255,Math.round(t<0?v*(1+t):v+(255-v)*t)));
+  const ch=i=>adj(parseInt(hex.slice(i,i+2),16)).toString(16).padStart(2,'0').toUpperCase();
+  return 'FF'+ch(0)+ch(2)+ch(4);
+}
+// Füllfarbe einer Vorlagen-Zelle (SheetJS-Style) als ARGB — direkte RGB oder Theme-Farbe
+function tplFillArgb(x){
+  const fg=x&&x.s&&x.s.fgColor;
+  if(!fg) return null;
+  if(fg.rgb){const v=String(fg.rgb).toUpperCase();return v.length===6?'FF'+v:v;}
+  if(fg.theme!=null) return themeArgb(fg.theme,fg.tint);
+  return null;
+}
+// Plandatum im Format der Hotelier-Vorlage ("2. Juli - Donnerstag")
+function planDatumDE(){
+  try{
+    const d=new Date((refDate||getTodayStr())+'T12:00');
+    const M=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+    const W=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+    return d.getDate()+'. '+M[d.getMonth()]+' - '+W[d.getDay()];
+  }catch(e){return refDate||'';}
+}
+// Erkennt Datums-Texte in der Vorlagen-Kopfzeile ("30. Juni - Dienstag", "Datum des Plans")
+const INFO_DATE_RE=/^\d{1,2}\.\s*(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)|^Datum des Plans/i;
+// Dynamische Zeilenhöhe für umgebrochene Texte (Zeile wächst nach unten statt Überlauf)
+function wrapHeight(text,colWidth){
+  const s=String(text||'');
+  const lines=Math.max(1,Math.ceil(s.length/Math.max(10,colWidth)))+(s.split('\n').length-1);
+  return Math.min(90,Math.max(16,13*lines+4));
+}
+
 function fillTischplanFromTemplate(ws,guestsByTable){
   const wbT=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true});
   const sn=wbT.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))||wbT.SheetNames[0];
@@ -5190,16 +5230,34 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         setC(bl.zimmerCol,gv.zimmer); setC(bl.statusCol,gv.status); setC(bl.gastnameCol,gv.name);
         setC(bl.paxCol,gv.pax); setC(bl.extrasCol,gv.extras);
       });
-      // 3) Einheitliches Styling über alle Spalten beider Blöcke
+      // 3) Einheitliches Styling über alle Spalten beider Blöcke — Zell-Hintergründe
+      // der VORLAGE haben Vorrang (Hotelier-Optik: Grautöne, Markierungsfarben)
       const isSection=!isInfo&&!isHeaderRow&&!hasTisch&&rowHasGrayM(r);
       for(let c=range.s.c;c<=maxCol;c++){
         const xc=xlRow.getCell(c+1);
+        const tf=tplFillArgb(tcell(r,c));
         if(isInfo){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC1E5F5'}}; xc.font={size:10,bold:true}; xc.border=borders; }
-        else if(isSection){ xc.fill=gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
-        else if(isHeaderRow){ xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'center'}; }
-        else if(hasTisch){ xc.font={size:9}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left',wrapText:false}; }
+        else if(isSection){ xc.fill=tf?{type:'pattern',pattern:'solid',fgColor:{argb:tf}}:gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
+        else if(isHeaderRow){ if(tf)xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'center'}; }
+        else if(hasTisch){ if(tf)xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; xc.font={size:9}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left',wrapText:false}; }
+        else if(tf){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; }
       }
-      if(isInfo) xlRow.height=20; else if(hasTisch) xlRow.height=16;
+      // Extras-Spalten: Umbruch nach unten statt Überlauf; Zeilenhöhe wächst mit.
+      // Gilt auch für Notiz-Zeilen der Vorlage selbst (lange Hinweise ohne Tischnummer).
+      if(isInfo){ xlRow.height=20; }
+      else{
+        let h=hasTisch?16:0;
+        blocks.forEach(bl=>{
+          if(bl.extrasCol==null) return;
+          const xc=xlRow.getCell(bl.extrasCol+1);
+          const t=xc.value!=null?String(xc.value):'';
+          if(hasTisch||t.length>30){
+            xc.alignment={vertical:'middle',horizontal:'left',wrapText:true};
+            h=Math.max(h,wrapHeight(t,30));
+          }
+        });
+        if(h>0) xlRow.height=h;
+      }
     }
     // Spaltenbreiten je nach Feldtyp der Blöcke (Nächte-Spalte wird bei Mehrblock-Layouts
     // NICHT eingeschoben — Layouttreue; Nächte stehen im Blatt "Sortierung Zimmer")
@@ -5219,6 +5277,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     r0M.eachCell((cell,col)=>{
       const v=cell.value;
       if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){ cell.value='APP'; const nx=r0M.getCell(col+1); if(typeof nx.value==='number'||nx.value==null||nx.value==='') nx.value=timeStrM; }
+      else if(typeof v==='string'&&INFO_DATE_RE.test(v.trim())){ cell.value=planDatumDE(); } // altes Vorlagen-Datum → echtes Plandatum
       else{ const frac=timeFracFromValue(v); if(frac!=null) cell.value=timeStrM; }
     });
     return;
@@ -5257,11 +5316,22 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     } else {
       for(let oc=2;oc<=lastOut;oc++){
         const xc=xlRow.getCell(oc);
-        if(isSection){ xc.fill=gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
-        else if(isHeaderRow){ xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:(oc===gastnameCol+1||oc===lastOut)?'left':'center'}; }
-        else if(isGuest){ xc.font={size:9}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left',wrapText:false}; }
+        // Hintergrund der VORLAGE übernehmen (Hotelier-Optik) — Nächte-Spalte ist neu, hat keine Quelle
+        const srcC=(oc<=extrasCol)?(oc-1):(oc===lastOut?extrasCol:null);
+        const tf=srcC!=null?tplFillArgb(tcell(r,srcC)):null;
+        if(isSection){ xc.fill=tf?{type:'pattern',pattern:'solid',fgColor:{argb:tf}}:gray; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left'}; }
+        else if(isHeaderRow){ if(tf)xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; xc.font={size:9,bold:true}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:(oc===gastnameCol+1||oc===lastOut)?'left':'center'}; }
+        else if(isGuest){ if(tf)xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; xc.font={size:9}; xc.border=borders; xc.alignment={vertical:'middle',horizontal:'left',wrapText:false}; }
+        else if(tf){ xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}}; }
       }
-      if(isGuest){ xlRow.getCell(paxCol+1).alignment={vertical:'middle',horizontal:'center'}; xlRow.getCell(naColXl).alignment={vertical:'middle',horizontal:'center'}; xlRow.height=16; }
+      if(isGuest){
+        xlRow.getCell(paxCol+1).alignment={vertical:'middle',horizontal:'center'};
+        xlRow.getCell(naColXl).alignment={vertical:'middle',horizontal:'center'};
+        // Extras: Umbruch nach unten statt Überlauf; Zeile wächst mit dem Text
+        const exCell=xlRow.getCell(lastOut);
+        exCell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
+        xlRow.height=wrapHeight(exCell.value,46);
+      }
     }
   }
   // Feste, saubere Spaltenbreiten (führende Leerspalte + Datenspalten)
@@ -5274,6 +5344,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
   r0.eachCell((cell,col)=>{
     const v=cell.value;
     if(typeof v==='string'&&/^[A-ZÄÖÜ]{2,4}$/.test(v.trim())){ cell.value='APP'; const nx=r0.getCell(col+1); if(typeof nx.value==='number'||nx.value==null||nx.value==='') nx.value=timeStr; }
+    else if(typeof v==='string'&&INFO_DATE_RE.test(v.trim())){ cell.value=planDatumDE(); } // altes Vorlagen-Datum → echtes Plandatum
     else if(typeof v==='number'&&v>0&&v<1){ cell.value=timeStr; }
   });
 }
@@ -5355,10 +5426,12 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
     const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
     const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
     const r=ws2.addRow(['',g.zugewiesener_tisch||'',g.zimmer||'',statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
-    r.height=16;
     for(let c=2;c<=8;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
     r.getCell(6).alignment={vertical:'middle',horizontal:'center'};
     r.getCell(7).alignment={vertical:'middle',horizontal:'center'};
+    // Extras (8): Umbruch nach unten statt Überlauf; Zeile wächst mit dem Text
+    r.getCell(8).alignment={vertical:'middle',horizontal:'left',wrapText:true};
+    r.height=wrapHeight(extras,44);
   });
   ws2.views=[{state:'frozen',xSplit:0,ySplit:3}];
   return ws2;
