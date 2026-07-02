@@ -2,7 +2,10 @@
 
 Pflanzen-App mit eigener Datenbank (Pflanzen, Bilder, Pflege). Ziel: ein fertiges, verkaufbares Produkt.
 
-**Status: Nicht fertig.** Dieses Verzeichnis ist das Starter-Paket für das neue GitHub-Repository `terra-loop`. Es enthält alles, was Claude Code (Fable 5) braucht, um die App mit Backend und Datenbank fertig zu entwickeln — **außer dem bisherigen App-Code** (siehe unten).
+> **⚠️ Stand 2026-07-02: Dieses Verzeichnis ist erledigt und nur noch Archiv.**
+> Das Produkt lebt jetzt im Repo **[d2rybrdd4b-hash/terra-coach-grow](https://github.com/d2rybrdd4b-hash/terra-coach-grow)** (Lovable-Export, beste App-Version). Das Starter-Paket wurde als `STARTER-PAKET.md` dorthin übertragen. Alle weitere Arbeit an Terra Loop findet in Claude-Code-Sessions auf `terra-coach-grow` statt — nicht hier.
+
+Ursprünglicher Zweck dieses Ordners: Starter-Paket für das neue Terra-Loop-Repository, damit Claude Code (Fable 5) die App mit Backend und Datenbank fertig entwickeln kann.
 
 ## Inhalt
 
