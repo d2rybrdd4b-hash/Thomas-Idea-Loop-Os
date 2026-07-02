@@ -7176,7 +7176,7 @@ function BookingPage({
         setStep(4);
         return;
       }
-      const {
+      let {
         error
       } = await sb.from('bookings').insert({
         salon_id: salonId,
@@ -7188,9 +7188,30 @@ function BookingPage({
         start_time: selTime,
         status: 'pending'
       });
+      if (error && (error.code === '23503' || /foreign key/i.test(error.message || ''))) {
+        // Veraltete IDs aus staff_json/services_json → echte IDs per Name auflösen und erneut versuchen
+        const [{
+          data: staffRow
+        }, {
+          data: svcRow
+        }] = await Promise.all([sb.from('staff').select('id').eq('salon_id', salonId).eq('name', selStaff.name).maybeSingle(), sb.from('services').select('id').eq('salon_id', salonId).eq('name', selSvc.name).maybeSingle()]);
+        if (staffRow || svcRow) {
+          const retry = await sb.from('bookings').insert({
+            salon_id: salonId,
+            staff_id: staffRow?.id || selStaff.id,
+            service_id: svcRow?.id || selSvc.id,
+            customer_name: form.name.trim(),
+            customer_phone: form.phone.trim(),
+            date: selDate,
+            start_time: selTime,
+            status: 'pending'
+          });
+          error = retry.error;
+        }
+      }
       setSubmitting(false);
       if (error) {
-        setErr("Buchung fehlgeschlagen: " + (error.message || "Bitte erneut versuchen."));
+        setErr("Buchung gerade nicht möglich — bitte versuch es gleich nochmal oder ruf kurz im Salon an. (" + (error.message || "unbekannter Fehler") + ")");
         return;
       }
     } else {
@@ -8573,47 +8594,82 @@ const SERVICE_TEMPLATES = [{
 // ─── SUPABASE SYNC HELPER ────────────────────────────────────────────────────
 async function syncToSb(salonId, staff, services, availability) {
   if (!salonId) return {
-    ok: false
+    ok: false,
+    idMap: {},
+    svcIdMap: {}
   };
   const idMap = {};
-  // Try dedicated tables (non-fatal if RLS policies are missing)
+  const svcIdMap = {};
+  // Upsert statt Löschen+Neuanlegen: IDs bleiben stabil, Buchungs-FKs bleiben gültig
   try {
-    await Promise.all([sb.from('staff').delete().eq('salon_id', salonId), sb.from('services').delete().eq('salon_id', salonId), sb.from('availability').delete().eq('salon_id', salonId)]);
-    if (staff.length > 0) {
-      const {
-        data: insertedStaff
-      } = await sb.from('staff').insert(staff.map(m => ({
-        salon_id: salonId,
-        name: m.name,
-        color: m.color || '#4FD1C5',
-        active: m.active !== false,
-        sick: m.sick || false
-      }))).select();
-      if (insertedStaff) {
-        staff.forEach(m => {
-          const match = insertedStaff.find(r => r.name === m.name);
-          if (match) idMap[m.id] = match.id;
-        });
+    const {
+      data: existingStaff
+    } = await sb.from('staff').select('id,name').eq('salon_id', salonId);
+    const exStaff = existingStaff || [];
+    for (const m of staff) {
+      const match = exStaff.find(r => r.id === m.id) || exStaff.find(r => r.name === m.name);
+      if (match) {
+        idMap[m.id] = match.id;
+        await sb.from('staff').update({
+          name: m.name,
+          color: m.color || '#C2512E',
+          active: m.active !== false,
+          sick: m.sick || false
+        }).eq('id', match.id);
+      } else {
+        const {
+          data: ins
+        } = await sb.from('staff').insert({
+          salon_id: salonId,
+          name: m.name,
+          color: m.color || '#C2512E',
+          active: m.active !== false,
+          sick: m.sick || false
+        }).select().single();
+        if (ins) idMap[m.id] = ins.id;
       }
     }
-    const svcIdMap = {};
-    if (services.length > 0) {
-      const {
-        data: insertedSvcs
-      } = await sb.from('services').insert(services.map(sv => ({
-        salon_id: salonId,
-        name: sv.name,
-        duration: sv.duration || 30,
-        price: sv.price || 0,
-        buffer: sv.buffer || 0
-      }))).select();
-      if (insertedSvcs) {
-        services.forEach(sv => {
-          const match = insertedSvcs.find(r => r.name === sv.name);
-          if (match) svcIdMap[sv.id] = match.id;
-        });
+    // Entfernte Mitarbeiter nur deaktivieren — Löschen würde bestehende Buchungen (FK) brechen
+    const keepStaff = new Set(Object.values(idMap));
+    for (const r of exStaff) {
+      if (!keepStaff.has(r.id)) await sb.from('staff').update({
+        active: false
+      }).eq('id', r.id);
+    }
+    const {
+      data: existingSvcs
+    } = await sb.from('services').select('id,name').eq('salon_id', salonId);
+    const exSvcs = existingSvcs || [];
+    for (const sv of services) {
+      const match = exSvcs.find(r => r.id === sv.id) || exSvcs.find(r => r.name === sv.name);
+      if (match) {
+        svcIdMap[sv.id] = match.id;
+        await sb.from('services').update({
+          name: sv.name,
+          duration: sv.duration || 30,
+          price: sv.price || 0,
+          buffer: sv.buffer || 0
+        }).eq('id', match.id);
+      } else {
+        const {
+          data: ins
+        } = await sb.from('services').insert({
+          salon_id: salonId,
+          name: sv.name,
+          duration: sv.duration || 30,
+          price: sv.price || 0,
+          buffer: sv.buffer || 0
+        }).select().single();
+        if (ins) svcIdMap[sv.id] = ins.id;
       }
     }
+    const keepSvcs = new Set(Object.values(svcIdMap));
+    for (const r of exSvcs) {
+      // Löschen kann an Buchungs-FK scheitern — dann bleibt die Zeile stehen (unkritisch)
+      if (!keepSvcs.has(r.id)) await sb.from('services').delete().eq('id', r.id);
+    }
+    // Verfügbarkeiten neu schreiben (keine Buchungs-FKs darauf)
+    await sb.from('availability').delete().eq('salon_id', salonId);
     const availRows = [];
     Object.entries(availability || {}).forEach(([sid, a]) => {
       const sbStaffId = idMap[sid] || sid;
@@ -8636,7 +8692,7 @@ async function syncToSb(salonId, staff, services, availability) {
     const finalStaffJson = staff.map(m => ({
       id: idMap[m.id] || m.id,
       name: m.name,
-      color: m.color || '#4FD1C5',
+      color: m.color || '#C2512E',
       active: m.active !== false,
       sick: m.sick || false
     }));
@@ -8674,7 +8730,8 @@ async function syncToSb(salonId, staff, services, availability) {
     console.error('Salon JSON update failed:', e);
     return {
       ok: false,
-      idMap
+      idMap,
+      svcIdMap
     };
   }
 }
