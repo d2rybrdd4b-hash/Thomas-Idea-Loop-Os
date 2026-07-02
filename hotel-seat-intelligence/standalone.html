@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-an</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ao</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1325,7 +1325,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-an · 02.07.2026</span>
+          <span class="set-version">v.25.06-ao · 02.07.2026</span>
         </div>
       </div>
 
@@ -4934,7 +4934,7 @@ async function buildFilledTischplanSheet(){
     }
     buildSortierungZimmerSheet(wb,ws);
     buildTischeKombiSheet(wb);
-    return{wb,ws,guestsByTable};
+    return{wb,ws,guestsByTable,exportMissing:missing};
   }
   // ── Fallback (keine Vorlage hochgeladen): frisches, eigenes Layout ──
   // Style-Helfer
@@ -5432,6 +5432,12 @@ async function exportToTischplanTemplate(){
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
   const built=await buildFilledTischplanSheet();
   if(!built){setStatus('Fehler beim Erstellen des Tischplans','err');return;}
+  // Export-Sperre: Ein Plan, in dem platzierte Gäste fehlen, darf NICHT heruntergeladen
+  // werden — lieber gar kein Plan als ein falscher (Lehre aus dem Panorama-Vorfall 01.07.).
+  if(built.exportMissing&&built.exportMissing.length){
+    alert('Export gestoppt: '+built.exportMissing.length+' belegte Tische würden im Tischplan-Blatt fehlen.\n\nBetroffen: '+built.exportMissing.slice(0,5).join(', ')+(built.exportMissing.length>5?' …':'')+'\n\nBitte Tischplan-Vorlage prüfen (Einstellungen) — der Download wurde zur Sicherheit blockiert.');
+    return;
+  }
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
   const ds=new Date().toISOString().slice(0,10);
