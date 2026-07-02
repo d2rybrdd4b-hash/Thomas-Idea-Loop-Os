@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07101e">
+  <meta name="theme-color" content="#FAF7F2">
   <meta name="description" content="Slotly – Terminbuchung für deinen Salon">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Slotly">
   <title>Slotly · Salon Terminbuchung</title>
   <link rel="manifest" href="manifest.json">
@@ -17,23 +17,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
   <style>
-    html,body{margin:0;padding:0;background:#07101e;font-family:'Inter',system-ui,sans-serif;}
+    html,body{margin:0;padding:0;background:#FAF7F2;font-family:'Inter',system-ui,sans-serif;}
     #root{min-height:100dvh;}
-    #splash{position:fixed;inset:0;background:linear-gradient(135deg,#07101e 0%,#0d1e38 50%,#07101e 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;}
+    #splash{position:fixed;inset:0;background:linear-gradient(135deg,#FAF7F2 0%,#F0E8DE 50%,#FAF7F2 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;}
     #splash svg{width:72px;height:72px;}
-    #splash p{color:rgba(255,255,255,.5);font-size:14px;margin-top:16px;letter-spacing:.5px;}
-    #err{display:none;position:fixed;inset:0;background:#07101e;color:#e8f0f8;font-family:'Inter',sans-serif;padding:40px 24px;font-size:14px;line-height:1.6;z-index:99999;}
+    #splash p{color:rgba(36,28,21,.55);font-size:14px;margin-top:16px;letter-spacing:.5px;}
+    #err{display:none;position:fixed;inset:0;background:#FAF7F2;color:#241C15;font-family:'Inter',sans-serif;padding:40px 24px;font-size:14px;line-height:1.6;z-index:99999;}
   </style>
 </head>
 <body>
   <div id="err"></div>
   <div id="splash">
     <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="72" height="72" rx="18" fill="rgba(201,168,90,.15)"/>
-      <path d="M22 22h28a4 4 0 014 4v12a4 4 0 01-4 4H22a4 4 0 01-4-4V26a4 4 0 014-4z" fill="#c9a85a"/>
-      <circle cx="36" cy="50" r="5" fill="rgba(201,168,90,.7)"/>
-      <circle cx="24" cy="50" r="3.5" fill="rgba(201,168,90,.4)"/>
-      <circle cx="48" cy="50" r="3.5" fill="rgba(201,168,90,.4)"/>
+      <rect width="72" height="72" rx="18" fill="rgba(194,81,46,.12)"/>
+      <path d="M22 22h28a4 4 0 014 4v12a4 4 0 01-4 4H22a4 4 0 01-4-4V26a4 4 0 014-4z" fill="#C2512E"/>
+      <circle cx="36" cy="50" r="5" fill="rgba(194,81,46,.7)"/>
+      <circle cx="24" cy="50" r="3.5" fill="rgba(194,81,46,.4)"/>
+      <circle cx="48" cy="50" r="3.5" fill="rgba(194,81,46,.4)"/>
     </svg>
     <p>Slotly wird geladen…</p>
   </div>
@@ -43,7 +43,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="window.__cdnFail=1"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
   <script>
-if(window.__cdnFail){var e=document.getElementById('err');if(e){e.style.display='block';e.innerHTML='<h2 style="color:#c9a85a;margin:0 0 12px">Ladefehler</h2><p>Bitte Internetverbindung prüfen und Seite neu laden.</p>';}}
+if(window.__cdnFail){var e=document.getElementById('err');if(e){e.style.display='block';e.innerHTML='<h2 style="color:#C2512E;margin:0 0 12px">Ladefehler</h2><p>Bitte Internetverbindung prüfen und Seite neu laden.</p>';}}
 </script>
   <script>
 // ─── CDN GUARD ───────────────────────────────────────────────
@@ -75,25 +75,25 @@ const CSS = `
 html, body { overflow-x: hidden; }
 
 :root {
-  --bg: #07101e; --bg2: #0c1828; --bg3: #112032;
-  --card: rgba(255,255,255,.05); --card-solid: #0e1d33;
-  --ink: #e8f0f8; --ink2: #b8cad8; --ink3: #7a9ab2;
-  --muted: #6080a0; --muted2: #405870; --muted3: #2a3e52;
-  --accent: #c9a85a; --accent2: #a88640; --accent3: #e8c87a;
-  --accent4: #f5dfa8; --accent-soft: rgba(201,168,90,.12); --accent-soft2: rgba(201,168,90,.22);
-  --accent-glow: rgba(201,168,90,.3); --accent-deep: #04080f;
-  --gold: #c9a85a; --gold-soft: rgba(201,168,90,.12);
-  --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.18);
-  --success: #4FD1C5; --success-soft: rgba(79,209,197,.12);
-  --warn: #d4944a; --warn-soft: rgba(212,148,74,.12);
-  --error: #e07068; --error-soft: rgba(224,112,104,.12);
-  --shadow-xs: 0 1px 3px rgba(0,0,0,.4);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,.5);
-  --shadow: 0 4px 20px rgba(0,0,0,.6);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,.65);
-  --shadow-xl: 0 24px 70px rgba(0,0,0,.75);
+  --bg: #FAF7F2; --bg2: #FFFFFF; --bg3: #F2EDE5;
+  --card: #FFFFFF; --card-solid: #FFFFFF;
+  --ink: #241C15; --ink2: #52463C; --ink3: #7D6F62;
+  --muted: #8C7D6E; --muted2: #B6A898; --muted3: #E2D8CB;
+  --accent: #C2512E; --accent2: #A8401F; --accent3: #DA6E44;
+  --accent4: #F0BFA8; --accent-soft: rgba(194,81,46,.09); --accent-soft2: rgba(194,81,46,.18);
+  --accent-glow: rgba(194,81,46,.25); --accent-deep: #7E3116;
+  --gold: #C2512E; --gold-soft: rgba(194,81,46,.09);
+  --border: rgba(36,28,21,.10); --border2: rgba(36,28,21,.20);
+  --success: #178F7F; --success-soft: rgba(23,143,127,.10);
+  --warn: #B57424; --warn-soft: rgba(181,116,36,.12);
+  --error: #C6493F; --error-soft: rgba(198,73,63,.09);
+  --shadow-xs: 0 1px 3px rgba(36,28,21,.05);
+  --shadow-sm: 0 2px 8px rgba(36,28,21,.06);
+  --shadow: 0 4px 20px rgba(36,28,21,.08);
+  --shadow-lg: 0 12px 40px rgba(36,28,21,.12);
+  --shadow-xl: 0 24px 70px rgba(36,28,21,.16);
   --shadow-glow: 0 0 36px var(--accent-glow);
-  --wa: #25d366; --wa-dark: #1aa854; --wa-soft: rgba(37,211,102,.12);
+  --wa: #1DA851; --wa-dark: #178C43; --wa-soft: rgba(29,168,81,.10);
 }
 
 body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased; }
@@ -105,11 +105,11 @@ body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); m
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
 @keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
-@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(201,168,90,.5)}70%{box-shadow:0 0 0 18px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(194,81,46,.4)}70%{box-shadow:0 0 0 18px transparent}100%{box-shadow:0 0 0 0 transparent}}
 @keyframes floatGentle{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes waPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,.5)}70%{box-shadow:0 0 0 14px transparent}}
+@keyframes waPulse{0%,100%{box-shadow:0 0 0 0 rgba(29,168,81,.4)}70%{box-shadow:0 0 0 14px transparent}}
 @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
 .a1{animation:fadeUp .6s ease both}.a2{animation:fadeUp .6s .1s ease both}
@@ -120,119 +120,119 @@ body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); m
 
 .btn{cursor:pointer;border:none;font-family:'Inter',sans-serif;font-weight:500;border-radius:12px;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation;white-space:nowrap;position:relative;overflow:hidden}
 .btn:active{transform:scale(.96)}.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-p{background:var(--ink);color:var(--bg);padding:15px 26px;font-size:15px;font-weight:600;box-shadow:var(--shadow);letter-spacing:-.01em}
-.btn-p:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
-.btn-accent{background:linear-gradient(135deg,#c9a85a,#e8c87a);color:#07101e;padding:15px 26px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(201,168,90,.35);letter-spacing:-.01em}
-.btn-accent:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(201,168,90,.5)}
-.btn-g{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--ink);padding:14px 24px;font-size:14px;font-weight:500}
-.btn-g:hover{border-color:rgba(201,168,90,.4);background:rgba(255,255,255,.1)}
-.btn-soft{background:rgba(201,168,90,.12);color:#e8c87a;padding:12px 18px;font-size:14px;font-weight:600;border:1px solid rgba(201,168,90,.22)}
-.btn-soft:hover{background:rgba(201,168,90,.2)}
-.btn-d{background:rgba(224,112,104,.12);color:var(--error);padding:9px 14px;font-size:12px;font-weight:600;border:1px solid rgba(224,112,104,.2)}
-.btn-d:hover{background:rgba(224,112,104,.2)}
+.btn-p{background:var(--ink);color:#fff;padding:15px 26px;font-size:15px;font-weight:600;box-shadow:var(--shadow);letter-spacing:-.01em}
+.btn-p:hover{background:#3A2F26;transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.btn-accent{background:linear-gradient(135deg,#C2512E,#DA6E44);color:#fff;padding:15px 26px;font-size:15px;font-weight:700;box-shadow:0 4px 20px rgba(194,81,46,.3);letter-spacing:-.01em}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(194,81,46,.4)}
+.btn-g{background:#fff;border:1px solid var(--border2);color:var(--ink);padding:14px 24px;font-size:14px;font-weight:500;box-shadow:var(--shadow-xs)}
+.btn-g:hover{border-color:rgba(194,81,46,.4);background:#FDFBF8}
+.btn-soft{background:var(--accent-soft);color:var(--accent);padding:12px 18px;font-size:14px;font-weight:600;border:1px solid var(--accent-soft2)}
+.btn-soft:hover{background:var(--accent-soft2)}
+.btn-d{background:var(--error-soft);color:var(--error);padding:9px 14px;font-size:12px;font-weight:600;border:1px solid rgba(198,73,63,.2)}
+.btn-d:hover{background:rgba(198,73,63,.16)}
 .btn-skip{background:transparent;color:var(--muted);padding:12px 18px;font-size:13px;font-weight:500;border:1px solid var(--border)}
-.btn-skip:hover{background:rgba(255,255,255,.05);color:var(--ink)}
-.btn-wa{background:linear-gradient(135deg,#25d366,#1aa854);color:#fff;padding:15px 26px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(37,211,102,.3);letter-spacing:-.01em}
-.btn-wa:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(37,211,102,.4)}
+.btn-skip:hover{background:rgba(36,28,21,.04);color:var(--ink)}
+.btn-wa{background:linear-gradient(135deg,#25d366,#1aa854);color:#fff;padding:15px 26px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(29,168,81,.25);letter-spacing:-.01em}
+.btn-wa:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(29,168,81,.35)}
 .btn-wa:active{transform:scale(.96)}
 
-.inp{width:100%;background:rgba(255,255,255,.06);border:1.5px solid var(--border);border-radius:12px;color:var(--ink);font-family:'Inter',sans-serif;font-size:16px;padding:14px 16px;outline:none;transition:all .2s;-webkit-appearance:none}
-.inp::placeholder{color:var(--muted2)}.inp:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(201,168,90,.15)}
-select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236080a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
+.inp{width:100%;background:#fff;border:1.5px solid var(--border2);border-radius:12px;color:var(--ink);font-family:'Inter',sans-serif;font-size:16px;padding:14px 16px;outline:none;transition:all .2s;-webkit-appearance:none}
+.inp::placeholder{color:var(--muted2)}.inp:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(194,81,46,.12)}
+select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C7D6E' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
 textarea.inp{resize:vertical;min-height:100px;font-family:'Inter',sans-serif;line-height:1.5}
-select.inp option{background:#0c1828;color:var(--ink)}
+select.inp option{background:#fff;color:var(--ink)}
 
 .tag{display:inline-flex;align-items:center;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap;gap:4px}
-.tag-a{background:rgba(201,168,90,.12);color:#e8c87a;border:1px solid rgba(201,168,90,.2)}
-.tag-s{background:rgba(79,209,197,.12);color:#4FD1C5;border:1px solid rgba(79,209,197,.2)}
-.tag-w{background:rgba(212,148,74,.12);color:var(--warn);border:1px solid rgba(212,148,74,.2)}
-.tag-e{background:rgba(224,112,104,.12);color:var(--error);border:1px solid rgba(224,112,104,.2)}
-.tag-sick{background:rgba(224,112,104,.15);color:var(--error);border:1px solid rgba(224,112,104,.25);animation:pulse 2s ease-in-out infinite}
-.tag-gold{background:rgba(201,168,90,.12);color:#e8c87a;border:1px solid rgba(201,168,90,.2)}
-.tag-wa{background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.2)}
+.tag-a{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-soft2)}
+.tag-s{background:var(--success-soft);color:var(--success);border:1px solid rgba(23,143,127,.2)}
+.tag-w{background:var(--warn-soft);color:var(--warn);border:1px solid rgba(181,116,36,.2)}
+.tag-e{background:var(--error-soft);color:var(--error);border:1px solid rgba(198,73,63,.2)}
+.tag-sick{background:rgba(198,73,63,.12);color:var(--error);border:1px solid rgba(198,73,63,.25);animation:pulse 2s ease-in-out infinite}
+.tag-gold{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-soft2)}
+.tag-wa{background:var(--wa-soft);color:var(--wa);border:1px solid rgba(29,168,81,.2)}
 
-.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.4)}
-.card-a{background:rgba(201,168,90,.08);border:1px solid rgba(201,168,90,.15);border-radius:16px}
-.card-warn{background:rgba(212,148,74,.08);border:1px solid rgba(212,148,74,.18);border-radius:16px}
-.card-err{background:rgba(224,112,104,.08);border:1px solid rgba(224,112,104,.18);border-radius:16px}
-.card-elevated{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;box-shadow:var(--shadow-xl)}
-.card-wa{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.15);border-radius:16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm)}
+.card-a{background:rgba(194,81,46,.06);border:1px solid rgba(194,81,46,.15);border-radius:16px}
+.card-warn{background:rgba(181,116,36,.07);border:1px solid rgba(181,116,36,.18);border-radius:16px}
+.card-err{background:rgba(198,73,63,.06);border:1px solid rgba(198,73,63,.18);border-radius:16px}
+.card-elevated{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg)}
+.card-wa{background:rgba(29,168,81,.06);border:1px solid rgba(29,168,81,.15);border-radius:16px}
 
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(7,16,30,.97);border-top:1px solid rgba(255,255,255,.08);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;gap:2px}
-.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-family:'Inter',sans-serif;font-size:10px;font-weight:500;border-radius:10px;transition:color .2s}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(255,255,255,.96);border-top:1px solid var(--border);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;gap:2px}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;color:rgba(36,28,21,.38);font-family:'Inter',sans-serif;font-size:10px;font-weight:500;border-radius:10px;transition:color .2s}
 .tb.act{color:var(--ink)}.tb.act svg{color:var(--accent)}.tb:active{transform:scale(.92)}
 
-.slot{padding:16px 4px;border-radius:10px;border:1.5px solid var(--border);background:rgba(255,255,255,.05);text-align:center;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--ink)}
-.slot:active{transform:scale(.94)}.slot.act{background:linear-gradient(135deg,#c9a85a,#e8c87a);color:#07101e;border-color:transparent;font-weight:700}
+.slot{padding:16px 4px;border-radius:10px;border:1.5px solid var(--border2);background:#fff;text-align:center;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--ink)}
+.slot:active{transform:scale(.94)}.slot.act{background:linear-gradient(135deg,#C2512E,#DA6E44);color:#fff;border-color:transparent;font-weight:700}
 
-.dchip{padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:rgba(255,255,255,.05);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s;min-width:72px;text-align:center;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
-.dchip:active{transform:scale(.94)}.dchip.act{background:linear-gradient(135deg,#c9a85a,#e8c87a);color:#07101e;border-color:transparent;font-weight:700}
+.dchip{padding:10px 8px;border-radius:12px;border:1.5px solid var(--border2);background:#fff;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s;min-width:72px;text-align:center;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+.dchip:active{transform:scale(.94)}.dchip.act{background:linear-gradient(135deg,#C2512E,#DA6E44);color:#fff;border-color:transparent;font-weight:700}
 
-.shbg{position:fixed;inset:0;background:rgba(4,8,15,.75);backdrop-filter:blur(8px);z-index:200;animation:fadeIn .25s ease;display:flex;align-items:flex-end}
-.sh{width:100%;background:var(--bg2);border-top:1px solid var(--border);border-radius:28px 28px 0 0;padding:8px 22px calc(22px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.32,.72,0,1);box-shadow:0 -20px 60px rgba(0,0,0,.5)}
-.shh{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:8px auto 18px}
+.shbg{position:fixed;inset:0;background:rgba(36,28,21,.4);backdrop-filter:blur(8px);z-index:200;animation:fadeIn .25s ease;display:flex;align-items:flex-end}
+.sh{width:100%;background:#fff;border-top:1px solid var(--border);border-radius:28px 28px 0 0;padding:8px 22px calc(22px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.32,.72,0,1);box-shadow:0 -20px 60px rgba(36,28,21,.18)}
+.shh{width:40px;height:4px;border-radius:2px;background:rgba(36,28,21,.15);margin:8px auto 18px}
 
-.toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(14,29,51,.98);color:var(--ink);border:1px solid var(--border);border-radius:14px;padding:13px 20px;font-size:14px;font-weight:500;z-index:300;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);box-shadow:var(--shadow-xl);animation:fadeUp .3s ease}
-.toast-wa{background:rgba(26,168,84,.95);border-color:rgba(37,211,102,.3);color:#fff}
+.toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#2A211A;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:13px 20px;font-size:14px;font-weight:500;z-index:300;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);box-shadow:var(--shadow-xl);animation:fadeUp .3s ease}
+.toast-wa{background:rgba(23,140,67,.97);border-color:rgba(37,211,102,.3);color:#fff}
 
-.pbar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.pbar{height:4px;background:rgba(36,28,21,.08);border-radius:2px;overflow:hidden}
 .pfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:width .5s cubic-bezier(.4,0,.2,1);border-radius:2px}
 .div{height:1px;background:var(--border);margin:16px 0}
 
-.row{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:all .2s;box-shadow:var(--shadow-xs)}
+.row{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:all .2s;box-shadow:var(--shadow-xs)}
 .row.p{cursor:pointer}.row.p:active{transform:scale(.99)}
-.row.sel{border-color:var(--accent);border-width:2px;background:rgba(201,168,90,.08)}
-.row.cancelled{opacity:.45;background:rgba(255,255,255,.02)}
+.row.sel{border-color:var(--accent);border-width:2px;background:rgba(194,81,46,.05)}
+.row.cancelled{opacity:.5;background:var(--bg3)}
 
-.fab{position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:18px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#c9a85a,#e8c87a);border:none;color:#07101e;cursor:pointer;box-shadow:0 8px 24px rgba(201,168,90,.4),var(--shadow-lg);z-index:80;display:flex;align-items:center;justify-content:center;transition:all .25s}
-.fab:active{transform:scale(.92)}.fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(201,168,90,.5),var(--shadow-xl)}
+.fab{position:fixed;bottom:calc(88px + env(safe-area-inset-bottom));right:18px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#C2512E,#DA6E44);border:none;color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(194,81,46,.35),var(--shadow-lg);z-index:80;display:flex;align-items:center;justify-content:center;transition:all .25s}
+.fab:active{transform:scale(.92)}.fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(194,81,46,.45),var(--shadow-xl)}
 
 .page{padding:20px 18px 100px;max-width:540px;margin:0 auto;min-height:100vh}
-.stat{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:16px;padding:18px 16px;box-shadow:var(--shadow-xs);position:relative;overflow:hidden}
+.stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px 16px;box-shadow:var(--shadow-xs);position:relative;overflow:hidden}
 .sn{font-family:'Fraunces',serif;font-size:36px;font-weight:500;line-height:1;color:var(--ink);letter-spacing:-.02em}
 .sl{font-size:11px;letter-spacing:.06em;color:var(--muted);margin-top:8px;font-weight:500}
 
 .csw{width:42px;height:42px;border-radius:50%;cursor:pointer;transition:transform .15s;border:3px solid transparent;position:relative}
-.csw:active{transform:scale(.88)}.csw.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--bg)}
+.csw:active{transform:scale(.88)}.csw.sel{border-color:var(--accent);box-shadow:0 0 0 2px #fff}
 .csw.sel::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:700}
 
-.salon-bg-1,.salon-bg-2,.salon-bg-3,.salon-bg-4{position:absolute;border-radius:50%;filter:blur(50px);pointer-events:none;opacity:.35}
-.salon-bg-1{width:280px;height:280px;background:radial-gradient(circle,rgba(201,168,90,.4) 0%,rgba(201,168,90,.1) 50%,transparent 80%)}
-.salon-bg-2{width:320px;height:320px;background:radial-gradient(circle,rgba(79,209,197,.3) 0%,rgba(79,209,197,.08) 50%,transparent 80%)}
-.salon-bg-3{width:220px;height:220px;background:radial-gradient(circle,rgba(201,168,90,.3) 0%,transparent 70%)}
-.salon-bg-4{width:380px;height:380px;background:radial-gradient(circle,rgba(79,209,197,.2) 0%,transparent 70%)}
+.salon-bg-1,.salon-bg-2,.salon-bg-3,.salon-bg-4{position:absolute;border-radius:50%;filter:blur(50px);pointer-events:none;opacity:.5}
+.salon-bg-1{width:280px;height:280px;background:radial-gradient(circle,rgba(218,110,68,.18) 0%,rgba(218,110,68,.05) 50%,transparent 80%)}
+.salon-bg-2{width:320px;height:320px;background:radial-gradient(circle,rgba(23,143,127,.14) 0%,rgba(23,143,127,.04) 50%,transparent 80%)}
+.salon-bg-3{width:220px;height:220px;background:radial-gradient(circle,rgba(218,110,68,.14) 0%,transparent 70%)}
+.salon-bg-4{width:380px;height:380px;background:radial-gradient(circle,rgba(23,143,127,.10) 0%,transparent 70%)}
 
-.phone-mockup{position:relative;width:min(280px,calc(100vw - 60px));height:580px;background:linear-gradient(180deg,#102A43,#0B1C33);border-radius:44px;padding:12px;box-shadow:0 0 0 2px rgba(201,168,90,.2),0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(201,168,90,.1)}
-.phone-mockup::before{content:'';position:absolute;top:22px;left:50%;transform:translateX(-50%);width:90px;height:24px;background:#0B1C33;border-radius:14px;z-index:2}
+.phone-mockup{position:relative;width:min(280px,calc(100vw - 60px));height:580px;background:linear-gradient(180deg,#2E2620,#1D1712);border-radius:44px;padding:12px;box-shadow:0 0 0 2px rgba(194,81,46,.15),0 30px 80px rgba(36,28,21,.25),0 0 60px rgba(194,81,46,.08)}
+.phone-mockup::before{content:'';position:absolute;top:22px;left:50%;transform:translateX(-50%);width:90px;height:24px;background:#1D1712;border-radius:14px;z-index:2}
 .phone-screen{width:100%;height:100%;background:var(--bg);border-radius:32px;overflow:hidden;position:relative}
 .phone-content{padding:54px 16px 16px;height:100%;overflow:hidden}
 
 .lift{transition:transform .3s,box-shadow .3s}.lift:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
 
-.sms-bubble{background:rgba(201,168,90,.1);border:1px solid rgba(201,168,90,.15);border-radius:16px 16px 16px 4px;padding:14px 16px;font-size:13px;line-height:1.5;color:var(--ink2);position:relative;max-width:92%;max-height:160px;overflow-y:auto}
-.wa-bubble{background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.15);border-radius:16px 16px 16px 4px;padding:14px 16px;font-size:13px;line-height:1.5;color:var(--ink2);max-height:160px;overflow-y:auto}
+.sms-bubble{background:rgba(194,81,46,.06);border:1px solid rgba(194,81,46,.14);border-radius:16px 16px 16px 4px;padding:14px 16px;font-size:13px;line-height:1.5;color:var(--ink2);position:relative;max-width:92%;max-height:160px;overflow-y:auto}
+.wa-bubble{background:rgba(29,168,81,.07);border:1px solid rgba(29,168,81,.16);border-radius:16px 16px 16px 4px;padding:14px 16px;font-size:13px;line-height:1.5;color:var(--ink2);max-height:160px;overflow-y:auto}
 
-.toggle{position:relative;width:48px;height:28px;background:rgba(255,255,255,.12);border-radius:14px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle{position:relative;width:48px;height:28px;background:rgba(36,28,21,.16);border-radius:14px;cursor:pointer;transition:background .2s;flex-shrink:0}
 .toggle.on{background:var(--accent)}
-.toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:rgba(255,255,255,.95);border-radius:50%;transition:transform .2s;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 2px 6px rgba(36,28,21,.25)}
 .toggle.on::after{transform:translateX(20px)}
 
-.sick-banner{background:rgba(224,112,104,.1);border:1px solid rgba(224,112,104,.2);border-radius:16px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden}
-.grad-text{background:linear-gradient(135deg,#c9a85a,#e8c87a);-webkit-background-clip:text;background-clip:text;color:transparent}
-.feat-icon{width:44px;height:44px;border-radius:12px;background:rgba(201,168,90,.12);border:1px solid rgba(201,168,90,.2);display:flex;align-items:center;justify-content:center;color:#c9a85a;flex-shrink:0;position:relative}
+.sick-banner{background:rgba(198,73,63,.07);border:1px solid rgba(198,73,63,.18);border-radius:16px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden}
+.grad-text{background:linear-gradient(135deg,#C2512E,#DA6E44);-webkit-background-clip:text;background-clip:text;color:transparent}
+.feat-icon{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent-soft2);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;position:relative}
 
-.sms-card{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:var(--shadow-lg);position:relative;transition:all .3s}
-.sms-card.sent{background:rgba(201,168,90,.1);border-color:rgba(201,168,90,.2)}
-.sms-card.skipped{opacity:.4;background:rgba(255,255,255,.02)}
+.sms-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:var(--shadow-sm);position:relative;transition:all .3s}
+.sms-card.sent{background:rgba(194,81,46,.06);border-color:rgba(194,81,46,.18)}
+.sms-card.skipped{opacity:.45;background:var(--bg3)}
 
-.step-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a85a,#e8c87a);color:#07101e;font-family:'Fraunces',serif;font-weight:700;font-size:14px;flex-shrink:0}
+.step-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#C2512E,#DA6E44);color:#fff;font-family:'Fraunces',serif;font-weight:700;font-size:14px;flex-shrink:0}
 .progress-dots{display:flex;gap:6px;align-items:center;justify-content:center}
-.dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.12);transition:all .3s}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(36,28,21,.12);transition:all .3s}
 .dot.active{background:var(--accent);transform:scale(1.3)}
 .dot.done{background:var(--success)}
 .dot.skipped{background:var(--muted2)}
 
-.wa-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.2);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600}
+.wa-badge{display:inline-flex;align-items:center;gap:5px;background:var(--wa-soft);color:var(--wa);border:1px solid rgba(29,168,81,.2);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600}
 
 a{color:inherit;text-decoration:none}
 `;
@@ -857,29 +857,29 @@ function PhoneMockup() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────
-const LP_DARK = "#08111f";
-const LP_DARK2 = "#0a1628";
-const LP_DARK3 = "#0d1e38";
-const LP_GOLD = "#c9a85a";
-const LP_GOLD_LIGHT = "#e8c87a";
-const LP_WHITE = "#ffffff";
-const LP_W70 = "rgba(255,255,255,.7)";
-const LP_W50 = "rgba(255,255,255,.5)";
-const LP_W40 = "rgba(255,255,255,.4)";
-const LP_W30 = "rgba(255,255,255,.3)";
-const LP_W10 = "rgba(255,255,255,.1)";
-const LP_W08 = "rgba(255,255,255,.08)";
-const LP_W06 = "rgba(255,255,255,.06)";
-const LP_W04 = "rgba(255,255,255,.04)";
-const LP_GOLD_BG = "rgba(201,168,90,.12)";
-const LP_GOLD_BR = "rgba(201,168,90,.25)";
-const LP_GOLD_GLOW = "rgba(201,168,90,.45)";
-function lpGoldGrad(dir = "135deg") {
-  return `linear-gradient(${dir},${LP_GOLD},${LP_GOLD_LIGHT})`;
+const LP_BG = "#FBF8F4";
+const LP_BG2 = "#F5F0E9";
+const LP_BG3 = "#F0E8DE";
+const LP_ACCENT = "#C2512E";
+const LP_ACCENT_LIGHT = "#DA6E44";
+const LP_INK = "#241C15";
+const LP_INK70 = "rgba(36,28,21,.72)";
+const LP_INK50 = "rgba(36,28,21,.55)";
+const LP_INK40 = "rgba(36,28,21,.45)";
+const LP_INK30 = "rgba(36,28,21,.35)";
+const LP_INK10 = "rgba(36,28,21,.12)";
+const LP_INK08 = "rgba(36,28,21,.09)";
+const LP_INK06 = "rgba(36,28,21,.06)";
+const LP_INK04 = "rgba(36,28,21,.04)";
+const LP_ACCENT_BG = "rgba(194,81,46,.09)";
+const LP_ACCENT_BR = "rgba(194,81,46,.25)";
+const LP_ACCENT_GLOW = "rgba(194,81,46,.28)";
+function lpAccentGrad(dir = "135deg") {
+  return `linear-gradient(${dir},${LP_ACCENT},${LP_ACCENT_LIGHT})`;
 }
-function lpGoldText() {
+function lpAccentText() {
   return {
-    background: lpGoldGrad(),
+    background: lpAccentGrad(),
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     color: "transparent"
@@ -891,7 +891,7 @@ function LPOrb({
   right,
   bottom,
   size = 500,
-  color = "rgba(201,168,90,.08)"
+  color = "rgba(218,110,68,.09)"
 }) {
   const s = {
     position: "absolute",
@@ -915,8 +915,8 @@ function Landing({
   return /*#__PURE__*/React.createElement("div", {
     className: "fade",
     style: {
-      background: LP_DARK,
-      color: LP_WHITE,
+      background: LP_BG,
+      color: LP_INK,
       overflowX: "hidden"
     }
   }, /*#__PURE__*/React.createElement("header", {
@@ -924,10 +924,10 @@ function Landing({
       position: "sticky",
       top: 0,
       zIndex: 50,
-      background: "rgba(8,17,31,.9)",
+      background: "rgba(251,248,244,.92)",
       backdropFilter: "blur(24px)",
       WebkitBackdropFilter: "blur(24px)",
-      borderBottom: "1px solid rgba(255,255,255,.07)",
+      borderBottom: "1px solid rgba(36,28,21,.08)",
       padding: "13px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -949,11 +949,11 @@ function Landing({
       width: 34,
       height: 34,
       borderRadius: 10,
-      background: lpGoldGrad(),
+      background: lpAccentGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: LP_DARK
+      color: LP_BG
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: "cal",
@@ -963,7 +963,7 @@ function Landing({
     style: {
       fontSize: 22,
       fontWeight: 600,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.01em"
     }
   }, "Slotly")), /*#__PURE__*/React.createElement("div", {
@@ -977,9 +977,9 @@ function Landing({
     style: {
       padding: "8px 18px",
       fontSize: 13,
-      background: "rgba(255,255,255,.07)",
-      border: "1px solid rgba(255,255,255,.14)",
-      color: LP_WHITE,
+      background: "#fff",
+      border: "1px solid rgba(36,28,21,.16)",
+      color: LP_INK,
       borderRadius: 10,
       fontWeight: 500
     }
@@ -989,16 +989,16 @@ function Landing({
     style: {
       padding: "8px 18px",
       fontSize: 13,
-      background: lpGoldGrad(),
-      color: LP_DARK,
+      background: lpAccentGrad(),
+      color: LP_BG,
       fontWeight: 700,
       borderRadius: 10,
       border: "none",
-      boxShadow: `0 4px 18px ${LP_GOLD_GLOW}`
+      boxShadow: `0 4px 18px ${LP_ACCENT_GLOW}`
     }
   }, "Kostenlos starten")))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: `linear-gradient(-45deg,${LP_DARK},${LP_DARK3},${LP_DARK2},#0b0f1e,${LP_DARK3})`,
+      background: `linear-gradient(-45deg,${LP_BG},${LP_BG3},${LP_BG2},#F7F1E9,${LP_BG3})`,
       backgroundSize: "400% 400%",
       animation: "gradientShift 18s ease infinite",
       padding: "88px 20px 0",
@@ -1012,17 +1012,17 @@ function Landing({
     top: "-10%",
     left: "10%",
     size: 700,
-    color: "rgba(201,168,90,.1)"
+    color: "rgba(218,110,68,.11)"
   }), /*#__PURE__*/React.createElement(LPOrb, {
     top: "30%",
     right: "-8%",
     size: 550,
-    color: "rgba(79,209,197,.07)"
+    color: "rgba(23,143,127,.08)"
   }), /*#__PURE__*/React.createElement(LPOrb, {
     bottom: "5%",
     left: "-8%",
     size: 450,
-    color: "rgba(201,168,90,.07)"
+    color: "rgba(218,110,68,.08)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 1100,
@@ -1049,11 +1049,11 @@ function Landing({
     style: {
       padding: "5px 14px",
       borderRadius: 20,
-      background: LP_GOLD_BG,
-      color: LP_GOLD,
+      background: LP_ACCENT_BG,
+      color: LP_ACCENT,
       fontSize: 12,
       fontWeight: 600,
-      border: `1px solid ${LP_GOLD_BR}`,
+      border: `1px solid ${LP_ACCENT_BR}`,
       letterSpacing: ".02em"
     }
   }, b))), /*#__PURE__*/React.createElement("h1", {
@@ -1064,19 +1064,19 @@ function Landing({
       lineHeight: 1.03,
       marginBottom: 26,
       letterSpacing: "-.03em",
-      color: LP_WHITE,
+      color: LP_INK,
       maxWidth: 820
     }
   }, "Kunden buchen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, "Du arbeitest.")), /*#__PURE__*/React.createElement("p", {
     className: "a3",
     style: {
       fontSize: 17,
-      color: LP_W50,
+      color: LP_INK50,
       lineHeight: 1.75,
       marginBottom: 38,
       maxWidth: 460
@@ -1098,12 +1098,12 @@ function Landing({
       padding: "17px",
       fontSize: 15,
       width: "100%",
-      background: lpGoldGrad(),
-      color: LP_DARK,
+      background: lpAccentGrad(),
+      color: LP_BG,
       fontWeight: 700,
       borderRadius: 14,
       border: "none",
-      boxShadow: `0 8px 36px ${LP_GOLD_GLOW}`,
+      boxShadow: `0 8px 36px ${LP_ACCENT_GLOW}`,
       letterSpacing: "-.01em"
     }
   }, "In 5 Minuten starten ", /*#__PURE__*/React.createElement(I, {
@@ -1118,9 +1118,9 @@ function Landing({
       padding: "14px",
       fontSize: 13,
       width: "100%",
-      background: "rgba(255,255,255,.06)",
-      border: "1px solid rgba(255,255,255,.14)",
-      color: LP_W70,
+      background: "#fff",
+      border: "1px solid rgba(36,28,21,.16)",
+      color: LP_INK70,
       borderRadius: 14
     }
   }, /*#__PURE__*/React.createElement(I, {
@@ -1144,7 +1144,7 @@ function Landing({
       transform: "translateX(-50%)",
       width: 320,
       height: 100,
-      background: "radial-gradient(ellipse,rgba(201,168,90,.45) 0%,transparent 70%)",
+      background: "radial-gradient(ellipse,rgba(218,110,68,.28) 0%,transparent 70%)",
       filter: "blur(30px)",
       pointerEvents: "none"
     }
@@ -1178,21 +1178,21 @@ function Landing({
       alignItems: "center",
       gap: 7,
       fontSize: 13,
-      color: LP_W50,
+      color: LP_INK50,
       fontWeight: 500
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: i === "wa" ? "#25d366" : LP_GOLD
+      color: i === "wa" ? "#25d366" : LP_ACCENT
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: i,
     s: 14
   })), t)))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: "rgba(255,255,255,.03)",
-      borderTop: "1px solid rgba(255,255,255,.07)",
-      borderBottom: "1px solid rgba(255,255,255,.07)",
+      background: "rgba(36,28,21,.03)",
+      borderTop: "1px solid rgba(36,28,21,.08)",
+      borderBottom: "1px solid rgba(36,28,21,.08)",
       padding: "36px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1227,19 +1227,19 @@ function Landing({
       fontSize: "clamp(30px,5vw,48px)",
       fontWeight: 500,
       lineHeight: 1,
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, n), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: LP_W40,
+      color: LP_INK40,
       marginTop: 6,
       fontWeight: 500,
       letterSpacing: ".03em"
     }
   }, l))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: LP_DARK,
+      background: LP_BG,
       padding: "88px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1258,7 +1258,7 @@ function Landing({
       letterSpacing: ".14em",
       textTransform: "uppercase",
       fontWeight: 600,
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginBottom: 14
     }
   }, "So einfach geht's"), /*#__PURE__*/React.createElement("h2", {
@@ -1267,13 +1267,13 @@ function Landing({
       fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
       lineHeight: 1.1,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.025em"
     }
   }, "In 3 Schritten", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, "online buchbar."))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1299,8 +1299,8 @@ function Landing({
   }].map((s, idx) => /*#__PURE__*/React.createElement("div", {
     key: s.n,
     style: {
-      background: LP_W04,
-      border: `1px solid ${LP_W08}`,
+      background: LP_INK04,
+      border: `1px solid ${LP_INK08}`,
       borderRadius: 20,
       padding: 28,
       transition: "all .3s"
@@ -1310,8 +1310,8 @@ function Landing({
       width: 48,
       height: 48,
       borderRadius: "50%",
-      background: LP_GOLD_BG,
-      border: `1px solid ${LP_GOLD_BR}`,
+      background: LP_ACCENT_BG,
+      border: `1px solid ${LP_ACCENT_BR}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -1319,18 +1319,18 @@ function Landing({
       fontFamily: "'Fraunces',serif",
       fontWeight: 600,
       fontSize: 17,
-      color: LP_GOLD
+      color: LP_ACCENT
     }
   }, s.n), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 38,
       height: 38,
       borderRadius: 11,
-      background: LP_GOLD_BG,
+      background: LP_ACCENT_BG,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement(I, {
@@ -1341,18 +1341,18 @@ function Landing({
       fontWeight: 700,
       fontSize: 15,
       marginBottom: 8,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.01em"
     }
   }, s.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: LP_W50,
+      color: LP_INK50,
       lineHeight: 1.65
     }
   }, s.d)))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: LP_DARK2,
+      background: LP_BG2,
       padding: "88px 20px",
       position: "relative",
       overflow: "hidden"
@@ -1361,7 +1361,7 @@ function Landing({
     top: "50%",
     left: "50%",
     size: 700,
-    color: "rgba(201,168,90,.05)"
+    color: "rgba(218,110,68,.06)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 1100,
@@ -1379,7 +1379,7 @@ function Landing({
       letterSpacing: ".14em",
       textTransform: "uppercase",
       fontWeight: 600,
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginBottom: 14
     }
   }, "Funktionen"), /*#__PURE__*/React.createElement("h2", {
@@ -1388,13 +1388,13 @@ function Landing({
       fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
       lineHeight: 1.1,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.025em"
     }
   }, "Alles, was dein Betrieb", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, "wirklich braucht."))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1431,8 +1431,8 @@ function Landing({
   }].map(f => /*#__PURE__*/React.createElement("div", {
     key: f.t,
     style: {
-      background: LP_W04,
-      border: `1px solid ${LP_W08}`,
+      background: LP_INK04,
+      border: `1px solid ${LP_INK08}`,
       borderRadius: 16,
       padding: "18px 20px",
       display: "flex",
@@ -1444,12 +1444,12 @@ function Landing({
       width: 44,
       height: 44,
       borderRadius: 12,
-      background: f.i === "wa" ? "rgba(37,211,102,.12)" : LP_GOLD_BG,
-      border: f.i === "wa" ? "1px solid rgba(37,211,102,.2)" : `1px solid ${LP_GOLD_BR}`,
+      background: f.i === "wa" ? "rgba(37,211,102,.12)" : LP_ACCENT_BG,
+      border: f.i === "wa" ? "1px solid rgba(37,211,102,.2)" : `1px solid ${LP_ACCENT_BR}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: f.i === "wa" ? "#25d366" : LP_GOLD,
+      color: f.i === "wa" ? "#25d366" : LP_ACCENT,
       flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement(I, {
@@ -1460,19 +1460,19 @@ function Landing({
       fontWeight: 700,
       fontSize: 14,
       marginBottom: 5,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.01em"
     }
   }, f.t), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: LP_W40,
+      color: LP_INK40,
       lineHeight: 1.55
     }
   }, f.d))))))), /*#__PURE__*/React.createElement("section", {
     style: {
       padding: "88px 20px",
-      background: `linear-gradient(135deg,${LP_DARK3},${LP_DARK})`,
+      background: `linear-gradient(135deg,${LP_BG3},${LP_BG})`,
       position: "relative",
       overflow: "hidden"
     }
@@ -1480,7 +1480,7 @@ function Landing({
     top: "50%",
     left: "50%",
     size: 600,
-    color: "rgba(201,168,90,.07)"
+    color: "rgba(218,110,68,.08)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 640,
@@ -1491,7 +1491,7 @@ function Landing({
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 72,
-      color: LP_GOLD,
+      color: LP_ACCENT,
       lineHeight: .7,
       marginBottom: 20,
       fontFamily: "Georgia,serif",
@@ -1503,7 +1503,7 @@ function Landing({
       fontSize: "clamp(19px,3.5vw,27px)",
       fontWeight: 500,
       lineHeight: 1.5,
-      color: "rgba(255,255,255,.92)",
+      color: "rgba(36,28,21,.9)",
       marginBottom: 30,
       fontStyle: "italic",
       letterSpacing: "-.015em"
@@ -1520,11 +1520,11 @@ function Landing({
       width: 46,
       height: 46,
       borderRadius: "50%",
-      background: lpGoldGrad(),
+      background: lpAccentGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: LP_DARK,
+      color: LP_BG,
       fontWeight: 700,
       fontSize: 18,
       fontFamily: "'Fraunces',serif"
@@ -1537,12 +1537,12 @@ function Landing({
     style: {
       fontWeight: 600,
       fontSize: 14,
-      color: LP_WHITE
+      color: LP_INK
     }
   }, "Michael K."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
-      color: LP_W40
+      color: LP_INK40
     }
   }, "Friseurmeister · München"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1554,12 +1554,12 @@ function Landing({
   }, [1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
-      color: LP_GOLD,
+      color: LP_ACCENT,
       fontSize: 18
     }
   }, "★"))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: LP_DARK,
+      background: LP_BG,
       padding: "88px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1583,7 +1583,7 @@ function Landing({
       padding: "6px 16px",
       fontSize: 11,
       fontWeight: 600,
-      color: "#25d366",
+      color: "#17914E",
       letterSpacing: ".07em",
       marginBottom: 18
     }
@@ -1596,19 +1596,19 @@ function Landing({
       fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
       lineHeight: 1.1,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.025em",
       marginBottom: 16
     }
   }, "Krank? ", /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      color: "#25d366"
+      color: "#17914E"
     }
   }, "Drei Taps.")), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 15,
-      color: LP_W50,
+      color: LP_INK50,
       lineHeight: 1.75,
       maxWidth: 460,
       margin: "0 auto"
@@ -1624,7 +1624,7 @@ function Landing({
     t: "Wer ist krank?",
     d: "Mitarbeiter und Tag wählen. In Sekunden erledigt.",
     i: "users",
-    c: LP_GOLD
+    c: LP_ACCENT
   }, {
     n: 2,
     t: "WhatsApp öffnet sich",
@@ -1636,12 +1636,12 @@ function Landing({
     t: "Erledigt.",
     d: "Alle Kunden informiert. In unter 3 Minuten.",
     i: "check",
-    c: LP_GOLD
+    c: LP_ACCENT
   }].map(s => /*#__PURE__*/React.createElement("div", {
     key: s.n,
     style: {
-      background: LP_W04,
-      border: `1px solid ${LP_W08}`,
+      background: LP_INK04,
+      border: `1px solid ${LP_INK08}`,
       borderRadius: 20,
       padding: 26
     }
@@ -1655,7 +1655,7 @@ function Landing({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#25d366",
+      color: "#17914E",
       fontFamily: "'Fraunces',serif",
       fontWeight: 700,
       fontSize: 16,
@@ -1679,17 +1679,17 @@ function Landing({
     style: {
       fontWeight: 700,
       fontSize: 15,
-      color: LP_WHITE
+      color: LP_INK
     }
   }, s.t)), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13,
-      color: LP_W40,
+      color: LP_INK40,
       lineHeight: 1.6
     }
   }, s.d)))))), /*#__PURE__*/React.createElement("section", {
     style: {
-      background: LP_DARK2,
+      background: LP_BG2,
       padding: "88px 20px"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -1708,7 +1708,7 @@ function Landing({
       letterSpacing: ".14em",
       textTransform: "uppercase",
       fontWeight: 600,
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginBottom: 14
     }
   }, "Preise"), /*#__PURE__*/React.createElement("h2", {
@@ -1717,18 +1717,18 @@ function Landing({
       fontSize: "clamp(28px,5vw,46px)",
       fontWeight: 500,
       lineHeight: 1.1,
-      color: LP_WHITE,
+      color: LP_INK,
       marginBottom: 10,
       letterSpacing: "-.025em"
     }
   }, "Ehrlich, einfach,", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, "ohne Überraschungen.")), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: LP_W30,
+      color: LP_INK30,
       fontSize: 13,
       marginTop: 6,
       letterSpacing: ".02em"
@@ -1762,13 +1762,13 @@ function Landing({
   }].map(p => /*#__PURE__*/React.createElement("div", {
     key: p.n,
     style: {
-      background: p.hi ? `linear-gradient(135deg,${LP_GOLD_BG},rgba(201,168,90,.06))` : LP_W04,
-      border: p.hi ? `2px solid rgba(201,168,90,.45)` : `1px solid ${LP_W08}`,
+      background: p.hi ? `linear-gradient(135deg,${LP_ACCENT_BG},rgba(218,110,68,.07))` : LP_INK04,
+      border: p.hi ? `2px solid rgba(218,110,68,.28)` : `1px solid ${LP_INK08}`,
       borderRadius: 22,
       padding: 30,
       position: "relative",
       transform: p.hi ? "scale(1.02)" : undefined,
-      boxShadow: p.hi ? `0 0 60px rgba(201,168,90,.15)` : undefined
+      boxShadow: p.hi ? `0 0 60px rgba(194,81,46,.12)` : undefined
     }
   }, p.hi && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1776,14 +1776,14 @@ function Landing({
       top: -14,
       left: "50%",
       transform: "translateX(-50%)",
-      background: lpGoldGrad(),
-      color: LP_DARK,
+      background: lpAccentGrad(),
+      color: LP_BG,
       fontSize: 10,
       fontWeight: 800,
       padding: "5px 20px",
       borderRadius: 20,
       letterSpacing: ".1em",
-      boxShadow: `0 4px 18px ${LP_GOLD_GLOW}`,
+      boxShadow: `0 4px 18px ${LP_ACCENT_GLOW}`,
       whiteSpace: "nowrap"
     }
   }, "BELIEBT"), /*#__PURE__*/React.createElement("div", {
@@ -1792,13 +1792,13 @@ function Landing({
       fontSize: 26,
       fontWeight: 600,
       marginBottom: 4,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.01em"
     }
   }, p.n), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 13,
-      color: LP_W40,
+      color: LP_INK40,
       marginBottom: 18
     }
   }, p.d), /*#__PURE__*/React.createElement("div", {
@@ -1814,23 +1814,23 @@ function Landing({
       fontSize: 46,
       fontWeight: 600,
       letterSpacing: "-.02em",
-      color: p.hi ? LP_GOLD : LP_WHITE
+      color: p.hi ? LP_ACCENT : LP_INK
     }
   }, p.p), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
-      color: LP_W40
+      color: LP_INK40
     }
   }, "€/Monat")), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: LP_W30,
+      color: LP_INK30,
       marginBottom: 22
     }
   }, "monatlich kündbar"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
-      background: LP_W08,
+      background: LP_INK08,
       margin: "0 0 20px"
     }
   }), /*#__PURE__*/React.createElement("ul", {
@@ -1846,11 +1846,11 @@ function Landing({
       gap: 9,
       padding: "7px 0",
       fontSize: 13,
-      color: LP_W70
+      color: LP_INK70
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginTop: 1,
       flexShrink: 0
     }
@@ -1863,18 +1863,18 @@ function Landing({
     style: {
       width: "100%",
       padding: 15,
-      background: p.hi ? lpGoldGrad() : LP_W08,
-      color: p.hi ? LP_DARK : LP_W70,
+      background: p.hi ? lpAccentGrad() : LP_INK08,
+      color: p.hi ? LP_BG : LP_INK70,
       fontWeight: p.hi ? 700 : 500,
       borderRadius: 12,
-      border: p.hi ? "none" : `1px solid ${LP_W10}`,
-      boxShadow: p.hi ? `0 4px 22px ${LP_GOLD_GLOW}` : undefined
+      border: p.hi ? "none" : `1px solid ${LP_INK10}`,
+      boxShadow: p.hi ? `0 4px 22px ${LP_ACCENT_GLOW}` : undefined
     }
   }, p.n, " starten")))))), /*#__PURE__*/React.createElement("section", {
     style: {
       padding: "100px 20px",
       textAlign: "center",
-      background: `linear-gradient(-45deg,${LP_DARK},${LP_DARK3},${LP_DARK2},${LP_DARK3})`,
+      background: `linear-gradient(-45deg,${LP_BG},${LP_BG3},${LP_BG2},${LP_BG3})`,
       backgroundSize: "400% 400%",
       animation: "gradientShift 12s ease infinite",
       position: "relative",
@@ -1884,7 +1884,7 @@ function Landing({
     top: "50%",
     left: "50%",
     size: 700,
-    color: "rgba(201,168,90,.1)"
+    color: "rgba(218,110,68,.11)"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 520,
@@ -1897,7 +1897,7 @@ function Landing({
       letterSpacing: ".14em",
       textTransform: "uppercase",
       fontWeight: 600,
-      color: LP_GOLD,
+      color: LP_ACCENT,
       marginBottom: 22
     }
   }, "Bereit loszulegen?"), /*#__PURE__*/React.createElement("h3", {
@@ -1907,17 +1907,17 @@ function Landing({
       fontWeight: 500,
       lineHeight: 1.12,
       marginBottom: 22,
-      color: LP_WHITE,
+      color: LP_INK,
       letterSpacing: "-.025em"
     }
   }, "Kunden buchen ab morgen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
       fontStyle: "italic",
-      ...lpGoldText()
+      ...lpAccentText()
     }
   }, "Probier's gratis aus.")), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: LP_W40,
+      color: LP_INK40,
       fontSize: 14,
       lineHeight: 1.75,
       marginBottom: 36
@@ -1930,12 +1930,12 @@ function Landing({
       fontSize: 16,
       width: "100%",
       maxWidth: 360,
-      background: lpGoldGrad(),
-      color: LP_DARK,
+      background: lpAccentGrad(),
+      color: LP_BG,
       fontWeight: 700,
       borderRadius: 14,
       border: "none",
-      boxShadow: `0 14px 48px ${LP_GOLD_GLOW}`,
+      boxShadow: `0 14px 48px ${LP_ACCENT_GLOW}`,
       letterSpacing: "-.01em"
     }
   }, "Jetzt 14 Tage kostenlos testen ", /*#__PURE__*/React.createElement(I, {
@@ -1944,15 +1944,15 @@ function Landing({
   })), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: LP_W30,
+      color: LP_INK30,
       marginTop: 14
     }
   }, "Keine Kreditkarte · Monatlich kündbar"))), /*#__PURE__*/React.createElement("footer", {
     style: {
       padding: "30px 20px",
       textAlign: "center",
-      borderTop: "1px solid rgba(255,255,255,.06)",
-      background: "#060e1a"
+      borderTop: "1px solid rgba(36,28,21,.08)",
+      background: "#F2EDE5"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1967,11 +1967,11 @@ function Landing({
       width: 26,
       height: 26,
       borderRadius: 8,
-      background: lpGoldGrad(),
+      background: lpAccentGrad(),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      color: "#060e1a"
+      color: "#fff"
     }
   }, /*#__PURE__*/React.createElement(I, {
     n: "cal",
@@ -1981,12 +1981,12 @@ function Landing({
     style: {
       fontSize: 17,
       fontWeight: 600,
-      color: "rgba(255,255,255,.75)"
+      color: "rgba(36,28,21,.78)"
     }
   }, "Slotly")), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
-      color: "rgba(255,255,255,.22)"
+      color: "rgba(36,28,21,.38)"
     }
   }, "\"Clear bookings. Calm days.\" · © 2026 Slotly")));
 }
@@ -2408,8 +2408,8 @@ function Auth({
     style: {
       display: "flex",
       alignItems: "center",
-      background: "rgba(255,255,255,.06)",
-      border: "1.5px solid var(--border)",
+      background: "#fff",
+      border: "1.5px solid var(--border2)",
       borderRadius: 12,
       overflow: "hidden"
     }
@@ -2707,7 +2707,7 @@ function Sheet({
   }, title), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
-      background: "rgba(255,255,255,.08)",
+      background: "#fff",
       border: "1px solid var(--border)",
       borderRadius: 10,
       width: 36,
@@ -3036,7 +3036,7 @@ function SickModeWizard({
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setStep(1),
     style: {
-      background: "rgba(255,255,255,.08)",
+      background: "#fff",
       border: "1px solid var(--border)",
       borderRadius: 10,
       width: 36,
@@ -3066,7 +3066,7 @@ function SickModeWizard({
   }, "Krank-Modus")), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
-      background: "rgba(255,255,255,.08)",
+      background: "#fff",
       border: "1px solid var(--border)",
       borderRadius: 10,
       width: 36,
@@ -3916,7 +3916,7 @@ function NewStaff({
     name: "",
     color: "#4FD1C5"
   });
-  const colors = ["#4FD1C5", "#4a8cb8", "#c9a85a", "#c97a6e", "#9a7ac9", "#7a9ec9", "#8fa75a", "#d9a04b"];
+  const colors = ["#4FD1C5", "#4a8cb8", "#C2512E", "#c97a6e", "#9a7ac9", "#7a9ec9", "#8fa75a", "#d9a04b"];
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
     title: "Mitarbeiter hinzufügen"
@@ -4455,11 +4455,11 @@ function AnalyticsSection({
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "linear-gradient(135deg,#0B1C33 0%,#162944 60%,#0d2438 100%)",
+      background: "linear-gradient(135deg,#8A3418 0%,#C2512E 55%,#A8401F 100%)",
       borderRadius: 22,
       padding: "22px 22px 20px",
       marginBottom: 12,
-      boxShadow: "0 12px 40px rgba(11,28,51,.28)",
+      boxShadow: "0 12px 40px rgba(138,52,24,.28)",
       position: "relative",
       overflow: "hidden"
     }
@@ -5754,7 +5754,7 @@ function Dashboard({
           display: "flex",
           borderRadius: 16,
           overflow: "hidden",
-          background: "rgba(255,255,255,.05)",
+          background: "#fff",
           border: `1.5px solid ${isNow ? "var(--accent)" : "var(--border)"}`,
           boxShadow: isNow ? "0 0 0 3px var(--accent-glow),var(--shadow)" : "var(--shadow-sm)",
           cursor: "pointer"
@@ -6965,10 +6965,10 @@ function Settings({
     disabled: syncing,
     style: {
       width: "100%",
-      background: "rgba(201,168,90,.1)",
-      border: "1px solid rgba(201,168,90,.2)",
+      background: "rgba(218,110,68,.11)",
+      border: "1px solid rgba(194,81,46,.18)",
       borderRadius: 14,
-      color: "#e8c87a",
+      color: "var(--accent)",
       fontSize: 14,
       fontWeight: 600,
       padding: 14,
@@ -8436,7 +8436,7 @@ function DatenschutzPage({
 }
 
 // ─── ONBOARDING WIZARD ───────────────────────────────────────────────────────
-const STAFF_COLORS = ["#4FD1C5", "#4a8cb8", "#c9a85a", "#c56874", "#9370db", "#e07b39", "#5dade2", "#58d68d"];
+const STAFF_COLORS = ["#4FD1C5", "#4a8cb8", "#C2512E", "#c56874", "#9370db", "#e07b39", "#5dade2", "#58d68d"];
 const DURATION_OPTS = [10, 15, 20, 30, 45, 60, 75, 90, 120];
 const BUFFER_OPTS = [0, 5, 10, 15, 20];
 const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
@@ -8786,7 +8786,7 @@ function OnboardingWizard({
   }, "Mindestens eine Person hinzufügen."), staff.map((m, idx) => /*#__PURE__*/React.createElement("div", {
     key: m.id,
     style: {
-      background: "rgba(255,255,255,.05)",
+      background: "#fff",
       borderRadius: 14,
       padding: 14,
       marginBottom: 10,
@@ -8913,7 +8913,7 @@ function OnboardingWizard({
   }), t.name))), services.map((sv, idx) => /*#__PURE__*/React.createElement("div", {
     key: sv.id,
     style: {
-      background: "rgba(255,255,255,.05)",
+      background: "#fff",
       borderRadius: 14,
       padding: 14,
       marginBottom: 10,
@@ -8974,7 +8974,7 @@ function OnboardingWizard({
       borderRadius: 10,
       padding: "9px 8px",
       fontSize: 13,
-      background: "rgba(255,255,255,.06)",
+      background: "#fff",
       color: "var(--ink)"
     }
   }, DURATION_OPTS.map(d => /*#__PURE__*/React.createElement("option", {
@@ -9000,7 +9000,7 @@ function OnboardingWizard({
       borderRadius: 10,
       padding: "9px 8px",
       fontSize: 13,
-      background: "rgba(255,255,255,.06)",
+      background: "#fff",
       color: "var(--ink)",
       boxSizing: "border-box"
     }
@@ -9020,7 +9020,7 @@ function OnboardingWizard({
       borderRadius: 10,
       padding: "9px 8px",
       fontSize: 13,
-      background: "rgba(255,255,255,.06)",
+      background: "#fff",
       color: "var(--ink)"
     }
   }, BUFFER_OPTS.map(b => /*#__PURE__*/React.createElement("option", {
@@ -9132,7 +9132,7 @@ function OnboardingWizard({
       borderRadius: 10,
       padding: "10px 12px",
       fontSize: 14,
-      background: "rgba(255,255,255,.06)",
+      background: "#fff",
       color: "var(--ink)",
       boxSizing: "border-box"
     }
@@ -9153,7 +9153,7 @@ function OnboardingWizard({
       borderRadius: 10,
       padding: "10px 12px",
       fontSize: 14,
-      background: "rgba(255,255,255,.06)",
+      background: "#fff",
       color: "var(--ink)",
       boxSizing: "border-box"
     }
@@ -9842,6 +9842,7 @@ window.onerror = function (msg, src, row, col, err) {
     document.getElementById("err").style.display = "flex";
   }
 };
+
   </script>
   <script>
     if ('serviceWorker' in navigator) {
