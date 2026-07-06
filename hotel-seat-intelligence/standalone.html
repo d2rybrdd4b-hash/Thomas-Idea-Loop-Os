@@ -1008,7 +1008,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ar</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-as</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1336,7 +1336,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ar · 07.07.2026</span>
+          <span class="set-version">v.25.06-as · 07.07.2026</span>
         </div>
       </div>
 
@@ -3722,6 +3722,12 @@ function runCalc(){
   let dbBleib=0;
   buildLinkedGruppen(active).forEach(gs=>{
     if(!gs.some(g=>g.vorheriger_tisch)) return; // ohne Bleibegast → Pass 1a übernimmt
+    // Hotelier-Logik (bewiesen am Plan-Vergleich 07.07., Fälle Becker/Bojarzyn/Faigle):
+    // Sind ALLE Mitglieder Bleibegäste mit eigenem Vortags-Tisch, bleibt jeder an
+    // seinem Tisch — Bleibe schlägt Zusammenlegung. Ein Zwangs-Zusammenlegen würde
+    // etablierte Gäste verdrängen und eine Kaskade auslösen. Phase 1 übernimmt sie.
+    const alleBleibe=gs.every(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB');
+    if(alleBleibe) return;
     const totalPax=gs.reduce((s,g)=>s+(g.pax||1),0);
     const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
     const nights=Math.max(1,...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
@@ -3748,13 +3754,22 @@ function runCalc(){
 
   let bl_ok=0,bl_fail=0;
   bleib.forEach(g=>{
-    const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv);
-    if(t&&t.kapazitaet>=g.pax){
+    // Bleibegast behält seinen Tisch IMMER (Hotelier-Treue 63/70) — auch wenn die
+    // Listen-Plätze rechnerisch nicht reichen (gestern saß er dort; enge Fälle sind
+    // gelebte Kombinationen wie 728+729). Mehrere Buchungen mit DEMSELBEN Stammtisch
+    // (z.B. 4 Zimmer an Tisch 728) dürfen sich dort stapeln.
+    const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&!t.blocked_for&&t.aktiv&&(t.belegtPax===0||t._bleibeTisch===g.vorheriger_tisch));
+    if(t){
+      const vorher=t.belegtPax;
       t.belegtPax+=g.pax;
       if(t.belegtPax>=t.kapazitaet) t.belegt=true;
+      t._bleibeTisch=g.vorheriger_tisch;
       t.gast_id=g.id;
       g.zugewiesener_tisch=t.tisch_id;
       g.begruendung='Bleibegast → Stammtisch '+t.tisch_id+' beibehalten';
+      if(t.belegtPax>t.kapazitaet&&vorher<=t.kapazitaet){
+        warns.push({level:'yellow',msg:`Tisch ${t.tisch_id}: ${t.belegtPax} Personen auf ${t.kapazitaet} Listen-Plätzen — wie am Vortag beibehalten, vermutlich gelebte Kombination (Nachbartisch) — bitte kurz prüfen`});
+      }
       bl_ok++;
     } else {
       bl_fail++;

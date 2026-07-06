@@ -209,6 +209,28 @@ async function exportInvariants(page){
       check('Wenige echte Kritisch-Punkte heute (≤5)',ci.redsTotal<=5,ci.redsTotal+' rot');
     }
 
+    // Ground-Truth-Vergleich (nur Vorausschau-Szenario): unser Plan vs. echter
+    // Hotelier-Plan vom 07.07. — misst "gleiche Logik" als Zahl.
+    if(sz.vorausschau){
+      const gtDi=JSON.parse(fs.readFileSync(FIX('ground-truth-di.json'),'utf8'));
+      const gtMo=JSON.parse(fs.readFileSync(FIX('ground-truth-mo.json'),'utf8'));
+      const ourMap=await page.evaluate(()=>{
+        const m={};
+        (assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&g.zimmer).forEach(g=>{
+          String(g.zimmer).split(',').map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{m[z]=String(g.zugewiesener_tisch);});
+        });
+        return m;
+      });
+      const rooms=Object.keys(gtDi);
+      const matched=rooms.filter(z=>ourMap[z]===gtDi[z]).length;
+      const bleibRooms=rooms.filter(z=>gtMo[z]&&ourMap[z]);
+      const treu=bleibRooms.filter(z=>ourMap[z]===gtMo[z]).length;
+      const quote=matched/rooms.length, treue=treu/bleibRooms.length;
+      check('Ground-Truth: ≥85% wie der Hotelier-Plan 07.07.',quote>=0.85,Math.round(quote*100)+'% ('+matched+'/'+rooms.length+')');
+      check('Bleibegast-Treue ≥90% (Hotelier: 63/70)',treue>=0.90,Math.round(treue*100)+'% ('+treu+'/'+bleibRooms.length+')');
+      results.push('    ↳ Übereinstimmung mit Hotelier: '+Math.round(quote*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
+    }
+
     const ei=await exportInvariants(page);
     check('Export baubar',ei.built===true);
     if(ei.built){
