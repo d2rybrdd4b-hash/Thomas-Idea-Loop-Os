@@ -237,4 +237,38 @@ Neue Invarianten in `tests/run-tests.js`:
 3. Tests grün → Version bumpen → `main` + Live-Branch pushen → Live-URL melden.
 4. Parser für das echte 7-Tage-Format finalisieren, sobald das Muster vom Hotelier da ist.
 
-**Offen bis Session-Start:** 7-Tage-Export-Muster vom Hotelier (Format-Entscheidung in §2).
+**Offen bis Session-Start:** — (7-Tage-Muster liegt vor, Format geklärt, Fixtures gebaut).
+
+---
+
+## 9. Stufen-Checkliste (zum Abhaken in der Session)
+
+**Vorbereitung — bereits erledigt (nichts zu tun):**
+- [x] 7-Tage-Format geklärt (§2), gelernte Logik dokumentiert (§4a), Referenzdaten (§5)
+- [x] Anonymisierte Fixtures in `tests/fixtures/`: `arr7-anon.xlsx`, `dep7-anon.xlsx`,
+      `plan-mo-anon.xlsx`, `plan-di-anon.xlsx` (0 echte Namen, Grid 1:1)
+
+**Design-Entscheidung (mit Thomas geklärt):**
+- Zimmer-Qualität → **fest im Code** (ändert sich nie; §5a-Tabelle).
+- Tisch-Eigenschaften → **als Default fest eingebaut** (aus `TischEigenschaften_2`),
+  **zusätzlich per Upload aktualisierbar** und in localStorage gespeichert (wie die
+  Tischplan-Vorlage). Kein täglicher Upload.
+
+**Stufe 0 — Fundament (zuerst, sofort sichtbarer Sprung):**
+- [ ] Zimmer-Qualität-Lookup (§5a) fest hinterlegen; Gast bekommt `zimmer_qualitaet`.
+- [ ] Tisch-Eigenschaften (Qualität + Merkmale) als Default hinterlegen + optionaler Upload.
+- [ ] `TISCH_KAT_MAP` nur noch Fallback; echte Werte gewinnen.
+- [ ] Vergabe-Score: **Zimmer-Qualität gleichwertig zu Nächten** (§4a Punkt 2).
+- [ ] Wunsch-Logik an echte Merkmale koppeln (Fenster/ruhig/Rollstuhl/Familie), Rollstuhl hart.
+- [ ] Freilass-/Notfall-Tische (627, 720, 804 raus; 616/718/721/744/748 nur bei Bedarf).
+- [ ] Tests grün (bestehende 39 + neue Merkmals-Checks) → committen.
+
+**Stufe 1 — Vorausschau-Motor (Wow):**
+- [ ] Parser: `parsePanoramaArrival` liest **alle** 7-Tage-Zeilen, Anreise-Datum je Zeile.
+- [ ] `buildTableCalendar` über das 7-Tage-Fenster.
+- [ ] Prio-Reservierungs-Pass (Premium für künftige Langzeit-Anreisen freihalten, sichtbar vermerkt).
+- [ ] Früh-Warnungen (Premium-/3+-/Gruppen-Engpass an Tag X).
+- [ ] 7-Tage-Zeitleiste (App-Stil).
+- [ ] Neue Fixtures + Invarianten (§7); alle Tests grün → Version bumpen → `main` + Live-Branch pushen → Live-URL melden.
+
+**Grundrhythmus (für Gleichmäßigkeit):** Brief lesen → Stufe bauen → `node tests/run-tests.js` grün → committen → nächste Stufe. Nie ohne grünen Test pushen.

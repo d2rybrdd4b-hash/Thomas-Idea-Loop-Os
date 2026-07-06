@@ -41,6 +41,25 @@ Alle Szenarien zusätzlich: 0 JS-Laufzeitfehler, 0 unplatzierte Gäste,
 **Echte PMS-Dateien mit Gastnamen dürfen NIEMALS in dieses Repository** —
 es ist über GitHub Pages öffentlich erreichbar.
 
+### 7-Tage-Fixtures (für den Vorausschau-Motor)
+
+Zusätzlich liegen anonymisierte Echt-Daten für die mehrtägige Planung bereit
+(Grid 1:1 wie die Originale, alle Gastnamen durch Aliase ersetzt, Freitexte auf
+Wunsch-Signale reduziert, keine Geburtsdaten):
+
+| Datei | Inhalt |
+|---|---|
+| `arr7-anon.xlsx` | **7-Tage-Anreisen** (07.–13.07.), Anreise-Datum je Zeile in Spalte 17 |
+| `dep7-anon.xlsx` | Abreisen inkl. Zimmer-Kategorie-Spalte („Kat.") |
+| `plan-mo-anon.xlsx` | fertiger Hotelier-Tischplan Mo 06.07. (zweispaltig) — als „Vortag" nutzbar |
+| `plan-di-anon.xlsx` | fertiger Hotelier-Tischplan Di 07.07. — **Referenz/Ground-Truth** der echten Logik |
+
+Erhaltene Test-Signale: verknüpfte Buchungen „zu #…" (17×), Kinder/„Ki" (17×),
+Allergien, Tischwünsche, Zimmernummern, Nächte, Tischzuweisungen, Datumsspanne.
+
+Verifikation (Skripte im Scratchpad der Erstell-Session): 0 echte Nachnamen,
+0 Geburtsjahre, Grid `A1:O72` identisch zum Original.
+
 ## Neue Formate aufnehmen
 
 Wenn der Hotelier eine neue Dateiart/Vorlage einführt: zuerst anonymisieren,
