@@ -51,12 +51,12 @@ function check(name,cond,detail){
   return ok;
 }
 
-async function loadAndCalc(page,{vorlage}){
-  if(vorlage) { await page.setInputFiles('#fi-tgst-vorlage',FIX(vorlage)); await page.waitForTimeout(1000); }
-  await page.setInputFiles('#fi-tgst-vortag',FIX('vortag-anon.xlsx'));       await page.waitForTimeout(1000);
-  await page.setInputFiles('#fi-tgst-ankuenfte',FIX('anreise-anon.xlsx'));   await page.waitForTimeout(1000);
-  await page.setInputFiles('#fi-tgst-abreisen',FIX('abreise-anon.xlsx'));    await page.waitForTimeout(1000);
-  await page.evaluate(d=>{ const rd=el('ref-date'); if(rd) rd.value=d; },REF_DATE);
+async function loadAndCalc(page,sz){
+  if(sz.vorlage) { await page.setInputFiles('#fi-tgst-vorlage',FIX(sz.vorlage)); await page.waitForTimeout(1000); }
+  await page.setInputFiles('#fi-tgst-vortag',FIX(sz.vortag||'vortag-anon.xlsx'));       await page.waitForTimeout(1000);
+  await page.setInputFiles('#fi-tgst-ankuenfte',FIX(sz.ankuenfte||'anreise-anon.xlsx'));await page.waitForTimeout(1000);
+  await page.setInputFiles('#fi-tgst-abreisen',FIX(sz.abreisen||'abreise-anon.xlsx'));  await page.waitForTimeout(1000);
+  await page.evaluate(d=>{ const rd=el('ref-date'); if(rd) rd.value=d; },sz.refDate||REF_DATE);
   await page.evaluate(()=>{ runCalc(); });
   await page.waitForTimeout(2500);
 }
@@ -90,7 +90,15 @@ async function calcInvariants(page){
         const warned=warnings.some(w=>w.msg.includes('Rollstuhl')&&w.msg.includes(g.nachname));
         return !(ok||warned);
       }).length,
-      notfallUsed:guests.filter(g=>['627','720','804'].includes(String(g.zugewiesener_tisch))).length
+      notfallUsed:guests.filter(g=>['627','720','804'].includes(String(g.zugewiesener_tisch))).length,
+      // Vorausschau-Motor (Stufe 1)
+      prognoseInPlan:guests.filter(g=>g.status==='PROGNOSE').length, // muss 0 sein — Prognosen gehören nicht in den Tagesplan
+      anHeute:guests.filter(g=>g.status==='AN'||g.status==='AN·AB').length,
+      anPaxHeute:guests.filter(g=>g.status==='AN'||g.status==='AN·AB').reduce((s,g)=>s+(g.pax||1),0),
+      vsReserved:(lastTables||[]).filter(t=>t.zukunft_belegt).length,
+      vsRows:(typeof lastVorausschau!=='undefined'&&lastVorausschau)?lastVorausschau.rows.length:0,
+      vsWarn:(typeof lastVorausschau!=='undefined'&&lastVorausschau)?lastVorausschau.warnungen.length:0,
+      vorausschauAktiv:warnings.some(w=>String(w.msg).startsWith('Vorausschau aktiv'))
     };
   });
 }
@@ -159,6 +167,8 @@ async function exportInvariants(page){
     {name:'S1 Blanco-Vorlage (zweispaltig — Panorama-Vorfall)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true},
     {name:'S2 Mappe3-Vorlage (einspaltig, 3 Blätter)',vorlage:'vorlage-mappe3-anon.xlsx',expectTemplate:true},
     {name:'S3 Ohne Vorlage (Vortag-Fallback)',vorlage:null,expectTemplate:false},
+    {name:'S4 Vorausschau-Motor (7-Tage-Anreisen, Echtformat 07.–13.07.)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-mo-anon.xlsx',ankuenfte:'arr7-anon.xlsx',abreisen:'dep7-anon.xlsx',refDate:'2026-07-07',vorausschau:true},
   ];
 
   for(const sz of SZENARIEN){
@@ -168,7 +178,7 @@ async function exportInvariants(page){
     page.on('pageerror',e=>pageErrors.push(e.message));
     await page.goto(APP,{waitUntil:'networkidle'});
     await page.waitForTimeout(1400);
-    await loadAndCalc(page,{vorlage:sz.vorlage});
+    await loadAndCalc(page,sz);
 
     const ci=await calcInvariants(page);
     check('Keine JS-Laufzeitfehler',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
@@ -184,6 +194,14 @@ async function exportInvariants(page){
     check('Zimmer-Qualität gesetzt (Tiny Studio 20xx→Q8)',ci.roomQ8ok.total>0&&ci.roomQ8ok.ok===ci.roomQ8ok.total,ci.roomQ8ok.ok+'/'+ci.roomQ8ok.total);
     check('Rollstuhl-Wünsche erfüllt oder gemeldet (nie still)',ci.rollstuhlBad===0,ci.rollstuhlBad+' still ignoriert');
     check('Notfall-Tische (627/720/804) nicht regulär vergeben',ci.notfallUsed===0,ci.notfallUsed+'× vergeben');
+    check('Keine PROGNOSE-Gäste im Tagesplan',ci.prognoseInPlan===0,ci.prognoseInPlan+' Prognosen im Plan');
+    if(sz.vorausschau){
+      check('Vorausschau aktiv (künftige Anreisen erkannt)',ci.vorausschauAktiv===true);
+      check('Prio-Reservierungen gesetzt (Langzeit/VIP/Gruppen)',ci.vsReserved>=1,'nur '+ci.vsReserved);
+      check('Zeitleisten-Daten vorhanden (≥60 Tische)',ci.vsRows>=60,'nur '+ci.vsRows);
+      check('Heutige Anreisen plausibel (6–10 laut 07.07.-Zeilen)',ci.anHeute>=6&&ci.anHeute<=10,ci.anHeute+' AN');
+      check('Anreise-PAX korrekt gelesen (Personen-Spalte, ≥14)',ci.anPaxHeute>=14,ci.anPaxHeute+' PAX');
+    }
 
     const ei=await exportInvariants(page);
     check('Export baubar',ei.built===true);

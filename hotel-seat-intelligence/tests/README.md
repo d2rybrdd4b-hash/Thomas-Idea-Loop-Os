@@ -23,6 +23,7 @@ Exit-Code `0` = pushen erlaubt. Alles andere = Fehler beheben, nicht pushen.
 | S1 | Blanco (zweispaltig, mit Platzzahlen) | 7xx-Zeilen im Export, keine Überbelegung, kein Gast verloren/falsch |
 | S2 | Mappe3 (einspaltig, 3 Blätter) | dito (Regression Altformat) |
 | S3 | keine (Vortag-Fallback) | Berechnung fehlerfrei, alle platziert |
+| S4 | Blanco + **7-Tage-Echtdaten** (07.–13.07.) | Vorausschau-Motor: Prognosen erkannt, Prio-Reservierungen, Zeitleiste, PAX-Spalte, keine Prognose im Tagesplan |
 
 Alle Szenarien zusätzlich: 0 JS-Laufzeitfehler, 0 unplatzierte Gäste,
 0 „Geister"-Zuweisungen, Export-Selbstprüfung `exportMissing === 0`.

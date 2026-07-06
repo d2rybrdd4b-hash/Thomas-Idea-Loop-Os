@@ -1004,7 +1004,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ap</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aq</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1332,7 +1332,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ap · 02.07.2026</span>
+          <span class="set-version">v.25.06-aq · 07.07.2026</span>
         </div>
       </div>
 
@@ -1465,6 +1465,13 @@ details.set-adv .adv-body{padding-top:12px;}
           <div class="dl-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg></div>
           <h4 data-i18n="dl.rep.t">Übergabebericht</h4>
           <p data-i18n="dl.rep.d">Schicht-Übergabe fürs Serviceteam — VIP, Allergien, Freigabe.</p>
+          <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+
+        <div class="dl-card" onclick="printVorausschau()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h3v3H8z"/></svg></div>
+          <h4 data-i18n="dl.vs.t">7-Tage-Vorausschau</h4>
+          <p data-i18n="dl.vs.d">Belegung & Reservierungen je Tisch — Engpässe früh erkennen.</p>
           <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -1609,6 +1616,8 @@ function getTodayStr(){
   const d=new Date();
   return d.toISOString().slice(0,10);
 }
+// "2026-07-10" → "10.07." (kompakte deutsche Datumsanzeige)
+function fmtDM(iso){return iso?String(iso).slice(8,10)+'.'+String(iso).slice(5,7)+'.':'';}
 function addDays(s,n){
   const d=new Date(s);d.setDate(d.getDate()+n);
   return d.toISOString().slice(0,10);
@@ -1819,6 +1828,7 @@ const I18N = {
     'dl.room.t':'Sortierung Zimmer','dl.room.d':'Druckliste nach Zimmernummer — für die Rezeption.',
     'dl.tab.t':'Tische & Kombis','dl.tab.d':'Kapazitäten & Auslastung — für die Küche.',
     'dl.rep.t':'Übergabebericht','dl.rep.d':'Schicht-Übergabe fürs Serviceteam — VIP, Allergien, Freigabe.',
+    'dl.vs.t':'7-Tage-Vorausschau','dl.vs.d':'Belegung & Reservierungen je Tisch — Engpässe früh erkennen.',
     'dl.p.roomTitle':'Sortierung Zimmer','dl.p.tabTitle':'Tische & Kombinationen','dl.p.printBtn':'Drucken','dl.p.noData':'Keine Daten vorhanden.','dl.p.popup':'Pop-up blockiert — bitte für diese Seite erlauben.',
     'ub.title':'Übergabebericht','ub.created':'Erstellt','ub.shift':'Schicht','ub.o_clock':'Uhr',
     'ub.mealBreakfast':'Frühstück','ub.mealLunch':'Mittagsservice','ub.mealDinner':'Abendservice','ub.mealAll':'Ganztags',
@@ -1892,6 +1902,7 @@ const I18N = {
     'dl.room.t':'Sort by room','dl.room.d':'Print list by room number — for the front desk.',
     'dl.tab.t':'Tables & combos','dl.tab.d':'Capacities & occupancy — for the kitchen.',
     'dl.rep.t':'Handover report','dl.rep.d':'Shift handover for the service team — VIP, allergies, release.',
+    'dl.vs.t':'7-day preview','dl.vs.d':'Occupancy & reservations per table — spot bottlenecks early.',
     'dl.p.roomTitle':'Sort by room','dl.p.tabTitle':'Tables & combinations','dl.p.printBtn':'Print','dl.p.noData':'No data available.','dl.p.popup':'Pop-up blocked — please allow it for this page.',
     'ub.title':'Handover report','ub.created':'Created','ub.shift':'Shift','ub.o_clock':'',
     'ub.mealBreakfast':'Breakfast','ub.mealLunch':'Lunch service','ub.mealDinner':'Dinner service','ub.mealAll':'All day',
@@ -2401,6 +2412,11 @@ function parsePanoramaArrival(wb){
   const colBemZi=findCol(['bemerk. (zi.)','bemerk.(zi.)','bemerk (zi.)','bemerk.zi.','bemerkung (zimmer)','bemerk. zi.']);
   // Haupt-Bemerkungsspalte dynamisch erkennen (Fallback: hardcodierter Index 8)
   const colBemHaupt=findCol(['bemerk.','bemerkung','bemerkungen','anmerkung','anmerkungen','remarks','remark','notiz','hinweis']);
+  // 7-Tage-Export: eigene Anreise-Datums-Spalte je Zeile ("07.07.26") — damit liest
+  // derselbe Parser sowohl Tages- als auch Mehrtages-Dateien (Vorausschau-Motor).
+  const colAnreise=findCol(['anreise','anreisedatum','arrival','ankunft']);
+  // Personen-Spalte variiert zwischen Tages- (Spalte 7) und 7-Tage-Export (Spalte 6)
+  const colPers=findCol(['personen','pers.','anzahl personen','pax','erwachsene']);
 
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
@@ -2413,7 +2429,7 @@ function parsePanoramaArrival(wb){
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
 
     const naechte=parseInt(row[5])||1;
-    const pax=parseInt(row[7])||1;
+    const pax=parseInt(colPers>=0?row[colPers]:row[7])||1;
     // Beide Bemerkungsspalten zusammenführen (Bemerk. + Bemerk. (Zi.))
     const bemHaupt=colBemHaupt>=0?String(row[colBemHaupt]||'').trim():String(row[8]||'').trim();
     const bemZi=colBemZi>=0?String(row[colBemZi]||'').trim():'';
@@ -2429,8 +2445,14 @@ function parsePanoramaArrival(wb){
     const nachname=parts[0]||nameRaw;
     const vorname=parts.slice(1).join(' ');
 
+    // Anreise-Datum: aus der Zeilen-Spalte (7-Tage-Export) oder aus dem "Vom:"-Kopf
+    let rowArrival=arrivalDate;
+    if(colAnreise>=0){
+      const m=String(row[colAnreise]||'').trim().match(/(\d{2})\.(\d{2})\.(\d{2,4})/);
+      if(m) rowArrival=(m[3].length===2?'20'+m[3]:m[3])+'-'+m[2]+'-'+m[1];
+    }
     // Compute checkout
-    const cin=new Date(arrivalDate);
+    const cin=new Date(rowArrival);
     const cout=new Date(cin);
     cout.setDate(cout.getDate()+naechte);
     const checkOut=cout.toISOString().slice(0,10);
@@ -2440,7 +2462,7 @@ function parsePanoramaArrival(wb){
       Zimmernummer:zimmerRaw,
       Nachname:nachname,
       Vorname:vorname,
-      CheckIn:arrivalDate,
+      CheckIn:rowArrival,
       CheckOut:checkOut,
       AnzahlPersonen:String(pax),
       Bemerkung:bemerkung,
@@ -3212,6 +3234,7 @@ function calcStatus(g,ref){
 
 function isActiveGuest(g,ref){
   if(g.status==='PROGNOSE') return false;
+  if(g.status==='ABGEREIST') return false; // Abreise war heute früh oder davor
   if(!g.check_out) return true;
   return g.check_out>=ref;
 }
@@ -3647,9 +3670,12 @@ function runCalc(){
     // Nur wenn keine dedizierte An-/Abreise-Datei den Gast liefert, greift die
     // bisherige Datums-/GastTyp-Logik (z.B. reine In-Haus-/Vortagsliste → BL).
     let status;
-    if(g.quelle_anreise&&g.quelle_abreise) status='AN·AB';
-    else if(g.quelle_anreise) status='AN';
-    else if(g.quelle_abreise) status='AB';
+    // 7-Tage-Fenster: Anreisen mit künftigem Datum sind PROGNOSE (fließen in den
+    // Vorausschau-Kalender, aber nicht in den heutigen Plan); Abreise-Zeilen, deren
+    // Abreise schon heute/früher war, sind bereits abgereist (kein Abendessen mehr).
+    if(g.quelle_anreise&&g.quelle_abreise) status=(g.check_in&&g.check_in>refDate)?'PROGNOSE':'AN·AB';
+    else if(g.quelle_anreise) status=(g.check_in&&g.check_in>refDate)?'PROGNOSE':'AN';
+    else if(g.quelle_abreise) status=(g.check_out&&g.check_out<=refDate)?'ABGEREIST':'AB';
     else status=calcStatus({...g,vorheriger_tisch:vt},refDate);
     const score=scoreGuest({...g,status},refDate);
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
@@ -3739,35 +3765,50 @@ function runCalc(){
   stepAnim(5);
   const tableCalendar=buildTableCalendar([...bleib,...active.filter(g=>preAssigned.has(g.id))],ts);
   let progReserved=0;
-  prognoseFuture
+  // ── PRIO-RESERVIERUNG (Vorausschau-Motor, Fall #3/#11/#21) ──
+  // NUR prioritäre künftige Anreisen blocken einen Tisch im Voraus: Langzeit
+  // (ab nightsKatRules-Schwelle), VIP oder große Gruppen. Alle anderen künftigen
+  // Anreisen werden NICHT vorab geblockt — sonst wäre der heutige Plan durch
+  // Dutzende Reservierungen stranguliert. Ranking wie die Hotelier-Logik:
+  // Nächte → Zimmer-Qualität → VIP.
+  const nightsOfG=g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
+  const langzeitSchwelle=Math.min(...(nightsKatRules||[{minNights:5}]).map(r=>r.minNights||5));
+  const prioFuture=prognoseFuture
     .filter(g=>g.check_in&&g.check_out)
-    .sort((a,b)=>(b.vip?1:0)-(a.vip?1:0))
+    .filter(g=>nightsOfG(g)>=langzeitSchwelle||g.vip||(g.pax||1)>=6);
+  prioFuture
+    .sort((a,b)=>(nightsOfG(b)-nightsOfG(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||((b.vip?1:0)-(a.vip?1:0)))
     .forEach(g=>{
-      const pref=getZoneForGuest(g);
-      const nights=Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000);
+      const nights=nightsOfG(g);
+      const roomQ=g.zimmer_qualitaet||null;
       const cand=ts.filter(t=>{
-        if(!t.aktiv||t.belegtPax>0||tableOverrides.has(t.tisch_id)) return false;
+        if(!t.aktiv||t.notfall||t.belegtPax>0||tableOverrides.has(t.tisch_id)) return false;
         return isTableFreeForStay(tableCalendar,t.tisch_id,g.check_in,g.check_out)&&t.kapazitaet>=g.pax;
       }).sort((a,b)=>{
+        const sKey=t=>{let k=(t.kategorie||9);if(t.freilass)k+=0.5;if(roomQ>=8&&(t.kategorie||9)<=2)k+=6;return k;};
         const maxKat=getMaxKatForNights(nights);
         if(maxKat!==null){
           const aq=(a.kategorie||9)<=maxKat?0:1, bq=(b.kategorie||9)<=maxKat?0:1;
           if(aq!==bq) return aq-bq;
-          return(a.kategorie||9)-(b.kategorie||9);
         }
-        return (a.kategorie||9)-(b.kategorie||9); // beste Kategorie zuerst — die Gäste-Reihenfolge (Score) steuert, wer zuerst wählt
+        return sKey(a)-sKey(b);
       });
-      const prefT=cand.find(t=>t.zone===pref)||cand[0];
+      const prefT=cand[0];
       if(prefT){
         addStayToCalendar(tableCalendar,prefT.tisch_id,g.check_in,g.check_out);
         prefT.zukunft_belegt=true;
-        prefT.zukunft_info={name:(g.vorname?g.vorname+' ':'')+g.nachname,zimmer:g.zimmer,check_in:g.check_in,check_out:g.check_out,pax:g.pax,vip:g.vip};
+        prefT.zukunft_info={name:(g.vorname?g.vorname+' ':'')+g.nachname,zimmer:g.zimmer,check_in:g.check_in,check_out:g.check_out,pax:g.pax,vip:g.vip,nights};
         progReserved++;
         if(g.vip) warns.push({level:'yellow',msg:`Tisch ${prefT.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} ab ${g.check_in} freigehalten`});
       } else {
-        warns.push({level:'red',msg:`Prognose: ${g.vorname} ${g.nachname} (Ankunft ${g.check_in}, ${g.pax} PAX) — kein Tisch für gesamten Aufenthalt frei`});
+        const msg=`Vorausschau: ${g.vorname} ${g.nachname} (Ankunft ${fmtDM(g.check_in)}, ${g.pax} PAX, ${nights} Nächte) — kein Tisch für den gesamten Aufenthalt frei — Abreisen prüfen (Fall #3)`;
+        if(!warns.some(w=>w.msg===msg)) warns.push({level:'red',msg});
       }
     });
+  if(prognoseFuture.length>0){
+    const lastDay=prognoseFuture.map(g=>g.check_in).sort().pop();
+    warns.unshift({level:'green',msg:`Vorausschau aktiv: ${prognoseFuture.length} künftige Anreisen (bis ${fmtDM(lastDay)}) im Blick — ${progReserved} Tische für Langzeit/VIP/Gruppen reserviert`});
+  }
   if(el('cs5-res')) el('cs5-res').textContent=progReserved+' Prognose-Tische reserviert';
 
   if(el('cs2-res')) el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise';
@@ -4010,6 +4051,42 @@ function runCalc(){
     });
   });
 
+  // ── FRÜH-WARNUNGEN (Vorausschau-Motor): Engpässe im 7-Tage-Fenster erkennen,
+  // BEVOR sie entstehen (Fälle #6 und #21 des Hoteliers). Basis: der Tisch-Kalender
+  // nach allen heutigen Zuweisungen + Prio-Reservierungen.
+  {
+    const futureDays=[...new Set(prognoseFuture.map(g=>g.check_in).filter(Boolean))].sort();
+    futureDays.forEach(day=>{
+      const anDay=prognoseFuture.filter(g=>g.check_in===day);
+      const freiAm=t=>isTableFreeForStay(tableCalendar,t.tisch_id,day,addDays(day,1));
+      const need3=anDay.filter(g=>(g.pax||1)>=3).length;
+      const free3=ts.filter(t=>t.aktiv&&!t.notfall&&t.kapazitaet>=3&&freiAm(t)).length;
+      if(need3>free3) warns.push({level:'yellow',msg:`Vorausschau ${fmtDM(day)}: ${need3} Anreisen mit 3+ Personen, aber nur ${free3} passende Tische frei — Abreisen passend platzieren (Fall #6)`});
+      const needPrem=anDay.filter(g=>nightsOf(g)>=5).length;
+      const freePrem=ts.filter(t=>t.aktiv&&!t.notfall&&(t.kategorie||9)<=2&&freiAm(t)).length;
+      if(needPrem>freePrem) warns.push({level:'yellow',msg:`Vorausschau ${fmtDM(day)}: ${needPrem} Langzeit-Anreisen (5+ Nächte), aber nur ${freePrem} Premium-Tische (Q1–2) frei — gute Tische freihalten (Fall #3)`});
+      anDay.filter(g=>(g.pax||1)>=8).forEach(g=>{
+        const msg=`Vorausschau ${fmtDM(day)}: Gruppe ${g.nachname} (${g.pax} PAX) reist an — Kombitische (z.B. 743–746) bis dahin freihalten (Fall #21)`;
+        if(!warns.some(w=>w.msg===msg)) warns.push({level:'yellow',msg});
+      });
+    });
+  }
+
+  // Vorausschau-Daten für die 7-Tage-Zeitleiste (Druckansicht) festhalten
+  {
+    const vsDays=[];for(let i=0;i<7;i++)vsDays.push(addDays(refDate,i));
+    lastVorausschau={
+      start:refDate,days:vsDays,
+      anProTag:vsDays.map(d=>guests.filter(g=>g.check_in===d&&['AN','AN·AB','PROGNOSE'].includes(g.status)).reduce((s,g)=>s+(g.pax||1),0)),
+      rows:ts.filter(t=>t.aktiv).sort((a,b)=>String(a.tisch_id).localeCompare(String(b.tisch_id),undefined,{numeric:true})).map(t=>({
+        id:t.tisch_id,kat:t.kategorie||9,
+        tage:vsDays.map(d=>{const occ=tableCalendar.get(t.tisch_id);return occ&&occ.has(d)?1:0;}),
+        res:t.zukunft_info?{ab:t.zukunft_info.check_in,name:t.zukunft_info.name,pax:t.zukunft_info.pax,nights:t.zukunft_info.nights}:null
+      })),
+      warnungen:warns.filter(w=>String(w.msg).startsWith('Vorausschau')).map(w=>w.msg)
+    };
+  }
+
   if(el('cs2-res')) el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   if(el('cs3-res')) el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
   if(el('cs4-res')) el('cs4-res').textContent='Score-Rang für '+sorted.length+' Neugäste';
@@ -4166,6 +4243,7 @@ function exportFPasPNG(dateStr){
 // ══════════════════════════════════════════════════════════════
 const ZONE_NAMES={A:'Premium',B:'Fenster',C:'Hauptbereich',F:'Familien',Q:'Ruhige Ecke',P:'Panorama Restaurant',N:'Neue Restaurants',X:'Extern'};
 let lastTables=[];
+let lastVorausschau=null; // 7-Tage-Fenster: Belegung/Reservierung je Tisch (Zeitleiste)
 
 // Grundriss-Rendering entfernt — s3 zeigt nur die Gästeliste (renderPlanTable).
 // lastTables bleibt für Cockpit-Statistiken (freie Tische etc.) erhalten.
@@ -5404,7 +5482,17 @@ function fillTischplanFromTemplate(ws,guestsByTable){
   const guestVals=tid=>{
     const gs=guestsByTable[tid]||[];
     const statusOf=g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
-    if(!gs.length) return {zimmer:'',status:'',name:'',pax:'',extras:'',naechte:''};
+    if(!gs.length){
+      // Fall #3/#14: Für künftige Langzeit/VIP/Gruppen reservierte Tische SICHTBAR
+      // vermerken — das Team weiß, warum der Tisch frei bleibt ("Finger weg").
+      const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
+      if(lt&&lt.zukunft_info){
+        const zi=lt.zukunft_info;
+        return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,
+          extras:'RESERVIERT ab '+fmtDM(zi.check_in)+': '+zi.name+' ('+zi.pax+'P'+(zi.nights?', '+zi.nights+' Nächte':'')+')'+(zi.vip?' — VIP':'')};
+      }
+      return {zimmer:'',status:'',name:'',pax:'',extras:'',naechte:''};
+    }
     if(gs.length===1){
       const g=gs[0];
       return {zimmer:String(g.zimmer||''),status:statusOf(g),name:[g.nachname,g.vorname].filter(Boolean).join(', '),
@@ -5447,7 +5535,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         xlRow.getCell(c+1).value=(val!=null&&val!=='')?val:null;
       }
       // 2) Gastfelder je Block-Eintrag mit den berechneten Daten überschreiben
-      const allergieCols=[];
+      const allergieCols=[];const reserviertCols=[];
       entries.forEach(({tid,e})=>{
         const bl=e.block||blocks[0];
         const gv=guestVals(tid);
@@ -5455,6 +5543,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         setC(bl.zimmerCol,gv.zimmer); setC(bl.statusCol,gv.status); setC(bl.gastnameCol,gv.name);
         setC(bl.paxCol,gv.pax); setC(bl.extrasCol,gv.extras);
         if(gv.hasAllergie&&bl.extrasCol!=null) allergieCols.push(bl.extrasCol);
+        if(gv.reserviert&&bl.extrasCol!=null) reserviertCols.push(bl.extrasCol);
       });
       // 3) Einheitliches Styling über alle Spalten beider Blöcke — Zell-Hintergründe
       // der VORLAGE haben Vorrang (Hotelier-Optik: Grautöne, Markierungsfarben)
@@ -5483,6 +5572,7 @@ function fillTischplanFromTemplate(ws,guestsByTable){
           }
           // Fall #9: Allergien deutlich hervorheben (fett + rot)
           if(allergieCols.includes(bl.extrasCol)) xc.font={size:9,bold:true,color:{argb:'FF9C0006'}};
+          else if(reserviertCols.includes(bl.extrasCol)) xc.font={size:9,italic:true,color:{argb:'FF8A6D1A'}};
         });
         if(h>0) xlRow.height=h;
       }
@@ -5561,6 +5651,8 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         xlRow.height=wrapHeight(exCell.value,46);
         // Fall #9: Allergien/Unverträglichkeiten deutlich hervorheben (fett + rot)
         if(entry&&gv&&gv.hasAllergie) exCell.font={size:9,bold:true,color:{argb:'FF9C0006'}};
+        // Vorausschau: Reserviert-Vermerk kursiv + gold (bewusste Planung, Fall #14)
+        else if(entry&&gv&&gv.reserviert) exCell.font={size:9,italic:true,color:{argb:'FF8A6D1A'}};
       }
     }
   }
@@ -6194,6 +6286,59 @@ tr:nth-child(even) td{background:#f7f9fb}
   win.document.open(); win.document.write(doc); win.document.close();
 }
 
+// ── 7-Tage-Vorausschau (Zeitleiste): Tisch × Tag — Belegung, Reservierungen, Warnungen ──
+function printVorausschau(){
+  if(!calcDone||!lastVorausschau||!(lastVorausschau.rows||[]).length){ setStatus(t('export.noPlan'),'err'); return; }
+  const vs=lastVorausschau;
+  const hotel=dlHotelName();
+  const w=window.open('','_blank');
+  if(!w){ setStatus(t('dl.p.popup'),'err'); return; }
+  const dayHdr=vs.days.map((d,i)=>'<th class="d">'+fmtDM(d)+'<span class="an">'+(vs.anProTag[i]?('+'+vs.anProTag[i]+'P'):'')+'</span></th>').join('');
+  const rowsHtml=vs.rows.map(r=>{
+    const cells=vs.days.map((d,i)=>{
+      const resStart=r.res&&r.res.ab===d;
+      if(resStart) return '<td class="c res" title="reserviert ab '+fmtDM(r.res.ab)+': '+escP(r.res.name)+' ('+r.res.pax+'P)">R</td>';
+      return '<td class="c '+(r.tage[i]?'occ':'free')+'"></td>';
+    }).join('');
+    const resTxt=r.res?('<span class="ri">→ '+escP(r.res.name)+' ab '+fmtDM(r.res.ab)+' ('+r.res.pax+'P'+(r.res.nights?', '+r.res.nights+'N':'')+')</span>'):'';
+    return '<tr><td class="t">'+r.id+'<span class="q">Q'+r.kat+'</span></td>'+cells+'<td class="info">'+resTxt+'</td></tr>';
+  }).join('');
+  const warnHtml=(vs.warnungen||[]).length
+    ? '<div class="wbox"><b>Früh-Warnungen:</b><ul>'+vs.warnungen.map(x=>'<li>'+escP(x)+'</li>').join('')+'</ul></div>'
+    : '<div class="wbox ok">Keine Engpässe im 7-Tage-Fenster erkannt.</div>';
+  function escP(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  const doc='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>'+escP(hotel)+' — 7-Tage-Vorausschau</title>'+
+  '<style>@page{margin:12mm;size:landscape}*{box-sizing:border-box}'+
+  'body{font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;color:#1a2532;margin:0;padding:22px 26px}'+
+  '.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #C8A84B;padding-bottom:9px;margin-bottom:12px}'+
+  '.hd .h{font-family:Georgia,serif;font-size:19px;font-weight:700;color:#12406b}.hd .s{font-size:11px;color:#5a6b7d;margin-top:2px}'+
+  'table{border-collapse:collapse;font-size:10px;width:100%}'+
+  'th{background:#12406b;color:#fff;padding:4px 6px;font-size:9px;text-transform:uppercase;letter-spacing:.3px}'+
+  'th.d{min-width:52px}th .an{display:block;font-size:8px;opacity:.8;text-transform:none}'+
+  'td{border:1px solid #e4e9ef;padding:2px 5px}'+
+  'td.t{font-weight:700;white-space:nowrap}td.t .q{font-weight:400;color:#8a97a6;font-size:8.5px;margin-left:4px}'+
+  'td.c{width:52px;height:15px;text-align:center;font-weight:800;font-size:9px}'+
+  'td.c.occ{background:#2e5d8f}td.c.free{background:#f4f7fa}'+
+  'td.c.res{background:#e9d698;color:#7a5c12}'+
+  'td.info{font-size:9px;color:#7a5c12;white-space:nowrap}'+
+  '.leg{display:flex;gap:16px;font-size:10px;margin:10px 0;color:#3d4c5c}.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}'+
+  '.wbox{border:1.5px solid #f2d0a0;background:#fdf6ec;border-radius:9px;padding:9px 13px;font-size:11px;margin-top:12px}'+
+  '.wbox.ok{border-color:#cbe7d3;background:#f2fbf5;color:#1c7a44}.wbox ul{margin:5px 0 0;padding-left:18px}.wbox li{margin:2px 0}'+
+  '.pbtn{position:fixed;top:12px;right:12px;background:#C8A84B;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer}'+
+  '@media screen{.hd{padding-right:110px}}@media print{.pbtn{display:none}}'+
+  '</style></head><body>'+
+  '<button class="pbtn" onclick="window.print()">'+escP(t('dl.p.printBtn'))+'</button>'+
+  '<div class="hd"><div><div class="h">'+escP(hotel)+'</div><div class="s">7-Tage-Vorausschau — Belegung & Reservierungen je Tisch</div></div>'+
+  '<div style="font-size:11px;color:#5a6b7d;text-align:right">'+escP(dlDateHuman())+'</div></div>'+
+  '<div class="leg"><span><i style="background:#2e5d8f"></i>belegt (Aufenthalt)</span><span><i style="background:#e9d698"></i>R = reserviert für Langzeit/VIP/Gruppe</span><span><i style="background:#f4f7fa;border:1px solid #dde"></i>frei</span><span>+NP = Anreise-Personen an dem Tag</span></div>'+
+  '<table><thead><tr><th style="text-align:left">Tisch</th>'+dayHdr+'<th style="text-align:left">Reservierung</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+  warnHtml+
+  '<div style="margin-top:14px;font-size:9px;color:#8a97a6">'+escP(hotel)+' · Hotel Seat Intelligence · Vorausschau-Motor</div>'+
+  '<script>setTimeout(function(){try{window.print()}catch(e){}},350)<\/script>'+
+  '</body></html>';
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+
 function updateDrucklistenState(){
   const noData=el('dl-no-data');
   const cards=el('dl-cards');
@@ -6458,9 +6603,17 @@ function computeHouseStats(){
 function verifyQuellenAbgleich(){
   const st=computeHouseStats();
   const rowCount=key=>{const f=parsedFiles[key];return (f&&f.rows)?f.rows.length:null;};
+  // 7-Tage-Dateien: nur die Zeilen des Stichtags zählen (Anreise = heute,
+  // Abreise = morgen früh), nicht die gesamte Fensterlänge.
+  const anRowsToday=()=>{const f=parsedFiles.ankuenfte;if(!f||!f.rows)return null;
+    if(f.rows.some(r=>r.CheckIn)) return f.rows.filter(r=>r.CheckIn===refDate).length;
+    return f.rows.length;};
+  const abRowsTomorrow=()=>{const f=parsedFiles.abreisen;if(!f||!f.rows)return null;
+    if(f.rows.some(r=>r.CheckOut)) return f.rows.filter(r=>r.CheckOut===addDays(refDate,1)).length;
+    return f.rows.length;};
   const items=[];
-  const anRows=rowCount('ankuenfte'); if(anRows!=null) items.push({label:'Anreise-Zimmer = Anreise-Datei',ist:st.anZimmer,soll:anRows});
-  const abRows=rowCount('abreisen'); if(abRows!=null) items.push({label:'Abreise-Zimmer = Abreise-Datei',ist:st.abZimmer,soll:abRows});
+  const anRows=anRowsToday(); if(anRows!=null&&anRows>0) items.push({label:'Anreise-Zimmer = Anreise-Datei (heute)',ist:st.anZimmer,soll:anRows});
+  const abRows=abRowsTomorrow(); if(abRows!=null&&abRows>0) items.push({label:'Abreise-Zimmer = Abreise-Datei (morgen früh)',ist:st.abZimmer,soll:abRows});
   items.push({label:'platziert + ohne Tisch = Gäste',ist:st.platziertZimmer+st.ohneTischZimmer,soll:st.gaesteZimmer});
   items.push({label:'belegte + freie Tische = Tische gesamt',ist:st.tischeBelegt+st.tischeFrei,soll:st.tischeGesamt});
   const seen={},dups=new Set();
