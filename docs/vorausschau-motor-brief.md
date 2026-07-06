@@ -40,18 +40,23 @@ vorgelagerten Vorausschau-Pass, ändert aber die bestehende Tages-Vergabe nicht 
 
 ---
 
-## 2. FEHLT NOCH (Blocker für Schritt A): 7-Tage-Export-Format
+## 2. 7-Tage-Export-Format — GEKLÄRT (Muster vom 07.–13.07. analysiert)
 
-Der Hotelier schickt ein **Muster** des 7-Tage-Exports (Anreisen + Abreisen) nach. Vor dem
-Parser-Bau klären:
-- **Eine Datei mit Datums-Spalte pro Zeile** ODER **7 einzelne Tagesdateien**?
-- Gleiche Spalten wie die heutigen Tagesberichte (Zimmer, Gastname(n), Nächte, Personen,
-  Bemerk., Res.-Status, Res.-Nr.)?
-- Bei Abreisen: enthält der 7-Tage-Export weiterhin die Umzüge (die tauchen laut Fall #2 in
-  der Abreiseliste auf)?
+- **Anreisen = EINE Datei** mit Datumsbereich (Kopf „Vom: 07.07.2026 / Bis: 13.07.2026"),
+  Sheet `DynamicListReport_*`, Kopfzeile in Zeile 6. **Jede Zeile hat eine eigene
+  Anreise-Spalte** (Spaltenindex 16, Format „07.07.26"). Weitere Spalten wie bisher:
+  Zimmer(1), Gastname(n)(2), Nächte(5), Personen(6), Bemerk.(8), Bemerk.(Zi.)(11),
+  Res.-Status(14), Res.-Nr.(15).
+  → Parser: den bestehenden `parsePanoramaArrival` erweitern, sodass er **alle** Zeilen über
+  das Fenster liest und pro Zeile das Datum aus Spalte 16 als `check_in` nimmt
+  (`check_out = check_in + Nächte`).
+- **Abreisen = EINE Datei** mit Datumsbereich, zusätzlich Spalten **Anreise(5), Abreise(7),
+  Nächte(8), Kat.(10 = Zimmer-Kategorie z.B. „JS Garten"/„Tiny Studio"), Personen(11)**.
+  → Die `Kat.`-Spalte ist direkt die **Zimmer-Qualität** (siehe §5a) und sollte mitgelesen werden.
+- Verknüpfte Buchungen erscheinen als „zu #NNNNN" in Bemerk. (sehr häufig, siehe §5b).
 
-→ Bis das Muster da ist: Motor + Kalender + Reservierungslogik + Visualisierung lassen sich
-bauen und mit **synthetischen 7-Tage-Fixtures** testen; nur der finale Parser wartet auf das Muster.
+→ Motor, Kalender, Reservierungslogik, Visualisierung + Parser können jetzt gebaut werden.
+Fixtures: anonymisiertes 7-Tage-Muster (niemals echte Namen).
 
 ---
 
@@ -76,6 +81,9 @@ Aufgaben:
    - Bemerkung „Rollstuhl/barrierefrei" → **nur** `rollstuhl`-Tische (harte Regel)
    - nicht erfüllbar → Hinweis statt stiller Ignoranz
 4. Freilass-/Notfall-Tische (siehe §5) nur im Notfall vergeben.
+5. **Zimmer-Qualität in den Vergabe-Score aufnehmen** (§4a Punkt 2 — belegt aus Echtdaten):
+   bei der Reihenfolge, wer zuerst den schöneren Tisch wählt, zählt die Zimmer-Kategorie
+   **gleichwertig zu den Nächten**. Score-Gewicht ergänzen; Tiny Studio (Q8) deckelt nach unten.
 
 ### Stufe 1 — Vorausschau-Motor (der Wow-Effekt, heute-Abend-Ziel)
 1. **7-Tage-Daten** einlesen (Format gemäß Muster) → alle künftigen Anreisen als Gäste mit
@@ -113,7 +121,49 @@ Das ist ein echtes Optimierungsproblem — bewusst separat entscheiden.
 
 ---
 
+## 4a. GELERNTE LOGIK aus zwei echten Tagesplänen (Mo 06.07. → Di 07.07.)
+
+Aus dem Vergleich zweier fertiger Hotelier-Pläne rekonstruiert — das ist seine reale Logik:
+
+**(1) Tisch-Treue ~100 %.** 54 von 58 bleibenden Gästen behielten den exakten Tisch,
+**0 echte Umzüge**. Die 4 Zimmer-Diffs waren **Zimmer-Wechsel** (Abreise → neue Anreise in
+derselben Zimmernummer). → Bleibegast-Regel hat oberste Priorität; nie ohne Grund umsetzen.
+
+**(2) ⭐ Zimmer-Qualität steuert Tisch-Qualität (zentraler Treiber, Fall #19 belegt).**
+Korrelation aus dem echten Plan:
+
+| Zimmer-Q | Ø Tisch-Q | | Zimmer-Q | Ø Tisch-Q |
+|---|---|---|---|---|
+| Q1 | 1,0 | | Q5 | 2,7 |
+| Q2 | 1,2 | | Q6–Q7 | 2,0–2,3 |
+| Q3 | 2,6 | | **Q8 (Tiny Studio)** | **4,3 (bis 7)** |
+| Q4 | 2,8 | | | |
+
+→ **Der Vergabe-Score braucht die Zimmer-Kategorie als gleichwertige Priorität neben den
+Nächten** (bisher nur Nächte). Bestes Zimmer → bester Tisch; Tiny Studio → einfacher Tisch.
+
+**(3) Wünsche sind durch die Zimmer-Klasse gedeckelt.** Beispiel: Tiny-Studio-Gast wünscht
+„ruhig mit Aussicht" → bekam einen Q4-Tisch (nicht erfüllt). → Wünsche gelten, aber die
+Zimmer-Klasse setzt die Obergrenze; nicht über die Klasse „hochplatzieren".
+
+**(4) Häufigkeit der Sonderfälle (aus den 7-Tage-Anreisen — Priorität der Umsetzung):**
+verknüpfte Buchungen „zu #…" **17×** · Kinder/Baby **14×** · Allergien 6× · Geburtstage 6× ·
+Honeymoon 3× · konkreter Tischwunsch 2× · ruhig/Aussicht 2×.
+→ **Verknüpfte Buchungen und Familien zuerst perfekt machen** — das ist das Alltagsvolumen.
+
+**(5) Keine feste Zimmer→Restaurant-Zuordnung.** Beide Restaurants mischen alle Zimmertypen
+(~60/40). Nicht starr „Zimmer X → Restaurant Y" verdrahten.
+
+---
+
 ## 5. Referenzdaten (aus den Hotelier-Dateien — direkt verwendbar)
+
+### 5a. Zimmer-Qualität (Blatt „Qualität Zimmerkategorien" + Abreise-Spalte „Kat.")
+Q1: 307 · Q2: 404,407,101,121,201,219 · Q3: 116–120,215–218 · Q4: 202–204,301,302,405,406,
+501–518,105,206,205 · Q5: 106,107,401–403,102–104,113 · Q6: 208,108,109,207 · Q7: 110–112 ·
+Q8: 2001–2010 (Tiny Studio).
+
+### 5b. Weitere Referenzdaten
 
 **Tische entfernt / nur Notfall:** `627` (7. Tisch 620er-Box), `720` (zu eng), `804`
 (nicht mehr geführt). Nicht in der Standard-Vergabe verwenden.
