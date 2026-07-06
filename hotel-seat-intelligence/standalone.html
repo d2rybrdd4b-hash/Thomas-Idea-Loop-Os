@@ -1282,9 +1282,16 @@ details.set-adv .adv-body{padding-top:12px;}
               <div id="weights-editor-list"></div>
               <div id="score-legend" style="margin-top:10px"></div>
             </div>
-            <div class="set-block">
+            <div class="set-block" style="margin-bottom:16px">
               <div class="set-label" data-i18n="set.occasions">Anlässe berücksichtigen</div>
               <div id="anlaesse-list"></div>
+            </div>
+            <div class="set-block">
+              <div class="set-label" data-i18n="set.tischEig">Tisch-Eigenschaften</div>
+              <p class="set-hint" style="margin-bottom:8px" data-i18n="set.tischEigHint">Qualität (1–8) und Merkmale (Fenster, ruhig, Rollstuhl, Familie) jedes Tischs — Grundlage der Vergabe. Nur bei Änderungen neu laden.</p>
+              <p class="set-hint" id="tisch-eig-status" style="margin-bottom:8px;color:var(--gold)">—</p>
+              <input type="file" id="fi-tisch-eig" accept=".xlsx,.xls" style="display:none" onchange="loadTischEigenschaftenFile(this)">
+              <button class="btn btn-outline btn-sm" onclick="el('fi-tisch-eig').click()" data-i18n="set.tischEigBtn">Aktualisierte Excel laden</button>
             </div>
           </div>
         </details>
@@ -1861,6 +1868,7 @@ const I18N = {
     'set.priority':'Priorisierung','set.prioritySummary':'Tische werden nach Aufenthaltsdauer vergeben — Gäste mit längerem Aufenthalt erhalten die besseren Tische. Bei gleicher Dauer entscheidet der Status (VIP/Stammgast).',
     'set.advanced':'Erweiterte Einstellungen','set.advNights':'Lange Aufenthalte bevorzugen','set.advNightsHint':'Ab wie vielen Nächten erhält ein Gast garantiert einen Tisch aus einer guten Kategorie?',
     'set.addStage':'+ weitere Stufe','set.bestFirst':'Wer bekommt zuerst die besten Tische?','set.occasions':'Anlässe berücksichtigen',
+    'set.tischEig':'Tisch-Eigenschaften','set.tischEigHint':'Qualität (1–8) und Merkmale (Fenster, ruhig, Rollstuhl, Familie) jedes Tischs — Grundlage der Vergabe. Nur bei Änderungen neu laden.','set.tischEigBtn':'Aktualisierte Excel laden',
     'set.invite':'Weiterempfehlen','set.inviteSub':'Link oder QR-Code teilen, um die App an Kolleg:innen oder andere Häuser zu empfehlen.','set.copyLink':'Link kopieren','set.copied':'Kopiert ✓',
     'set.trust':'Vertrauen & Support','set.privacy':'Datenschutz','set.privacyText':'Alle Daten (Tischpläne, Gästedaten) bleiben ausschließlich lokal auf diesem Gerät. Es findet keine Übertragung an einen Server statt — DSGVO-konform.',
     'set.systemStatus':'Systemstatus','set.offlineReady':'Offline-bereit — funktioniert auch ohne Internet','set.support':'Support','set.supportText':'Bei Fragen oder Wünschen wenden Sie sich an Ihren Ansprechpartner. Ein direkter Support-Kontakt wird in Kürze ergänzt.','set.version':'Version'
@@ -1933,6 +1941,7 @@ const I18N = {
     'set.priority':'Prioritisation','set.prioritySummary':'Tables are assigned by length of stay — guests staying longer get the better tables. On a tie, status decides (VIP/regular).',
     'set.advanced':'Advanced settings','set.advNights':'Prefer long stays','set.advNightsHint':'From how many nights does a guest always get a table from a good category?',
     'set.addStage':'+ add stage','set.bestFirst':'Who gets the best tables first?','set.occasions':'Consider occasions',
+    'set.tischEig':'Table properties','set.tischEigHint':'Quality (1–8) and features (window, quiet, wheelchair, family) of every table — the basis of assignment. Reload only when something changes.','set.tischEigBtn':'Load updated Excel',
     'set.invite':'Recommend','set.inviteSub':'Share the link or QR code to recommend the app to colleagues or other properties.','set.copyLink':'Copy link','set.copied':'Copied ✓',
     'set.trust':'Trust & Support','set.privacy':'Data protection','set.privacyText':'All data (table plans, guest data) stays exclusively on this device. Nothing is sent to a server — GDPR-compliant.',
     'set.systemStatus':'System status','set.offlineReady':'Offline-ready — works without internet too','set.support':'Support','set.supportText':'For questions or requests please contact your representative. A direct support contact will be added shortly.','set.version':'Version'
@@ -2029,6 +2038,112 @@ const ZIMMERSTAMM=new Set([
   501,502,503,504,505,506,507,508,509,510,511,512,513,514,515,516,517,518,
   2001,2002,2003,2004,2005,2006,2007,2008,2009,2010
 ]);
+
+// ══════════════════════════════════════════════════════════════
+//  ZIMMER-QUALITÄT (1=beste … 8) — aus Hotelier-Datei "Input für Tischplan-
+//  Software", Blatt "Qualität Zimmerkategorien" (Stand 06.07.2026).
+//  Steuert lt. Echtdaten-Analyse die Tischvergabe gleichwertig zu den Nächten:
+//  bestes Zimmer → bester Tisch (Fall #19). Ändert sich praktisch nie → fest.
+// ══════════════════════════════════════════════════════════════
+const ZIMMER_QUALITAET=(()=>{
+  const m={};
+  const add=(q,list)=>list.forEach(z=>{ if(Array.isArray(z)){for(let i=z[0];i<=z[1];i++)m[String(i)]=q;} else m[String(z)]=q; });
+  add(1,[307]);                                        // Panorama Spa Suite
+  add(2,[404,407,101,121,201,219]);                    // Suite Einstein, JS Breitenberg
+  add(3,[[116,120],[215,218]]);                        // JS Brentenjoch
+  add(4,[[202,204],301,302,405,406,[501,518],105,206,205]); // JS Tegelberg/Garten/Alpspitze, Suite Gimpel
+  add(5,[106,107,[401,403],[102,104],113]);            // JS Rote Flüh/Gehrenspitze, Suite Geißhorn
+  add(6,[208,108,109,207]);                            // Suite Zugspitze, DZ Aggenstein
+  add(7,[[110,112]]);                                  // DZ Grünten
+  add(8,[[2001,2010]]);                                // Tiny Studio
+  return m;
+})();
+function getZimmerQualitaet(zimmer){
+  const z=String(zimmer||'').split(',')[0].trim();
+  return ZIMMER_QUALITAET[z]||null;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TISCH-EIGENSCHAFTEN — vom Hotelier ausgefüllt (TischEigenschaften_2.xlsx,
+//  06.07.2026). Format je Tisch: [Qualität 1–8, Plätze, Merkmale].
+//  Merkmale: F=Fenster/Aussicht, R=Ruhig/abseits, W=Rollstuhl-geeignet, K=Familien-geeignet.
+//  Ersetzt die frühere TISCH_KAT_MAP (die bei 31 von 71 Tischen falsch lag).
+//  Aktualisierbar per Excel-Upload in den Einstellungen (localStorage) — kein täglicher Upload.
+// ══════════════════════════════════════════════════════════════
+const TISCH_EIGENSCHAFTEN_DEFAULT={
+  '611':[3,3,'R'],'612':[4,2,'K'],'613':[4,2,'K'],'614':[3,3,'RW'],'615':[3,2,'RW'],'616':[4,2,'W'],'617':[4,2,''],
+  '621':[3,3,'R'],'622':[3,2,'K'],'623':[3,2,'RK'],'624':[3,3,'RWK'],'625':[4,2,'WK'],'626':[4,2,'W'],
+  '631':[2,3,'R'],'632':[3,3,'K'],'633':[2,3,'RK'],'634':[2,2,'RWK'],'635':[3,2,'WK'],'636':[3,2,'W'],
+  '641':[1,3,'F'],'642':[1,3,'FK'],'643':[1,3,'FK'],'644':[1,3,'FWK'],'645':[1,3,'FWK'],'646':[1,3,'FW'],
+  '651':[1,2,'FR'],'652':[1,2,'FR'],'653':[1,2,'FR'],'654':[1,2,'FR'],
+  '661':[2,2,'R'],'662':[2,2,'R'],'663':[1,2,'R'],'664':[1,2,'R'],
+  '671':[3,2,'R'],'672':[3,2,'R'],'673':[2,2,'R'],'674':[2,2,'R'],
+  '711':[1,3,'FR'],'712':[1,3,'FR'],'713':[1,3,'FR'],'714':[1,3,'FR'],'715':[2,2,'FRW'],'716':[2,2,'FW'],
+  '717':[3,2,'FW'],'718':[4,2,'FW'],'721':[4,2,'FW'],'722':[3,2,'FW'],'723':[3,2,'FW'],'724':[2,2,'FW'],'725':[1,2,'FRW'],
+  '726':[1,5,'RK'],'727':[1,5,'RK'],'728':[3,2,'K'],'729':[4,2,'WK'],'730':[3,2,'K'],'731':[4,2,'WK'],'732':[3,2,'K'],'733':[4,2,'WK'],
+  '741':[4,4,'K'],'742':[4,4,'K'],'743':[4,4,'K'],'744':[7,2,'WK'],'745':[7,2,'WK'],'746':[5,3,'WK'],'747':[6,3,'WK'],'748':[7,2,'WK'],'749':[5,3,'WK'],'750':[6,2,'WK'],
+  '801':[8,null,''],'802':[8,null,''],'803':[8,null,'']
+};
+// Nur im äußersten Notfall vergeben (Hotelier: 627 = 7. Tisch der 620er-Box zu eng,
+// 720 macht Bereich zu eng, 804 nicht mehr geführt).
+const NOTFALL_TISCHE=new Set(['627','720','804']);
+// Fall #22: diese Tische bevorzugt freilassen (Abstelltisch etc.), nur bei Bedarf belegen.
+const FREILASS_TISCHE=new Set(['616','718','721','744','748']);
+
+let tischEigenschaften={...TISCH_EIGENSCHAFTEN_DEFAULT};
+let tischEigenschaftenStand='Standard (06.07.2026)';
+function loadTischEigenschaften(){
+  try{
+    const raw=localStorage.getItem('hsi_tisch_eig');
+    if(raw){const p=JSON.parse(raw);
+      if(p&&p.map&&Object.keys(p.map).length>=10){tischEigenschaften=p.map;tischEigenschaftenStand='aktualisiert am '+(p.stand||'?');}}
+  }catch(e){}
+  const st=el('tisch-eig-status');
+  if(st) st.textContent=Object.keys(tischEigenschaften).length+' Tische · '+tischEigenschaftenStand;
+}
+// Eigenschaften eines Tischs — Zusatz-/Splittische (622_1) erben vom Stammtisch (622).
+function getTischEig(id){
+  const key=String(id);
+  return tischEigenschaften[key]||tischEigenschaften[key.split('_')[0]]||null;
+}
+function tischHatMerkmal(t,merk){
+  return String(t&&t.merkmale||'').includes(merk);
+}
+// Upload einer aktualisierten Tisch-Eigenschaften-Excel (Blatt "Tische":
+// Spalten Tisch | Bereich | Plätze | Qualität | Fenster | Ruhig | Rollstuhl | Familie | Stammtisch | Bemerkung)
+function loadTischEigenschaftenFile(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const sn=wb.SheetNames.find(n=>/^tische$/i.test(n.trim()))||wb.SheetNames[0];
+      const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+      const map={};
+      aoa.forEach(r=>{
+        const t=String((r||[])[0]||'').trim();
+        if(!/^[0-9]{3}(_[0-9])?$/.test(t)) return;
+        const p=parseInt(r[2]); const q=parseInt(r[3]);
+        let m='';
+        if(String(r[4]||'').trim().toUpperCase()==='X') m+='F';
+        if(String(r[5]||'').trim().toUpperCase()==='X') m+='R';
+        if(String(r[6]||'').trim().toUpperCase()==='X') m+='W';
+        if(String(r[7]||'').trim().toUpperCase()==='X') m+='K';
+        map[t]=[(q>=1&&q<=9)?q:8,(p>=1&&p<=20)?p:null,m];
+      });
+      if(Object.keys(map).length<10){setStatus('Tisch-Eigenschaften: Datei nicht erkannt (Blatt "Tische" mit Tischnummern erwartet)','err');return;}
+      tischEigenschaften=map;
+      tischEigenschaftenStand='aktualisiert am '+new Date().toLocaleDateString('de-DE');
+      localStorage.setItem('hsi_tisch_eig',JSON.stringify({stand:new Date().toLocaleDateString('de-DE'),map}));
+      const st=el('tisch-eig-status');
+      if(st) st.textContent=Object.keys(map).length+' Tische · '+tischEigenschaftenStand;
+      setStatus('Tisch-Eigenschaften aktualisiert: '+Object.keys(map).length+' Tische — bitte Tischplan neu berechnen','go');
+    }catch(ex){setStatus('Fehler beim Lesen der Tisch-Eigenschaften: '+ex.message,'err');}
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
 
 // ══════════════════════════════════════════════════════════════
 //  DEMO DATA — 60 Testgäste
@@ -3059,6 +3174,9 @@ function parseGuests(rows){
       stammgast:isStammgast,
       kinder,
       zimmer_kat:String(getField(r,'Zimmerkategorie')||''),
+      // Zimmer-Qualität 1–8 (fest hinterlegt, §Qualität Zimmerkategorien) — steuert
+      // lt. Echtdaten-Analyse die Tischvergabe gleichwertig zu den Nächten (Fall #19)
+      zimmer_qualitaet:getZimmerQualitaet(getField(r,'Zimmernummer')||''),
       allergie:getField(r,'Allergie')||'',
       bemerkung:getField(r,'Bemerkung')||'',
       extras:getField(r,'Extras')||'',
@@ -3131,24 +3249,41 @@ function buildScoreBreakdown(g){
   return `${g.prioritaet_score} Pkt: ${parts.join(' · ')}`;
 }
 
+// Reichert ein Tischobjekt mit den Hotelier-Eigenschaften an (Qualität als führende
+// Kategorie-Quelle, echte Platzzahl als Fallback, Merkmale F/R/W/K, Notfall/Freilass).
+function applyTischEigenschaften(t){
+  const eig=getTischEig(t.tisch_id);
+  if(eig){
+    if(eig[0]) t.kategorie=eig[0];                      // Qualität des Hoteliers gewinnt
+    if(!t.kapazitaet&&eig[1]) t.kapazitaet=eig[1];      // Platzzahl nur als Fallback
+    t.merkmale=eig[2]||'';
+  } else {
+    t.merkmale=t.merkmale||'';
+  }
+  const base=String(t.tisch_id).split('_')[0];
+  t.notfall=NOTFALL_TISCHE.has(String(t.tisch_id))||NOTFALL_TISCHE.has(base);
+  t.freilass=FREILASS_TISCHE.has(String(t.tisch_id))||FREILASS_TISCHE.has(base);
+  return t;
+}
+
 function parseTables(rows){
   if(!rows||rows.length===0){
     // Reale Tische aus der hochgeladenen Tischvorlage des Hoteliers verwenden, falls vorhanden
     const tplIds=Object.keys(tischplanKat||{});
     if(tplIds.length){
-      return tplIds.map(id=>({
+      return tplIds.map(id=>applyTischEigenschaften({
         tisch_id:id,
         zone:'C',
-        kapazitaet:(tischplanKapazitaet||{})[id]||4,
+        kapazitaet:(tischplanKapazitaet||{})[id]||0,
         // Zusatz-/Splittische (z.B. 622_1) erben die Kategorie ihres Stammtischs (622)
         kategorie:tischplanKat[id]||tischplanKat[String(id).split('_')[0]]||TISCH_KAT_MAP[id]||TISCH_KAT_MAP[String(id).split('_')[0]]||5,
         aktiv:true,
         x:0,y:0,
         belegt:false,
         gast_id:null
-      }));
+      })).map(t=>{if(!t.kapazitaet)t.kapazitaet=4;return t;});
     }
-    return DEFAULT_TABLES.map(t=>({...t,belegt:false,gast_id:null}));
+    return DEFAULT_TABLES.map(t=>applyTischEigenschaften({...t,belegt:false,gast_id:null}));
   }
   const posMap={};
   const katMap={};
@@ -3159,10 +3294,11 @@ function parseTables(rows){
     const baseId=String(id).split('_')[0]; // Stammtisch eines Zusatz-/Splittischs (622_1 → 622)
     const pos=posMap[id]||{x:0,y:0};
     const kat=parseInt(r.Kategorie||r.kategorie||r.Category||(tischplanKat||{})[id]||(tischplanKat||{})[baseId]||TISCH_KAT_MAP[id]||TISCH_KAT_MAP[baseId]||katMap[id]||5);
-    return{
+    const t={
       tisch_id:id,
       zone:r.Zone||r.zone||r.Area||'C',
-      kapazitaet:parseInt((tischplanKapazitaet||{})[id]||r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4),
+      // Kapazitäts-Priorität: Vorlage (Max Pax) → Hotelier-Eigenschaften → Dateiwert/Schätzung
+      kapazitaet:parseInt((tischplanKapazitaet||{})[id]||0),
       kategorie:kat,
       aktiv:ak!=='0'&&ak!=='false'&&ak!=='nein',
       x:parseInt(r.X||r.x||pos.x||0),
@@ -3170,11 +3306,40 @@ function parseTables(rows){
       belegt:false,
       gast_id:null
     };
+    applyTischEigenschaften(t);
+    if(!t.kapazitaet) t.kapazitaet=parseInt(r.Kapazitaet||r.kapazitaet||r.Capacity||r.PAX||4);
+    return t;
   });
 }
 
-// Finds best available table: respects kategorie, stay length, tischRegeln, and future calendar
-function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
+// Wünsche eines Gasts aus Bemerkung/Extras/Kindern ableiten (Wunsch-Wörter-Standard).
+// Rollstuhl ist eine harte Anforderung; Fenster/ruhig/Familie sind weiche Präferenzen.
+function getWunschForGuest(g){
+  if(!g) return null;
+  const txt=((g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')).toLowerCase();
+  return{
+    rollstuhl:/rollstuhl|rollator|wheelchair|barrierefrei/.test(txt),
+    fenster:/fenster|aussicht/.test(txt),
+    ruhig:/ruhig|abseits/.test(txt),
+    familie:(g.kinder||0)>0||/familie mit kind|mit kind|hochstuhl|babybett/.test(txt)
+  };
+}
+
+// Pseudo-Gast für Gruppen: bündelt Kinder/Wünsche/Zimmer-Qualität der Mitglieder,
+// damit findBestTable auch bei Gruppenplatzierung Merkmale und Deckel berücksichtigt.
+function groupPseudoGast(gs){
+  return{
+    kinder:gs.some(g=>(g.kinder||0)>0)?1:0,
+    allergie:'',
+    bemerkung:gs.map(g=>g.bemerkung||'').join(' '),
+    extras:gs.map(g=>g.extras||'').join(' '),
+    zimmer_qualitaet:Math.min(...gs.map(g=>g.zimmer_qualitaet||9))
+  };
+}
+
+// Finds best available table: respects kategorie, stay length, tischRegeln, future calendar,
+// Hotelier-Merkmale (Wünsche), Zimmer-Qualitäts-Deckel und Freilass-/Notfall-Regeln.
+function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast){
   const avail=ts.filter(t=>{
     if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
     for(const r of tischRegeln){
@@ -3188,16 +3353,44 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal){
     return true;
   });
   if(avail.length===0) return null;
-  const inZone=avail.filter(t=>t.zone===prefZone);
-  const pool=inZone.length>0?inZone:avail;
+  // Notfalltische (627/720/804) nur, wenn sonst gar nichts frei ist
+  let pool=avail.filter(t=>!t.notfall);
+  if(pool.length===0) pool=avail;
+  // Wunsch-Merkmale einengen (weich: nur wenn passende Tische frei sind; Rollstuhl zuerst).
+  // Nicht erfüllbare Wünsche werden am Gast vermerkt → Hinweis statt stiller Ignoranz.
+  const w=gast?getWunschForGuest(gast):null;
+  if(w){
+    const narrow=(flag,merk,label,hard)=>{
+      if(!flag) return;
+      const p=pool.filter(t=>tischHatMerkmal(t,merk));
+      if(p.length) pool=p;
+      else if(gast){(gast._wunschOffen=gast._wunschOffen||[]).push({label,hard:!!hard});}
+    };
+    narrow(w.rollstuhl,'W','Rollstuhl',true);
+    narrow(w.familie,'K','Familientisch');
+    narrow(w.fenster,'F','Fenster');
+    narrow(w.ruhig,'R','ruhig');
+  }
+  // Demo-/Zonen-Modus (nur wirksam, wenn Tische diese Zone wirklich haben)
+  const inZone=pool.filter(t=>t.zone===prefZone);
+  if(inZone.length>0) pool=inZone;
   const maxKat=getMaxKatForNights(nights);
+  const roomQ=gast?(gast.zimmer_qualitaet||null):null;
+  // Sortier-Schlüssel: beste Qualität zuerst; Freilass-Tische (Fall #22) innerhalb gleicher
+  // Qualität zuletzt; Tiny-Studio-Gäste (Zimmer-Q8) bekommen Premium (Q1–2) nur als letzte
+  // Option — gelernt aus den echten Hotelier-Plänen (Wunsch-Deckel durch Zimmer-Klasse).
+  const sKey=t=>{
+    let k=(t.kategorie||9);
+    if(t.freilass) k+=0.5;
+    if(roomQ>=8&&(t.kategorie||9)<=2) k+=6;
+    return k;
+  };
   pool.sort((a,b)=>{
     if(maxKat!==null){
       const aq=(a.kategorie||9)<=maxKat?0:1, bq=(b.kategorie||9)<=maxKat?0:1;
       if(aq!==bq) return aq-bq;
-      return(a.kategorie||9)-(b.kategorie||9);
     }
-    return (a.kategorie||9)-(b.kategorie||9); // beste Kategorie zuerst — die Gäste-Reihenfolge (Score) steuert, wer zuerst wählt
+    return sKey(a)-sKey(b); // die Gäste-Reihenfolge (Nächte/Zimmer-Q/Score) steuert, wer zuerst wählt
   });
   return pool[0]||null;
 }
@@ -3506,7 +3699,7 @@ function runCalc(){
       const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
       if(t){target=t;break;}
     }
-    if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null);
+    if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null,groupPseudoGast(gs));
     if(target){
       target.belegtPax+=totalPax;
       if(target.belegtPax>=target.kapazitaet) target.belegt=true;
@@ -3601,7 +3794,7 @@ function runCalc(){
     const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
     const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
     const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
-    let groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+    let groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar,groupPseudoGast(gs));
     let calendarOverridden=false;
     if(!groupTable){
       // Fallback 1: Kalender berücksichtigen, freisten Tisch wählen
@@ -3668,7 +3861,7 @@ function runCalc(){
       const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
       const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
       const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
-      const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar);
+      const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar,groupPseudoGast(gs));
       if(groupTable){
         groupTable.belegtPax+=totalPax;
         if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
@@ -3693,9 +3886,10 @@ function runCalc(){
   const nightsOf=g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
   const fam=neu.filter(g=>!groupAssigned.has(g.id)&&g.kinder>0);
   const rest=neu.filter(g=>!groupAssigned.has(g.id)&&!g.kinder);
-  // Hotelier-Logik: mehr Nächte = besserer Tisch → längster Aufenthalt wählt zuerst.
-  // Bei gleicher Nächtezahl entscheidet der Score (VIP/Stammgast) als Zweitkriterium.
-  const rankSort=(a,b)=>(nightsOf(b)-nightsOf(a))||(b.prioritaet_score-a.prioritaet_score);
+  // Hotelier-Logik (aus Echt-Plänen gelernt): mehr Nächte = besserer Tisch → längster
+  // Aufenthalt wählt zuerst. Bei gleicher Nächtezahl entscheidet die ZIMMER-QUALITÄT
+  // (bestes Zimmer → schönster Tisch, Fall #19), danach der Score (VIP/Stammgast).
+  const rankSort=(a,b)=>(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score);
   const sorted=[...fam.sort(rankSort),...rest.sort(rankSort)];
 
   const doAssign=(g,t)=>{
@@ -3727,7 +3921,7 @@ function runCalc(){
     if(!targetTisch){
       const pref=getZoneForGuest(g);
       const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
-      targetTisch=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar);
+      targetTisch=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar,g);
     }
     if(targetTisch){
       doAssign(g,targetTisch);
@@ -3746,18 +3940,18 @@ function runCalc(){
   // bleibt ohne Tisch, außer es ist physisch unmöglich — dann klare rote Meldung.
   let fillOk=0,fillCal=0,fillTight=0,fillNone=0;
   active.filter(g=>!g.zugewiesener_tisch)
-    .sort((a,b)=>(nightsOf(b)-nightsOf(a))||(b.prioritaet_score-a.prioritaet_score))
+    .sort((a,b)=>(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score))
     .forEach(g=>{
       const pref=getZoneForGuest(g);
       const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
       const ausweich=g.vorheriger_tisch?`Stammtisch ${g.vorheriger_tisch} belegt → `:'';
       // Stufe 0/1: normale Suche (Kalender beachtet) — deckt auch Bleibegast-Ausweich ab
-      let t=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar);
+      let t=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar,g);
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id}`;fillOk++;
         if(ausweich) warns.push({level:'yellow',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} belegt → Ausweich Tisch ${t.tisch_id} (gelöst)`});
         return;}
       // Stufe 2: Kalender ignorieren (heute setzen, Folgetag separat prüfen)
-      t=findBestTable(ts,pref,g.pax,nights,null,null,null);
+      t=findBestTable(ts,pref,g.pax,nights,null,null,null,g);
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id} (Kalender prüfen)`;fillCal++;
         warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}) → Tisch ${t.tisch_id}: heute gesetzt, Folgetag-Konflikt möglich`});return;}
       // Stufe 4: Notplatzierung — aktiver, nicht gesperrter Tisch mit größter Restkapazität
@@ -3787,6 +3981,34 @@ function runCalc(){
     if(fillTight>0) parts.push(`${fillTight} Notplatzierung`);
     warns.unshift({level:fillTight>0?'yellow':'green',msg:`Auffüll-Pass: ${parts.join(', ')}${fillNone>0?`, ${fillNone} ohne Tisch (Kapazität erschöpft)`:''}`});
   }
+
+  // ── Unerfüllte Wünsche melden (nie still ignorieren) ──
+  // Harte Anforderung Rollstuhl: über ALLE Platzierungen prüfen (auch Bleibegäste und
+  // Gruppen, die nicht durch findBestTable laufen). Bleibegast am gewohnten Tisch ist
+  // dabei nur ein gelber Datenpflege-Hinweis (der Tisch hat gestern offenbar funktioniert
+  // — ggf. fehlt nur das Merkmal in der Tisch-Eigenschaften-Liste).
+  active.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const w=getWunschForGuest(g);
+    if(!w||!w.rollstuhl) return;
+    const t=ts.find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
+    if(!t||tischHatMerkmal(t,'W')) return;
+    const istBleibe=g.vorheriger_tisch&&String(g.vorheriger_tisch)===String(g.zugewiesener_tisch);
+    if(istBleibe){
+      warns.push({level:'yellow',msg:`Rollstuhl-Gast ${g.nachname} (Zi. ${g.zimmer}) sitzt wie gestern an Tisch ${t.tisch_id} — der Tisch ist nicht als rollstuhlgeeignet markiert. Falls er passt: Merkmal in den Tisch-Eigenschaften ergänzen.`});
+    } else {
+      warns.push({level:'red',msg:`Rollstuhl-Wunsch nicht erfüllbar: ${g.nachname} (Zi. ${g.zimmer}) → Tisch ${t.tisch_id} ist nicht als rollstuhlgeeignet markiert — bitte manuell prüfen`});
+    }
+  });
+  // Weiche Präferenzen (Fenster/ruhig/Familie): nur melden, wenn findBestTable sie
+  // nicht erfüllen konnte (kein passender Tisch frei).
+  active.filter(g=>g._wunschOffen&&g._wunschOffen.length&&g.zugewiesener_tisch).forEach(g=>{
+    const seen=new Set();
+    g._wunschOffen.filter(w=>!w.hard).forEach(w=>{
+      if(seen.has(w.label)) return;
+      seen.add(w.label);
+      warns.push({level:'yellow',msg:`Sonderwunsch "${w.label}" von ${g.nachname} (Zi. ${g.zimmer}) nicht erfüllt — Tisch ${g.zugewiesener_tisch} hat dieses Merkmal nicht (kein passender Tisch frei)`});
+    });
+  });
 
   if(el('cs2-res')) el('cs2-res').textContent=groupWarns.length+' Gruppen-Hinweise | '+groupsPlaced+' Gruppen gemeinsam platziert';
   if(el('cs3-res')) el('cs3-res').textContent=ruleApplied+' Sonderregeln angewendet';
@@ -5186,7 +5408,8 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     if(gs.length===1){
       const g=gs[0];
       return {zimmer:String(g.zimmer||''),status:statusOf(g),name:[g.nachname,g.vorname].filter(Boolean).join(', '),
-        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | '),naechte:naechteOf(g)};
+        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | '),naechte:naechteOf(g),
+        hasAllergie:!!(g.allergie&&String(g.allergie).trim())};
     }
     const gn=gs.map(naechteOf).filter(v=>v!=='');
     return {
@@ -5195,7 +5418,8 @@ function fillTischplanFromTemplate(ws,guestsByTable){
       name:[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))].join(' + '),
       pax:paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0)),
       extras:[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | '),
-      naechte:gn.length?Math.max(...gn):''
+      naechte:gn.length?Math.max(...gn):'',
+      hasAllergie:gs.some(g=>g.allergie&&String(g.allergie).trim())
     };
   };
 
@@ -5223,12 +5447,14 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         xlRow.getCell(c+1).value=(val!=null&&val!=='')?val:null;
       }
       // 2) Gastfelder je Block-Eintrag mit den berechneten Daten überschreiben
+      const allergieCols=[];
       entries.forEach(({tid,e})=>{
         const bl=e.block||blocks[0];
         const gv=guestVals(tid);
         const setC=(col,v)=>{ if(col!=null) xlRow.getCell(col+1).value=(v!=null&&v!=='')?v:null; };
         setC(bl.zimmerCol,gv.zimmer); setC(bl.statusCol,gv.status); setC(bl.gastnameCol,gv.name);
         setC(bl.paxCol,gv.pax); setC(bl.extrasCol,gv.extras);
+        if(gv.hasAllergie&&bl.extrasCol!=null) allergieCols.push(bl.extrasCol);
       });
       // 3) Einheitliches Styling über alle Spalten beider Blöcke — Zell-Hintergründe
       // der VORLAGE haben Vorrang (Hotelier-Optik: Grautöne, Markierungsfarben)
@@ -5255,6 +5481,8 @@ function fillTischplanFromTemplate(ws,guestsByTable){
             xc.alignment={vertical:'middle',horizontal:'left',wrapText:true};
             h=Math.max(h,wrapHeight(t,30));
           }
+          // Fall #9: Allergien deutlich hervorheben (fett + rot)
+          if(allergieCols.includes(bl.extrasCol)) xc.font={size:9,bold:true,color:{argb:'FF9C0006'}};
         });
         if(h>0) xlRow.height=h;
       }
@@ -5331,6 +5559,8 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         const exCell=xlRow.getCell(lastOut);
         exCell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
         xlRow.height=wrapHeight(exCell.value,46);
+        // Fall #9: Allergien/Unverträglichkeiten deutlich hervorheben (fett + rot)
+        if(entry&&gv&&gv.hasAllergie) exCell.font={size:9,bold:true,color:{argb:'FF9C0006'}};
       }
     }
   }
@@ -5432,6 +5662,8 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
     // Extras (8): Umbruch nach unten statt Überlauf; Zeile wächst mit dem Text
     r.getCell(8).alignment={vertical:'middle',horizontal:'left',wrapText:true};
     r.height=wrapHeight(extras,44);
+    // Fall #9: Allergien deutlich hervorheben (fett + rot)
+    if(g.allergie&&String(g.allergie).trim()) r.getCell(8).font={size:9,bold:true,color:{argb:'FF9C0006'}};
   });
   ws2.views=[{state:'frozen',xSplit:0,ySplit:3}];
   return ws2;
@@ -6453,6 +6685,8 @@ renderInviteLink();
 
 // Restore Geburtstage & Hinweise text
 (()=>{const saved=localStorage.getItem('hsi_geburtstage');if(saved&&el('geburtstage-input')) el('geburtstage-input').value=saved;})();
+// Tisch-Eigenschaften (Hotelier-Standard bzw. gespeicherte Aktualisierung) laden
+loadTischEigenschaften();
 
 // Demo wird nur auf Nutzeraktion gestartet (Button auf Dashboard)
 

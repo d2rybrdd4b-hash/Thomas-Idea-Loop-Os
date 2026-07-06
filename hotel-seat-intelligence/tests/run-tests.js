@@ -74,7 +74,23 @@ async function calcInvariants(page){
       // Überbelegung ist nur dann ein Fehler, wenn sie STILL passiert — bewusste
       // Gruppen-Zusammenlegungen (Doppelbuchungen etc.) erzeugen eine Warnung und sind ok.
       overfullSilent:(lastTables||[]).filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0)
-        &&!warnings.some(w=>w.msg.includes(String(t.tisch_id)))).map(t=>t.tisch_id+':'+t.belegtPax+'/'+t.kapazitaet)
+        &&!warnings.some(w=>w.msg.includes(String(t.tisch_id)))).map(t=>t.tisch_id+':'+t.belegtPax+'/'+t.kapazitaet),
+      // Stufe 0: Hotelier-Daten aktiv?
+      k642:((lastTables||[]).find(t=>String(t.tisch_id)==='642')||{}).kategorie||null,
+      k744:((lastTables||[]).find(t=>String(t.tisch_id)==='744')||{}).kategorie||null,
+      roomQ8ok:(()=>{const g20=guests.filter(g=>/^20\d\d$/.test(String(g.zimmer).trim().split(',')[0]));
+        return {total:g20.length,ok:g20.filter(g=>g.zimmer_qualitaet===8).length};})(),
+      // Rollstuhl-Wünsche: erfüllt (W-Tisch) ODER als Warnung gemeldet — nie still ignoriert
+      rollstuhlBad:guests.filter(g=>{
+        if(!g.zugewiesener_tisch) return false;
+        const txt=((g.allergie||'')+' '+(g.bemerkung||'')+' '+(g.extras||'')).toLowerCase();
+        if(!/rollstuhl|rollator/.test(txt)) return false;
+        const t=(lastTables||[]).find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
+        const ok=t&&String(t.merkmale||'').includes('W');
+        const warned=warnings.some(w=>w.msg.includes('Rollstuhl')&&w.msg.includes(g.nachname));
+        return !(ok||warned);
+      }).length,
+      notfallUsed:guests.filter(g=>['627','720','804'].includes(String(g.zugewiesener_tisch))).length
     };
   });
 }
@@ -163,6 +179,11 @@ async function exportInvariants(page){
     if(sz.vorlage==='vorlage-blanco.xlsx'){
       check('Keine STILLE Überbelegung (echte Platzzahlen greifen)',ci.overfullSilent.length===0,ci.overfullSilent.join(', '));
     }
+    // Stufe 0: Hotelier-Eigenschaften wirksam
+    check('Tisch-Qualität vom Hotelier aktiv (642→Q1, 744→Q7)',ci.k642===1&&ci.k744===7,'642='+ci.k642+' 744='+ci.k744);
+    check('Zimmer-Qualität gesetzt (Tiny Studio 20xx→Q8)',ci.roomQ8ok.total>0&&ci.roomQ8ok.ok===ci.roomQ8ok.total,ci.roomQ8ok.ok+'/'+ci.roomQ8ok.total);
+    check('Rollstuhl-Wünsche erfüllt oder gemeldet (nie still)',ci.rollstuhlBad===0,ci.rollstuhlBad+' still ignoriert');
+    check('Notfall-Tische (627/720/804) nicht regulär vergeben',ci.notfallUsed===0,ci.notfallUsed+'× vergeben');
 
     const ei=await exportInvariants(page);
     check('Export baubar',ei.built===true);
