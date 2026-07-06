@@ -98,7 +98,10 @@ async function calcInvariants(page){
       vsReserved:(lastTables||[]).filter(t=>t.zukunft_belegt).length,
       vsRows:(typeof lastVorausschau!=='undefined'&&lastVorausschau)?lastVorausschau.rows.length:0,
       vsWarn:(typeof lastVorausschau!=='undefined'&&lastVorausschau)?lastVorausschau.warnungen.length:0,
-      vorausschauAktiv:warnings.some(w=>String(w.msg).startsWith('Vorausschau aktiv'))
+      vorausschauAktiv:warnings.some(w=>String(w.msg).startsWith('Vorausschau aktiv')),
+      radarCount:warnings.filter(w=>w.level==='vorausschau').length,
+      redsTotal:warnings.filter(w=>w.level==='red').length,
+      redFuture:warnings.filter(w=>w.level==='red'&&/vorausschau|ankunft \d\d\.\d\d/i.test(String(w.msg))).length
     };
   });
 }
@@ -201,6 +204,9 @@ async function exportInvariants(page){
       check('Zeitleisten-Daten vorhanden (≥60 Tische)',ci.vsRows>=60,'nur '+ci.vsRows);
       check('Heutige Anreisen plausibel (6–10 laut 07.07.-Zeilen)',ci.anHeute>=6&&ci.anHeute<=10,ci.anHeute+' AN');
       check('Anreise-PAX korrekt gelesen (Personen-Spalte, ≥14)',ci.anPaxHeute>=14,ci.anPaxHeute+' PAX');
+      check('Zukunft NIE kritisch (kein rotes Vorausschau-Thema)',ci.redFuture===0,ci.redFuture+' rote Zukunfts-Meldungen');
+      check('Planungsradar vorhanden (aggregierte Vorausschau)',ci.radarCount>=1,'nur '+ci.radarCount);
+      check('Wenige echte Kritisch-Punkte heute (≤5)',ci.redsTotal<=5,ci.redsTotal+' rot');
     }
 
     const ei=await exportInvariants(page);

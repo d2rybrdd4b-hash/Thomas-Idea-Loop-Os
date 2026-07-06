@@ -240,6 +240,10 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .warn-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
 .witem{background:var(--card);border-radius:12px;border-left:4px solid;overflow:hidden}
 .witem.red{border-color:var(--red)}
+.witem.radar{border-color:rgba(58,180,224,.5)}
+.wbadge.radar{background:rgba(58,180,224,.14);color:#3AB4E0}
+.wscard.blue{border-color:rgba(58,180,224,.45)}
+.wscard.blue .wsc-n{color:#3AB4E0}
 .witem.yellow{border-color:var(--orange)}
 .witem.green{border-color:var(--green)}
 .witem.resolved{opacity:.55;border-color:var(--dim)}
@@ -1004,7 +1008,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aq</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ar</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1332,7 +1336,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-aq · 07.07.2026</span>
+          <span class="set-version">v.25.06-ar · 07.07.2026</span>
         </div>
       </div>
 
@@ -1850,6 +1854,7 @@ const I18N = {
     'warn.whatsWrong':'Was ist los?','warn.impact':'Auswirkung','warn.whatToDo':'Was tun?',
     'warn.markChecked':'Als geprüft markieren','warn.confirm':'Bestätigen','warn.ignoreToday':'Für heute ignorieren','warn.undo':'↩ Rückgängig',
     'warn.secCrit':'Kritisch — vor dem Export lösen','warn.secHints':'Hinweise — prüfen und bestätigen','warn.secReviewed':'Geprüft — werden im Übergabebericht dokumentiert','warn.secAuto':'Automatisch gelöst','warn.autofix':'Auto-Fix',
+    'warn.radar':'Vorausschau','warn.radarSub':'nächste 7 Tage — informativ','warn.secRadar':'Vorausschau — Planungsradar für die nächsten Tage (blockiert nichts)',
     'warn.barCrit':'kritische Punkte vor dem Export lösen — der Export ist gesperrt, bis alle roten Punkte geklärt sind.','warn.barHints':'Hinweise zur Prüfung — bitte einzeln bestätigen oder ignorieren.','warn.allChecked':'Alle Punkte geprüft — Export und Druck sind freigegeben.','warn.none':'Keine Warnungen — alles in Ordnung!',
     'w.1.t':'Keine Gästedaten geladen','w.1.a':'Ohne Gästedaten kann kein Tischplan erstellt werden.','w.1.l':'Bitte eine PMS-Datei (Vortag/Anreisen/Abreisen) hochladen.',
     'w.2.t':'Keine Tische vorhanden','w.2.a':'Die App kann Gäste nicht platzieren — Grundriss fehlt.','w.2.l':'Standard-Tischkonfiguration laden oder Tische manuell anlegen.','w.2.fx':'Standard-Tische laden',
@@ -1924,6 +1929,7 @@ const I18N = {
     'warn.whatsWrong':'What\'s wrong?','warn.impact':'Impact','warn.whatToDo':'What to do?',
     'warn.markChecked':'Mark as reviewed','warn.confirm':'Confirm','warn.ignoreToday':'Ignore for today','warn.undo':'↩ Undo',
     'warn.secCrit':'Critical — resolve before export','warn.secHints':'Notices — review and confirm','warn.secReviewed':'Reviewed — documented in the handover report','warn.secAuto':'Automatically resolved','warn.autofix':'Auto-fix',
+    'warn.radar':'Preview','warn.radarSub':'next 7 days — informational','warn.secRadar':'Preview — planning radar for the coming days (blocks nothing)',
     'warn.barCrit':'critical points to resolve before export — export is locked until all red points are cleared.','warn.barHints':'notices to review — please confirm or ignore each one.','warn.allChecked':'All points reviewed — export and print are unlocked.','warn.none':'No warnings — everything in order!',
     'w.1.t':'No guest data loaded','w.1.a':'Without guest data, no table plan can be created.','w.1.l':'Please upload a PMS file (previous day / arrivals / departures).',
     'w.2.t':'No tables available','w.2.a':'The app cannot place guests — the floor plan is missing.','w.2.l':'Load the default table configuration or create tables manually.','w.2.fx':'Load default tables',
@@ -3553,7 +3559,7 @@ function detectGroups(guests){
       } else {
         // Gleicher Name, verschiedene Zimmer = Mehrfachbuchung einer Person (z.B. "zu #...")
         // → nur Hinweis, kein kritischer Fehler
-        warns.push({level:'yellow',msg:`"${gs[0].vorname} ${gs[0].nachname}" mit ${gs.length} Zimmern (${rooms.join(', ')}) — Mehrfachbuchung, wird zusammengesetzt`});
+        warns.push({level:'green',msg:`"${gs[0].vorname} ${gs[0].nachname}" mit ${gs.length} Zimmern (${rooms.join(', ')}) — Mehrfachbuchung, automatisch zusammengesetzt`});
       }
     }
   });
@@ -3732,7 +3738,7 @@ function runCalc(){
       target.gast_id=gs[0].id;
       gs.forEach(g=>{g.zugewiesener_tisch=target.tisch_id;g.begruendung=`Doppelbuchung ${gs[0].nachname} → gemeinsam Tisch ${target.tisch_id}`;preAssigned.add(g.id);});
       dbBleib++;
-      warns.push({level:'yellow',msg:`Doppelbuchung ${gs[0].nachname} (Zi. ${gs.map(g=>g.zimmer).join('+')}, ${totalPax} PAX) → Tisch ${target.tisch_id} — Bleibegast-Doppelbuchung zusammengesetzt`});
+      warns.push({level:'green',msg:`Doppelbuchung ${gs[0].nachname} (Zi. ${gs.map(g=>g.zimmer).join('+')}, ${totalPax} PAX) → Tisch ${target.tisch_id} — automatisch zusammengesetzt`});
     }
   });
 
@@ -3773,6 +3779,7 @@ function runCalc(){
   // Nächte → Zimmer-Qualität → VIP.
   const nightsOfG=g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
   const langzeitSchwelle=Math.min(...(nightsKatRules||[{minNights:5}]).map(r=>r.minNights||5));
+  const vsOhneTisch={};
   const prioFuture=prognoseFuture
     .filter(g=>g.check_in&&g.check_out)
     .filter(g=>nightsOfG(g)>=langzeitSchwelle||g.vip||(g.pax||1)>=6);
@@ -3801,10 +3808,15 @@ function runCalc(){
         progReserved++;
         if(g.vip) warns.push({level:'yellow',msg:`Tisch ${prefT.tisch_id} für VIP-Ankunft ${g.vorname} ${g.nachname} ab ${g.check_in} freigehalten`});
       } else {
-        const msg=`Vorausschau: ${g.vorname} ${g.nachname} (Ankunft ${fmtDM(g.check_in)}, ${g.pax} PAX, ${nights} Nächte) — kein Tisch für den gesamten Aufenthalt frei — Abreisen prüfen (Fall #3)`;
-        if(!warns.some(w=>w.msg===msg)) warns.push({level:'red',msg});
+        // NICHT rot melden — die Zukunft blockiert nie den heutigen Plan.
+        // Pro Tag EINE ruhige Radar-Meldung statt N roter Einzelwarnungen.
+        (vsOhneTisch[g.check_in]=vsOhneTisch[g.check_in]||[]).push(g.nachname+' ('+g.pax+'P, '+nights+'N)');
       }
     });
+  Object.keys(vsOhneTisch).sort().forEach(day=>{
+    const list=[...new Set(vsOhneTisch[day])];
+    warns.push({level:'vorausschau',msg:`${fmtDM(day)}: ${list.length} Langzeit-/Gruppen-Anreise${list.length===1?'':'n'} noch ohne durchgehenden Tisch (${list.slice(0,3).join(', ')}${list.length>3?' …':''}) — löst sich meist über die Abreisen der Vortage; Details in der 7-Tage-Vorausschau`});
+  });
   if(prognoseFuture.length>0){
     const lastDay=prognoseFuture.map(g=>g.check_in).sort().pop();
     warns.unshift({level:'green',msg:`Vorausschau aktiv: ${prognoseFuture.length} künftige Anreisen (bis ${fmtDM(lastDay)}) im Blick — ${progReserved} Tische für Langzeit/VIP/Gruppen reserviert`});
@@ -4061,13 +4073,13 @@ function runCalc(){
       const freiAm=t=>isTableFreeForStay(tableCalendar,t.tisch_id,day,addDays(day,1));
       const need3=anDay.filter(g=>(g.pax||1)>=3).length;
       const free3=ts.filter(t=>t.aktiv&&!t.notfall&&t.kapazitaet>=3&&freiAm(t)).length;
-      if(need3>free3) warns.push({level:'yellow',msg:`Vorausschau ${fmtDM(day)}: ${need3} Anreisen mit 3+ Personen, aber nur ${free3} passende Tische frei — Abreisen passend platzieren (Fall #6)`});
+      if(need3>free3) warns.push({level:'vorausschau',msg:`${fmtDM(day)}: ${need3} Anreisen mit 3+ Personen, ${free3} passende Tische frei — bei den Abreisen davor berücksichtigen`});
       const needPrem=anDay.filter(g=>nightsOf(g)>=5).length;
       const freePrem=ts.filter(t=>t.aktiv&&!t.notfall&&(t.kategorie||9)<=2&&freiAm(t)).length;
-      if(needPrem>freePrem) warns.push({level:'yellow',msg:`Vorausschau ${fmtDM(day)}: ${needPrem} Langzeit-Anreisen (5+ Nächte), aber nur ${freePrem} Premium-Tische (Q1–2) frei — gute Tische freihalten (Fall #3)`});
+      if(needPrem>freePrem) warns.push({level:'vorausschau',msg:`${fmtDM(day)}: ${needPrem} Langzeit-Anreisen (5+ Nächte), ${freePrem} Premium-Tische frei — gute Tische im Blick behalten`});
       anDay.filter(g=>(g.pax||1)>=8).forEach(g=>{
-        const msg=`Vorausschau ${fmtDM(day)}: Gruppe ${g.nachname} (${g.pax} PAX) reist an — Kombitische (z.B. 743–746) bis dahin freihalten (Fall #21)`;
-        if(!warns.some(w=>w.msg===msg)) warns.push({level:'yellow',msg});
+        const msg=`${fmtDM(day)}: Gruppe ${g.nachname} (${g.pax} PAX) reist an — Kombitische (z.B. 743–746) bis dahin freihalten`;
+        if(!warns.some(w=>w.msg===msg)) warns.push({level:'vorausschau',msg});
       });
     });
   }
@@ -4083,7 +4095,7 @@ function runCalc(){
         tage:vsDays.map(d=>{const occ=tableCalendar.get(t.tisch_id);return occ&&occ.has(d)?1:0;}),
         res:t.zukunft_info?{ab:t.zukunft_info.check_in,name:t.zukunft_info.name,pax:t.zukunft_info.pax,nights:t.zukunft_info.nights}:null
       })),
-      warnungen:warns.filter(w=>String(w.msg).startsWith('Vorausschau')).map(w=>w.msg)
+      warnungen:warns.filter(w=>w.level==='vorausschau').map(w=>w.msg)
     };
   }
 
@@ -4109,7 +4121,10 @@ function runCalc(){
   Object.entries(roomTische).forEach(([z,tische])=>{
     const tIds=Object.keys(tische);
     if(tIds.length>1){
-      warns.push({level:'yellow',msg:`Zimmer ${z} an mehreren Tischen (${tIds.join(', ')}) — bitte prüfen (Zimmerwechsel/Abreise oder Gruppierung)`});
+      // Doppelmeldung vermeiden: Wenn Ausweich/Notplatzierung/Doppelbuchung dieses
+      // Zimmer bereits erklärt, ist die Zusatz-Diagnose nur Lärm.
+      const already=warns.some(w=>w.level!=='vorausschau'&&(String(w.msg).includes(`Zi. ${z}`)||String(w.msg).includes(`Zi. ${z},`)||String(w.msg).includes(`(${z})`)||String(w.msg).includes(`${z},`)&&/Doppelbuchung|Mehrfachbuchung/.test(w.msg)));
+      if(!already) warns.push({level:'yellow',msg:`Zimmer ${z} an mehreren Tischen (${tIds.join(', ')}) — bitte prüfen (Zimmerwechsel/Abreise oder Gruppierung)`});
     }
   });
 
@@ -4298,7 +4313,8 @@ function renderWarnings(){
   const reds=warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg));
   const yellows=warnings.filter(w=>w.level==='yellow'&&!resolvedWarnings.has(w.msg));
   const greens=warnings.filter(w=>w.level==='green');
-  const resolvedList=warnings.filter(w=>resolvedWarnings.has(w.msg));
+  const radar=warnings.filter(w=>w.level==='vorausschau'); // Planungsradar: informativ, zählt NIE als Problem
+  const resolvedList=warnings.filter(w=>resolvedWarnings.has(w.msg)&&w.level!=='vorausschau');
 
   // Summary cards
   el('warn-summary').innerHTML=`
@@ -4317,6 +4333,11 @@ function renderWarnings(){
       <div class="wsc-l">${t('warn.done')}</div>
       <div class="wsc-sub">${t('warn.okOrResolved')}</div>
     </div>
+    ${radar.length?`<div class="wscard blue">
+      <div class="wsc-n">${radar.length}</div>
+      <div class="wsc-l">${t('warn.radar')}</div>
+      <div class="wsc-sub">${t('warn.radarSub')}</div>
+    </div>`:''}
   `;
 
   // Wiederverwendete Icons (gleicher Stil wie Start/Drucklisten)
@@ -4344,6 +4365,11 @@ function renderWarnings(){
   if(yellows.length>0){
     html+=`<div class="warn-section"><h3><span class="inline-ico">${icoTriangle}</span>${t('warn.secHints')}</h3>
     <div class="warn-list">${yellows.map(w=>warnItem(w,'yellow')).join('')}</div></div>`;
+  }
+  if(radar.length>0){
+    const icoRadar='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
+    html+=`<div class="warn-section"><h3><span class="inline-ico">${icoRadar}</span>${t('warn.secRadar')}</h3>
+    <div class="warn-list">${radar.map(w=>`<div class="witem radar"><div class="witem-hdr"><span class="wbadge radar">${t('warn.radar')}</span><span class="wtitle">${w.msg}</span></div></div>`).join('')}</div></div>`;
   }
   if(resolvedList.length>0){
     html+=`<div class="warn-section"><h3><span class="inline-ico">${icoCheckCircle}</span>${t('warn.secReviewed')}</h3>
