@@ -157,7 +157,39 @@ async function exportInvariants(page){
         if(/^\d{1,2}\.\s*(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/.test(t)&&t!==expected) headDateOk=false;
       });
     }
+    // Zimmernummern-Konsistenz: jedes belegte Tisch im Tischplan-Blatt muss seine
+    // Zimmernummer tragen (beide Blöcke!), und Tischplan ↔ Sortierung Zimmer müssen je
+    // Zimmer denselben Tisch zeigen (Fall #17 / Vorlagen-Unstimmigkeit).
+    let roomMismatch=0, occWithoutRoom=0;
+    if(tischplanTemplate&&Object.keys(tischplanMap||{}).length){
+      const cols=blocks.length?blocks:[{tischCol:0,zimmerCol:2,gastnameCol:3}];
+      const tpPairs=new Set();
+      ws.eachRow(row=>cols.forEach(bl=>{
+        const t=String(row.getCell((bl.tischCol??0)+1).value||'').trim();
+        if(!/^[678]\d\d(_\d)?$/.test(t)) return;
+        const name=String(row.getCell((bl.gastnameCol??3)+1).value||'').trim();
+        const room=String(row.getCell((bl.zimmerCol??2)+1).value||'').trim();
+        if(name&&!room) occWithoutRoom++;
+        room.split(',').map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>tpPairs.add(z+'|'+t));
+      }));
+      const szPairs=new Set();
+      const szWs=built.wb.getWorksheet('Sortierung Zimmer');
+      if(szWs){
+        szWs.eachRow(row=>{
+          const t=String(row.getCell(2).value||'').trim();
+          if(!/^[678]\d\d(_\d)?$/.test(t)) return;
+          String(row.getCell(3).value||'').split(',').map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>szPairs.add(z+'|'+t));
+        });
+      }
+      // Symmetrische Differenz der (Zimmer|Tisch)-Paare — 0 = identische Zuordnung
+      const diffPairs=[];
+      tpPairs.forEach(p=>{if(!szPairs.has(p)){roomMismatch++;diffPairs.push('TP-only '+p);}});
+      szPairs.forEach(p=>{if(!tpPairs.has(p)){roomMismatch++;diffPairs.push('SZ-only '+p);}});
+      globalThis.__diffPairs=diffPairs;
+      var __dp=diffPairs;
+    }
     return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,
+      roomMismatch,occWithoutRoom,diffPairs:(typeof __dp!=='undefined'?__dp:[]),
       calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&(t.belegtPax||0)>0).length};
   });
 }
@@ -242,6 +274,8 @@ async function exportInvariants(page){
         check('7xx-Belegung Export == Berechnung',ei.t7Filled===ei.calcT7,ei.t7Filled+' ≠ '+ei.calcT7);
         check('Kein Gast in falscher Tischzeile',ei.wrongRow===0,ei.wrongRow+' falsch');
         check('Kein platzierter Gast ohne Zeile',ei.missingGuest===0,ei.missingGuest+' fehlen');
+        check('Zimmernummern in beiden Blöcken vorhanden (kein belegter Tisch ohne Zimmer)',ei.occWithoutRoom===0,ei.occWithoutRoom+' ohne Zimmer');
+        check('Tischplan ↔ Sortierung Zimmer je Zimmer gleicher Tisch',ei.roomMismatch===0,ei.roomMismatch+' Abweichungen: '+(ei.diffPairs||[]).join(', '));
       }
     }
     await page.close();

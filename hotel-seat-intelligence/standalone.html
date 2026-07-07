@@ -1008,7 +1008,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-au</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-av</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1336,7 +1336,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-au · 07.07.2026</span>
+          <span class="set-version">v.25.06-av · 07.07.2026</span>
         </div>
       </div>
 
@@ -4894,7 +4894,17 @@ function parseTischplanTemplate(buf){
   // (Zimmer/Status/Gastname/Pax/Extras) werden relativ dazu in derselben Zeile
   // gesucht, der Bereichsname steht typischerweise eine Zeile darüber an der
   // Extras-Spalte (z.B. G1 "Panorama Restaurant" über der Extras-Spalte G3).
-  const FIELD_LABELS={zimmer:'zimmer',status:'status',gastname:'gastname',pax:'pax',extras:'extras'};
+  // Spalten-Erkennung tolerant gegenüber Schreibvarianten der Hotelier-Vorlagen:
+  // "Zimmer" UND "Zimmernummer" (Blanco nutzt links "Zimmernummer", rechts "Zimmer"!),
+  // "Gastname" UND "Gastname(n)/Gastnamen", "Extras" UND "Bemerk./Bemerkung".
+  // Vorher wurde exakt verglichen → linker Block verlor die Zimmernummern im Export.
+  const FIELD_MATCH={
+    zimmer:l=>/^zimmer/.test(l),
+    status:l=>l==='status',
+    gastname:l=>/^gastnam/.test(l),
+    pax:l=>l==='pax'||l==='personen',
+    extras:l=>l==='extras'||/^bemerk/.test(l)
+  };
   let headerRow=-1;
   for(let r=0;r<Math.min(20,range.e.r+1);r++){
     let found=false;
@@ -4910,7 +4920,7 @@ function parseTischplanTemplate(buf){
         const label=norm(cv(headerRow,cc));
         // Bei mehreren Blöcken kann derselbe Spaltenname (z.B. "Zimmer") weiter rechts
         // erneut auftauchen (nächster Block) — erster Treffer gewinnt, kein Überschreiben.
-        for(const key in FIELD_LABELS){ if(label===FIELD_LABELS[key]&&block[key+'Col']==null) block[key+'Col']=cc; }
+        for(const key in FIELD_MATCH){ if(block[key+'Col']==null&&FIELD_MATCH[key](label)) block[key+'Col']=cc; }
         // "Plätze"/"Sitzplätze"/"Kapazität" = echte Tischkapazität, die der Hotelier einträgt
         if(block.plaetzeCol==null&&/^(pl(ä|ae)tze|sitzpl(ä|ae)tze|kapazit(ä|ae)t)$/.test(label)) block.plaetzeCol=cc;
       }
@@ -4921,7 +4931,7 @@ function parseTischplanTemplate(buf){
       if(block.plaetzeCol==null){
         const cand=c+1;
         const candLabel=norm(cv(headerRow,cand));
-        const taken=Object.keys(FIELD_LABELS).some(k=>block[k+'Col']===cand);
+        const taken=Object.keys(FIELD_MATCH).some(k=>block[k+'Col']===cand);
         if(!taken&&candLabel===''){
           let hits=0,total=0;
           for(let rr=headerRow+1;rr<=Math.min(headerRow+60,range.e.r);rr++){
@@ -5673,18 +5683,23 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     // Zeilentyp INHALTSBASIERT bestimmen (nicht nach den uneinheitlichen Vorlagen-Farben):
     const isGuest=hasNum||(gVal!==''&&(zVal!==''||pVal!=='')); // Tisch-/Notizgast mit Daten
     const isSection=!isHeaderRow&&!isGuest&&gVal!==''&&rowHasGray(r); // Abschnitts-Überschrift (Label + grau in Vorlage)
-    const gv=entry?guestVals(entry.tid):null;
-    // 1) Werte schreiben (Tisch..Extras); Gastfelder registrierter Tische überschreiben
+    // Tisch-ID der Zeile: primär der registrierte Eintrag, sonst die Tischnummer der
+    // Zeile selbst — damit DUPLIKAT-Tischzeilen (Tisch mehrfach gelistet, z.B. Mappe3
+    // "40er BOX") die AKTUELLEN Gastdaten zeigen statt der Vorlagen-Beispiele (Geister-
+    // zimmer). Rein textuelle Zeilen (Notizen ohne Tischnummer) bleiben unverändert.
+    const rowTid=entry?entry.tid:(hasNum?tischRaw.trim():null);
+    const gv=rowTid?guestVals(rowTid):null;
+    // 1) Werte schreiben (Tisch..Extras); Gastfelder von Tischzeilen überschreiben/leeren
     for(let c=range.s.c;c<=extrasCol;c++){
       let val=tcell(r,c); val=val!=null?val.v:null;
-      if(entry){ if(c===zimmerCol)val=gv.zimmer; else if(c===statusCol)val=gv.status; else if(c===gastnameCol)val=gv.name; else if(c===paxCol)val=gv.pax; else if(c===extrasCol)val=gv.extras; }
+      if(gv){ if(c===zimmerCol)val=gv.zimmer; else if(c===statusCol)val=gv.status; else if(c===gastnameCol)val=gv.name; else if(c===paxCol)val=gv.pax; else if(c===extrasCol)val=gv.extras; }
       const xc=xlRow.getCell(outOf(c));
       xc.value=(val!=null&&val!=='')?val:null;
     }
     // Nächte-Inhalt
     const naCell=xlRow.getCell(naColXl);
     if(isHeaderRow) naCell.value='Nächte';
-    else if(entry) naCell.value=(gv.naechte!==''&&gv.naechte!=null)?gv.naechte:null;
+    else if(gv) naCell.value=(gv.naechte!==''&&gv.naechte!=null)?gv.naechte:null;
     // 2) EINHEITLICHES Styling über alle Datenspalten B..lastOut — unabhängig davon,
     // wie die Vorlage die einzelnen Zellen gefärbt hat → durchgehende graue Bänder + Rahmen.
     if(isInfo){
@@ -5711,9 +5726,9 @@ function fillTischplanFromTemplate(ws,guestsByTable){
         exCell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
         xlRow.height=wrapHeight(exCell.value,46);
         // Fall #9: Allergien/Unverträglichkeiten deutlich hervorheben (fett + rot)
-        if(entry&&gv&&gv.hasAllergie) exCell.font={size:9,bold:true,color:{argb:'FF9C0006'}};
+        if(gv&&gv.hasAllergie) exCell.font={size:9,bold:true,color:{argb:'FF9C0006'}};
         // Vorausschau: Reserviert-Vermerk kursiv + gold (bewusste Planung, Fall #14)
-        else if(entry&&gv&&gv.reserviert) exCell.font={size:9,italic:true,color:{argb:'FF8A6D1A'}};
+        else if(gv&&gv.reserviert) exCell.font={size:9,italic:true,color:{argb:'FF8A6D1A'}};
       }
     }
   }
