@@ -222,8 +222,9 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 
 /* ── STEP 4 — WARNINGS ── */
 #s4 .s4-inner{max-width:860px;margin:0 auto}
-.warn-summary{display:flex;gap:12px;margin-bottom:16px}
-.wscard{flex:1;border-radius:12px;padding:16px;text-align:center;border:1px solid;cursor:default}
+.warn-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:560px){.warn-summary{grid-template-columns:repeat(2,1fr)}}
+.wscard{border-radius:12px;padding:14px 8px;text-align:center;border:1px solid;cursor:default;min-width:0}
 .wscard.red{border-color:var(--red);background:rgba(238,85,85,.08)}
 .wscard.yellow{border-color:var(--orange);background:rgba(232,132,58,.08)}
 .wscard.green{border-color:var(--green);background:rgba(46,204,113,.08)}
@@ -1008,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-av</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aw</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1336,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-av · 07.07.2026</span>
+          <span class="set-version">v.25.06-aw · 08.07.2026</span>
         </div>
       </div>
 
@@ -5479,10 +5480,37 @@ async function buildFilledTischplanSheet(){
 // der hochgeladenen Vorlage mitliefern — so entspricht der Export der Mappe3-Form und
 // der Hotelier behält Kapazität + Kombinationen im selben Dokument.
 function buildTischeKombiSheet(wb){
-  if(!tischplanKombiRows||!tischplanKombiRows.length) return;
+  if(!tischplanTemplate) return;
+  // Das Blatt "Tische & Kombinationen" wird von uns NICHT verändert (reine Referenz:
+  // Max Pax + Kombinationen). Damit es 1:1 wie in der Vorlage aussieht (graue Bänder,
+  // umrahmte Kombi-Boxen, verbundene Zellen), lesen wir die Vorlage MIT Zellstilen und
+  // übernehmen Werte, Füllfarben, Rahmen und Zellverbünde unverändert.
+  let wbT;
+  try{ wbT=XLSX.read(tischplanTemplate,{type:'array',cellStyles:true}); }
+  catch(e){ if(tischplanKombiRows&&tischplanKombiRows.length){const ws0=wb.addWorksheet('Tische&Kombinationen');tischplanKombiRows.forEach(r=>ws0.addRow(Array.isArray(r)?r:[r]));} return; }
+  const tkName=wbT.SheetNames.find(n=>/tische.*kombi|kombinationen/i.test(n));
+  if(!tkName) return;
+  const wsT=wbT.Sheets[tkName];
+  const range=XLSX.utils.decode_range(wsT['!ref']||'A1:D80');
   const ws=wb.addWorksheet('Tische&Kombinationen');
-  tischplanKombiRows.forEach(r=>ws.addRow(Array.isArray(r)?r:[r]));
-  if(ws.getRow(1)) ws.getRow(1).font={bold:true};
+  const thin={style:'thin',color:{argb:'FFBFBFBF'}};
+  const lastCol=Math.max(range.e.c,3);
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const xlRow=ws.getRow(r+1);
+    for(let c=range.s.c;c<=lastCol;c++){
+      const cell=wsT[XLSX.utils.encode_cell({r,c})];
+      const xc=xlRow.getCell(c+1);
+      xc.value=(cell&&cell.v!=null&&cell.v!=='')?cell.v:null;
+      const tf=cell?tplFillArgb(cell):null;              // graue Sektions-Bänder etc.
+      if(tf) xc.fill={type:'pattern',pattern:'solid',fgColor:{argb:tf}};
+      xc.border={top:thin,bottom:thin,left:thin,right:thin};
+      xc.font={size:10,bold:r===range.s.r};
+      xc.alignment={vertical:'middle',horizontal:c===0?'left':'center'};
+    }
+    xlRow.height=15;
+  }
+  // Zellverbünde (die Kombi-Boxen, die über mehrere Zeilen gehen) übernehmen
+  (wsT['!merges']||[]).forEach(m=>{ try{ ws.mergeCells(m.s.r+1,m.s.c+1,m.e.r+1,m.e.c+1); }catch(e){} });
   [10,10,10,10].forEach((w,i)=>{ws.getColumn(i+1).width=w;});
 }
 
