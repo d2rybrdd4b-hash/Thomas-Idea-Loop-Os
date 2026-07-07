@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-aw</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ax</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-aw · 08.07.2026</span>
+          <span class="set-version">v.25.06-ax · 08.07.2026</span>
         </div>
       </div>
 
@@ -2618,12 +2618,16 @@ function enrichFromBemerkung(g){
   // STAMM → Stammgast (eigene Kategorie, kein automatischer VIP)
   if(/\bstamm\b/i.test(bem)) g.stammgast=true;
 
-  // "zu #NNNNN" → verlinkte Reservierungen (z.B. Familien-/Paarzimmer nebeneinander)
-  const zuRefs=[];
-  const zuRe=/\bzu\s*#\s*(\d{3,8})\b/gi;
+  // "zu #NNNNN" ODER "zu Fam. Maier #10501" → verlinkte Reservierungen.
+  // Hotelier-Konvention (Antwort 08.07.): Gruppen werden IMMER per Vermerk verknüpft,
+  // mindestens ein Zimmer nennt die zugehörige Reservierung — ggf. mit Namen dazwischen.
+  const zuRefs=new Set();
   let zuM;
-  while((zuM=zuRe.exec(bem))!==null) zuRefs.push(zuM[1]);
-  if(zuRefs.length) g.verlinkteRefs=zuRefs;
+  const zuRe=/\bzu\s*#\s*(\d{3,8})\b/gi;
+  while((zuM=zuRe.exec(bem))!==null) zuRefs.add(zuM[1]);
+  const zuNameRe=/\bzu\s+[^#\n]{1,30}?#\s*(\d{3,8})\b/gi;
+  while((zuM=zuNameRe.exec(bem))!==null) zuRefs.add(zuM[1]);
+  if(zuRefs.size) g.verlinkteRefs=[...zuRefs];
 
   return g;
 }
@@ -3415,10 +3419,13 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   // Sortier-Schlüssel: beste Qualität zuerst; Freilass-Tische (Fall #22) innerhalb gleicher
   // Qualität zuletzt; Tiny-Studio-Gäste (Zimmer-Q8) bekommen Premium (Q1–2) nur als letzte
   // Option — gelernt aus den echten Hotelier-Plänen (Wunsch-Deckel durch Zimmer-Klasse).
+  // Hotelier-Regel (Antwort 08.07.): Aufenthaltsdauer vor Zimmerkategorie — Tiny-Studio-
+  // Gäste DÜRFEN gute Tische bekommen, wenn frei ("hätte ich andere Tische gehabt…").
+  // Daher nur leichte Tendenz weg von Premium (+1.5), kein harter Deckel mehr.
   const sKey=t=>{
     let k=(t.kategorie||9);
     if(t.freilass) k+=0.5;
-    if(roomQ>=8&&(t.kategorie||9)<=2) k+=6;
+    if(roomQ>=8&&(t.kategorie||9)<=2) k+=1.5;
     return k;
   };
   pool.sort((a,b)=>{
@@ -3429,6 +3436,51 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
     return sKey(a)-sKey(b); // die Gäste-Reihenfolge (Nächte/Zimmer-Q/Score) steuert, wer zuerst wählt
   });
   return pool[0]||null;
+}
+
+// ══ TISCH-KOMBINATIONEN (Hotelier-Blatt "Tische & Kombinationen") ══
+// Regel #20 bleibt gewahrt: Einzeltisch hat IMMER Vorrang — eine Kombination wird nur
+// gewählt, wenn kein Einzeltisch die Gruppe fasst. Quellen: (1) Kombi-Boxen der hoch-
+// geladenen Vorlage (verbundene Zellen in den Kombi-Spalten), (2) sonst der vom
+// Hotelier gelieferte Standard (Input-Datei 06.07.2026).
+const TISCH_KOMBI_DEFAULT=[
+  [['612','613'],4],[['611','612','613'],8],[['622','625'],5],[['623','624'],5],
+  [['632','635'],5],[['633','634'],5],[['643','644'],5],
+  [['728','729'],6],[['730','731'],6],[['732','733'],6],
+  [['743','744'],6],[['745','746'],7],[['744','745','746'],9],[['743','744','745','746'],13],
+  [['747','748'],8],[['749','750'],9]
+].map(x=>({tables:x[0],min:2,max:x[1]}));
+function getAktiveKombis(){
+  return (tischplanKombi&&tischplanKombi.length)?tischplanKombi:TISCH_KOMBI_DEFAULT;
+}
+// Kleinste passende, komplett freie Kombination für `pax` Personen finden
+function findKombiTables(ts,pax,checkIn,checkOut,cal){
+  const ks=getAktiveKombis().filter(k=>(k.max||0)>=pax&&(k.tables||[]).length>=2)
+    .sort((a,b)=>((a.max||99)-(b.max||99))||((a.tables.length)-(b.tables.length)));
+  for(const k of ks){
+    const tabs=k.tables.map(id=>ts.find(t=>String(t.tisch_id)===String(id).trim()));
+    if(tabs.some(t=>!t||!t.aktiv||t.blocked_for||t.belegtPax>0||t.notfall)) continue;
+    if(cal&&checkIn&&checkOut&&tabs.some(t=>!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut))) continue;
+    return {kombi:k,tables:tabs};
+  }
+  return null;
+}
+// Gruppe auf alle Kombi-Tische verteilen; Nebentische bekommen einen sichtbaren Vermerk
+function assignKombi(gs,hit,cal,checkIn,checkOut){
+  const tabs=hit.tables, first=tabs[0];
+  const totalPax=gs.reduce((s,g)=>s+(g.pax||1),0);
+  let rest=totalPax;
+  tabs.forEach((t,i)=>{
+    const take=(i===tabs.length-1)?rest:Math.min(rest,t.kapazitaet||2);
+    t.belegtPax+=Math.max(0,take); rest-=take;
+    if(t.belegtPax>=t.kapazitaet) t.belegt=true;
+    t.gast_id=gs[0].id;
+    if(i>0) t.kombiMit={haupt:String(first.tisch_id),name:gs[0].nachname,pax:totalPax};
+    if(cal&&checkIn&&checkOut) addStayToCalendar(cal,t.tisch_id,checkIn,checkOut);
+  });
+  const label=tabs.map(t=>t.tisch_id).join('+');
+  gs.forEach(g=>{g.zugewiesener_tisch=String(first.tisch_id);g.begruendung='Kombination '+label+' (laut Tische & Kombinationen, max '+hit.kombi.max+' Pax)';});
+  return label;
 }
 
 function applyZimmerRegeln(g){
@@ -3728,7 +3780,7 @@ function runCalc(){
 
   // Apply rules
   stepAnim(3);
-  const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false,zukunft_belegt:false,zukunft_info:null}));
+  const ts=tables.map(t=>({...t,belegt:false,belegtPax:0,gast_id:null,blocked_for:null,konflikt:false,zukunft_belegt:false,zukunft_info:null,kombiMit:null}));
 
   // ── Vorab: Doppelbuchungen/verlinkte Gruppen MIT Bleibegast-Beteiligung zusammen
   // platzieren — damit die Doppelbuchungslogik EINHEITLICH auch für Bleibegäste gilt
@@ -3755,6 +3807,16 @@ function runCalc(){
     for(const g of gs){
       const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
       if(t){target=t;break;}
+    }
+    if(!target){
+      const hit=findKombiTables(ts,totalPax,null,null,null);
+      if(hit&&!hit.tables.some(t=>bleibeStamm.has(String(t.tisch_id)))){
+        const label=assignKombi(gs,hit,tableCalendar,gs[0].check_in,gs[gs.length-1].check_out||gs[0].check_out);
+        gs.forEach(g=>{preAssigned.add(g.id);});
+        dbBleib++;
+        warns.push({level:'green',msg:`Doppelbuchung ${gs[0].nachname} (${totalPax} PAX) → Kombination ${label} — laut Tische & Kombinationen`});
+        return;
+      }
     }
     if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null,groupPseudoGast(gs),bleibeStamm);
     if(target){
@@ -3863,13 +3925,6 @@ function runCalc(){
   stepAnim(4);
   stepAnim(6);
 
-  // Build group map: same last name + different rooms = group
-  const neuByLast={};
-  neu.forEach(g=>{
-    const last=g.nachname.trim().toLowerCase();
-    if(!neuByLast[last]) neuByLast[last]=[];
-    neuByLast[last].push(g);
-  });
   const groupAssigned=new Set();
   let assigned=0,groupsPlaced=0;
   let linkOk=0,linkCalOverride=0,linkOverfill=0,linkSplit=0;
@@ -3883,6 +3938,17 @@ function runCalc(){
     const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
     let groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar,groupPseudoGast(gs));
     let calendarOverridden=false;
+    if(!groupTable){
+      // Kombination laut Hotelier-Blatt (Regel #20: nur wenn KEIN Einzeltisch passt)
+      const hit=findKombiTables(ts,totalPax,ci,co,tableCalendar);
+      if(hit){
+        const label=assignKombi(gs,hit,tableCalendar,ci,co);
+        gs.forEach(g=>{groupAssigned.add(g.id);assigned++;});
+        groupsPlaced++; linkOk++;
+        warns.push({level:'green',msg:`Verlinkung Zi.${gs.map(g=>g.zimmer).join('+')} (${totalPax} PAX) → Kombination ${label} — laut Tische & Kombinationen`});
+        return;
+      }
+    }
     if(!groupTable){
       // Fallback 1: Kalender berücksichtigen, freisten Tisch wählen
       groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt&&
@@ -3934,37 +4000,11 @@ function runCalc(){
     warns.unshift({level:allOk?'green':'yellow',msg:`Verlinkungen (zu #): ${parts.join(', ')}`});
   }
 
-  // Pass 1b: Gleicher Nachname, verschiedene Zimmer → Familiengruppe
-  // WICHTIG: bereits platzierte Gäste (Vorab-Pass / Pass 1a "zu #") ausschließen,
-  // sonst reißt die Nachnamen-Gruppe eine bestehende Verlinkung wieder auseinander
-  // und ein Gast landet an zwei Tischen.
-  Object.values(neuByLast)
-    .map(gs=>gs.filter(g=>!g.zugewiesener_tisch&&!groupAssigned.has(g.id)))
-    .filter(gs=>[...new Set(gs.map(g=>String(g.zimmer)))].length>1)
-    .sort((a,b)=>b.reduce((s,g)=>s+g.pax,0)-a.reduce((s,g)=>s+g.pax,0)) // largest groups first
-    .forEach(gs=>{
-      const totalPax=gs.reduce((s,g)=>s+g.pax,0);
-      const name=gs[0].nachname;
-      const nights=Math.max(...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
-      const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
-      const ci=gs[0].check_in;const co=gs[gs.length-1].check_out||gs[0].check_out;
-      const groupTable=findBestTable(ts,pref,totalPax,nights,ci,co,tableCalendar,groupPseudoGast(gs));
-      if(groupTable){
-        groupTable.belegtPax+=totalPax;
-        if(groupTable.belegtPax>=groupTable.kapazitaet) groupTable.belegt=true;
-        groupTable.gast_id=gs[0].id;
-        addStayToCalendar(tableCalendar,groupTable.tisch_id,ci,co);
-        gs.forEach(g=>{
-          g.zugewiesener_tisch=groupTable.tisch_id;
-          g.begruendung='Gruppe '+name+' — gemeinsam Tisch '+groupTable.tisch_id;
-          groupAssigned.add(g.id);
-          assigned++;
-        });
-        groupsPlaced++;
-      } else {
-        warns.push({level:'yellow',msg:`Gruppe ${name} (${gs.length} Zimmer, ${totalPax} PAX gesamt) — kein Tisch groß genug, wird aufgeteilt`});
-      }
-    });
+  // Pass 1b (Nachnamen-Zusammenlegung) ENTFERNT — Hotelier-Antwort 08.07.:
+  // "Die zwei Familien gehören laut meiner Listen nicht zusammen. Bei keiner der
+  // Reservierungen ist ein 'zu #XXXXX' hinterlegt." Gruppen erkennt man AUSSCHLIESSLICH
+  // am Vermerk (Pass 1a). Gleiche Nachnamen bleiben ein Prüf-Hinweis (Fall #13),
+  // führen aber nie mehr zu automatischer gemeinsamer Platzierung.
 
   // Individual placement for remaining (non-group) neu guests — Familie bleibt ein
   // eigener Bedürfnis-Vorlauf (braucht den Familienbereich). Reihenfolge KOMBINIERT:
@@ -3976,7 +4016,10 @@ function runCalc(){
   // Hotelier-Logik (aus Echt-Plänen gelernt): mehr Nächte = besserer Tisch → längster
   // Aufenthalt wählt zuerst. Bei gleicher Nächtezahl entscheidet die ZIMMER-QUALITÄT
   // (bestes Zimmer → schönster Tisch, Fall #19), danach der Score (VIP/Stammgast).
-  const rankSort=(a,b)=>(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score);
+  // Hotelier-Regel (Antwort 08.07.): Aufenthaltsdauer hat IMMER Vorrang vor der
+  // Zimmerkategorie — einzige Ausnahme ist die Panorama Spa Suite (Zimmer 307).
+  const istSpa=g=>String(g.zimmer||'').split(',')[0].trim()==='307'?1:0;
+  const rankSort=(a,b)=>(istSpa(b)-istSpa(a))||(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score);
   const sorted=[...fam.sort(rankSort),...rest.sort(rankSort)];
 
   const doAssign=(g,t)=>{
@@ -4027,7 +4070,7 @@ function runCalc(){
   // bleibt ohne Tisch, außer es ist physisch unmöglich — dann klare rote Meldung.
   let fillOk=0,fillCal=0,fillTight=0,fillNone=0;
   active.filter(g=>!g.zugewiesener_tisch)
-    .sort((a,b)=>(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score))
+    .sort(rankSort)
     .forEach(g=>{
       const pref=getZoneForGuest(g);
       const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
@@ -4037,6 +4080,16 @@ function runCalc(){
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id}`;fillOk++;
         if(ausweich) warns.push({level:'yellow',msg:`Bleibegast ${g.nachname} (Zi. ${g.zimmer}): Stammtisch ${g.vorheriger_tisch} belegt → Ausweich Tisch ${t.tisch_id} (gelöst)`});
         return;}
+      // Stufe 1b: Kombination laut Hotelier-Blatt (Buchung größer als jeder freie Einzeltisch)
+      if((g.pax||1)>=4){
+        const hit=findKombiTables(ts,g.pax,g.check_in,g.check_out,tableCalendar);
+        if(hit){
+          const label=assignKombi([g],hit,tableCalendar,g.check_in,g.check_out);
+          assigned++; fillOk++;
+          warns.push({level:'green',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX) → Kombination ${label} — laut Tische & Kombinationen`});
+          return;
+        }
+      }
       // Stufe 2: Kalender ignorieren (heute setzen, Folgetag separat prüfen)
       t=findBestTable(ts,pref,g.pax,nights,null,null,null,g);
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id} (Kalender prüfen)`;fillCal++;
@@ -4862,13 +4915,28 @@ function parseTischplanTemplate(buf){
   // Kapazität genutzt und beim Export unverändert mitgeliefert.
   const tkName=wb.SheetNames.find(n=>/tische.*kombi|kombinationen/i.test(n));
   if(tkName){
-    const tkRows=XLSX.utils.sheet_to_json(wb.Sheets[tkName],{header:1,defval:''});
+    const wsTK=wb.Sheets[tkName];
+    const tkRows=XLSX.utils.sheet_to_json(wsTK,{header:1,defval:''});
     tischplanKombiRows=tkRows;
     tkRows.forEach((r,i)=>{
       if(i===0) return; // Kopfzeile
       const tid=String(r[0]||'').trim();
       const mp=parseInt(r[1]);
       if(tid&&mp>0) tischplanKapazitaet[tid]=mp;
+    });
+    // Kombi-Boxen: verbundene Zellen in den Kombi-Spalten (C/D) definieren, welche
+    // Tische kombinierbar sind; der Zellwert ist die maximale Personenzahl. Damit
+    // steht hinter den Eingaben des Hoteliers echte Vergabelogik (nicht nur Referenz).
+    (wsTK['!merges']||[]).forEach(m=>{
+      if(m.s.c<2) return; // nur Kombi 1 / Kombi 2
+      const maxPax=parseInt((tkRows[m.s.r]||[])[m.s.c]);
+      if(!(maxPax>0)) return;
+      const tables=[];
+      for(let rr=m.s.r;rr<=m.e.r;rr++){
+        const t=String((tkRows[rr]||[])[0]||'').trim();
+        if(/^\d{3}(_\d)?$/.test(t)) tables.push(t);
+      }
+      if(tables.length>=2) tischplanKombi.push({tables,min:2,max:maxPax});
     });
   }
   let inKat=false,inKombi=false;
@@ -5585,6 +5653,10 @@ function fillTischplanFromTemplate(ws,guestsByTable){
       // Fall #3/#14: Für künftige Langzeit/VIP/Gruppen reservierte Tische SICHTBAR
       // vermerken — das Team weiß, warum der Tisch frei bleibt ("Finger weg").
       const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
+      if(lt&&lt.kombiMit){
+        return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,
+          extras:'Teil der Kombination mit Tisch '+lt.kombiMit.haupt+' — '+lt.kombiMit.name+' ('+lt.kombiMit.pax+'P, gemeinsam eingedeckt)'};
+      }
       if(lt&&lt.zukunft_info){
         const zi=lt.zukunft_info;
         return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,

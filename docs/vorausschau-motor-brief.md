@@ -151,6 +151,20 @@ verknüpfte Buchungen „zu #…" **17×** · Kinder/Baby **14×** · Allergien 
 Honeymoon 3× · konkreter Tischwunsch 2× · ruhig/Aussicht 2×.
 → **Verknüpfte Buchungen und Familien zuerst perfekt machen** — das ist das Alltagsvolumen.
 
+**(4b) HOTELIER-ANTWORTEN vom 08.07. (verbindliche Regeln, umgesetzt in v.25.06-ax):**
+- **Aufenthaltsdauer hat IMMER Vorrang vor der Zimmerkategorie** — einzige Ausnahme:
+  Panorama Spa Suite (Zimmer 307). Bei gleicher Dauer: besseres Zimmer → schönerer Tisch.
+- **Kein harter Kategorie-Deckel für Tiny Studios:** sie dürfen gute Tische bekommen,
+  wenn frei; sie verlieren nur bei Konkurrenz (kürzere Dauer → später dran).
+- **Platzhalter-Prinzip (Fall #3 verfeinert):** 1-Nacht-Gast bewusst auf Premium-Tisch,
+  wenn am Folgetag ein Langzeitgast anreist und laut Abreisen kein guter Tisch frei wird
+  (deckt unser Kalender+Prognose-Pass strukturell ab).
+- **Gruppen NUR per Vermerk:** "zu #NNNNN" oder "zu Fam. Name #NNNNN" — gleiche Nachnamen
+  allein bedeuten NICHTS (nur Prüf-Hinweis, keine automatische Zusammenlegung).
+- **Anlässe:** erst Langzeit priorisieren; besonderer Tisch nur, wenn danach Auswahl bleibt.
+- **Kombinationen:** pflegt der Hotelier in der Vorlage (Kombi-Sektion/Boxen) — werden
+  jetzt als echte Vergabelogik genutzt (nur wenn kein Einzeltisch passt, Regel #20).
+
 **(5) Keine feste Zimmer→Restaurant-Zuordnung.** Beide Restaurants mischen alle Zimmertypen
 (~60/40). Nicht starr „Zimmer X → Restaurant Y" verdrahten.
 
