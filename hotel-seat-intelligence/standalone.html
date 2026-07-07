@@ -3416,16 +3416,30 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   if(inZone.length>0) pool=inZone;
   const maxKat=getMaxKatForNights(nights);
   const roomQ=gast?(gast.zimmer_qualitaet||null):null;
+  // Studio-Reserve (80x, Qualität 8) für Gäste normaler Zimmer MEIDEN, solange andere Tische
+  // frei sind — hält die 80x-Reihe für Tiny-Studios frei. Fund im 08.07.-Backtest: gute Zimmer
+  // (Zi 206/503, Q4) landeten auf 801/802, obwohl der Hotelier normale Tische frei hatte.
+  // Nie hart gesperrt: greift nur, wenn dadurch überhaupt etwas übrig bleibt.
+  if(!(roomQ>=8)){
+    const p80=pool.filter(t=>!/^80\d/.test(String(t.tisch_id)));
+    if(p80.length) pool=p80;
+  }
   // Sortier-Schlüssel: beste Qualität zuerst; Freilass-Tische (Fall #22) innerhalb gleicher
-  // Qualität zuletzt; Tiny-Studio-Gäste (Zimmer-Q8) bekommen Premium (Q1–2) nur als letzte
-  // Option — gelernt aus den echten Hotelier-Plänen (Wunsch-Deckel durch Zimmer-Klasse).
-  // Hotelier-Regel (Antwort 08.07.): Aufenthaltsdauer vor Zimmerkategorie — Tiny-Studio-
-  // Gäste DÜRFEN gute Tische bekommen, wenn frei ("hätte ich andere Tische gehabt…").
-  // Daher nur leichte Tendenz weg von Premium (+1.5), kein harter Deckel mehr.
+  // Qualität zuletzt. Tiny-Studio-Gäste (Zimmer-Q8): der Hotelier gibt KURZEN Aufenthalten
+  // (1–2 Nächte) bewusst die schlechten Tische, damit gute Tische für gute Zimmer frei bleiben
+  // (Backtest 08.07.: Zi 2004, 2 Nächte → Q7 bei ihm, wir gaben Q1). Ab 3+ Nächten neutral, nur
+  // leichte Tendenz weg von Premium. Nie harter Deckel ("hätte ich andere Tische gehabt…" —
+  // Tiny-Studios DÜRFEN gute Tische, wenn frei).
   const sKey=t=>{
-    let k=(t.kategorie||9);
-    if(t.freilass) k+=0.5;
-    if(roomQ>=8&&(t.kategorie||9)<=2) k+=1.5;
+    const kat=(t.kategorie||9);
+    let k;
+    if(roomQ>=8 && (nights||0)<=2){
+      k = 10 - kat;                    // Tiny-Studio, kurz: schlechte Tische zuerst (Q8→2 … Q1→9)
+    } else {
+      k = kat;
+      if(roomQ>=8 && kat<=2) k += 1.5; // Tiny-Studio, 3+ Nächte: leichte Tendenz weg von Premium
+    }
+    if(t.freilass) k += 0.5;           // Freilass-Tische innerhalb gleicher Stufe zuletzt
     return k;
   };
   pool.sort((a,b)=>{
@@ -3886,6 +3900,8 @@ function runCalc(){
       const roomQ=g.zimmer_qualitaet||null;
       const cand=ts.filter(t=>{
         if(!t.aktiv||t.notfall||t.belegtPax>0||tableOverrides.has(t.tisch_id)) return false;
+        // Studio-Reserve (80x) nicht für gute Zimmer vorreservieren (siehe findBestTable)
+        if(!(roomQ>=8)&&/^80\d/.test(String(t.tisch_id))) return false;
         return isTableFreeForStay(tableCalendar,t.tisch_id,g.check_in,g.check_out)&&t.kapazitaet>=g.pax;
       }).sort((a,b)=>{
         const sKey=t=>{let k=(t.kategorie||9);if(t.freilass)k+=0.5;if(roomQ>=8&&(t.kategorie||9)<=2)k+=6;return k;};
