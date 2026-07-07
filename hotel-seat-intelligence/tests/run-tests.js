@@ -101,7 +101,25 @@ async function calcInvariants(page){
       vorausschauAktiv:warnings.some(w=>String(w.msg).startsWith('Vorausschau aktiv')),
       radarCount:warnings.filter(w=>w.level==='vorausschau').length,
       redsTotal:warnings.filter(w=>w.level==='red').length,
-      redFuture:warnings.filter(w=>w.level==='red'&&/vorausschau|ankunft \d\d\.\d\d/i.test(String(w.msg))).length
+      redFuture:warnings.filter(w=>w.level==='red'&&/vorausschau|ankunft \d\d\.\d\d/i.test(String(w.msg))).length,
+      // ══ Angelernte Hotelier-Regeln als Prüfsteine (Baustein 1) ══
+      // Regel A — Bleibegast-Treue (hart): ein Gast, der schon gestern hier war (Vortags-Tisch
+      // vorhanden, kein Neu-Anreisender), MUSS auf seinem Tisch bleiben. Das Kernversprechen.
+      bleibeMoved:guests.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB'
+        &&g.zugewiesener_tisch&&String(g.zugewiesener_tisch)!==String(g.vorheriger_tisch)).length,
+      // Regel B — Studio-Reserve (80x) bleibt für Tiny-Studios frei: kein gutes Zimmer (Q≤6)
+      // landet auf 801/802/803, solange andere Tische frei sind (Backtest-Fund 08.07.).
+      goodRoomOn80x:guests.filter(g=>g.zugewiesener_tisch&&/^80\d/.test(String(g.zugewiesener_tisch))
+        &&(g.zimmer_qualitaet||9)<=6).map(g=>g.zimmer+'→'+g.zugewiesener_tisch),
+      // Regel C — kurzes Tiny-Studio (Zimmer-Q8, ≤2 Nächte) bekommt keinen Premium-Tisch (Kat≤2),
+      // damit gute Tische für gute Zimmer frei bleiben (Hotelier gibt kurzen Studios schlechte Tische).
+      tinyShortOnPremium:guests.filter(g=>{
+        if((g.zimmer_qualitaet||0)!==8||!g.zugewiesener_tisch) return false;
+        const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1;
+        if(n>2) return false;
+        const t=(lastTables||[]).find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
+        return t&&(t.kategorie||9)<=2;
+      }).map(g=>g.zimmer+'→'+g.zugewiesener_tisch)
     };
   });
 }
@@ -203,7 +221,12 @@ async function exportInvariants(page){
     {name:'S2 Mappe3-Vorlage (einspaltig, 3 Blätter)',vorlage:'vorlage-mappe3-anon.xlsx',expectTemplate:true},
     {name:'S3 Ohne Vorlage (Vortag-Fallback)',vorlage:null,expectTemplate:false},
     {name:'S4 Vorausschau-Motor (7-Tage-Anreisen, Echtformat 07.–13.07.)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
-     vortag:'plan-mo-anon.xlsx',ankuenfte:'arr7-anon.xlsx',abreisen:'dep7-anon.xlsx',refDate:'2026-07-07',vorausschau:true},
+     vortag:'plan-mo-anon.xlsx',ankuenfte:'arr7-anon.xlsx',abreisen:'dep7-anon.xlsx',refDate:'2026-07-07',vorausschau:true,
+     groundTruth:{heute:'ground-truth-di.json',vortag:'ground-truth-mo.json',label:'07.07.',minQuote:0.85,minTreue:0.90}},
+    {name:'S5 Backtest 08.07. (zweiter echter Hotelier-Tag — Anlernen/Stabilität)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-di-anon.xlsx',ankuenfte:'arr8-anon.xlsx',abreisen:'dep8-anon.xlsx',refDate:'2026-07-08',vorausschau:true,
+     anHeuteMin:6,anHeuteMax:16,
+     groundTruth:{heute:'ground-truth-mi.json',vortag:'ground-truth-di.json',label:'08.07.',minQuote:0.80,minTreue:0.78}},
   ];
 
   for(const sz of SZENARIEN){
@@ -234,18 +257,28 @@ async function exportInvariants(page){
       check('Vorausschau aktiv (künftige Anreisen erkannt)',ci.vorausschauAktiv===true);
       check('Prio-Reservierungen gesetzt (Langzeit/VIP/Gruppen)',ci.vsReserved>=1,'nur '+ci.vsReserved);
       check('Zeitleisten-Daten vorhanden (≥60 Tische)',ci.vsRows>=60,'nur '+ci.vsRows);
-      check('Heutige Anreisen plausibel (6–10 laut 07.07.-Zeilen)',ci.anHeute>=6&&ci.anHeute<=10,ci.anHeute+' AN');
+      const anMin=sz.anHeuteMin||6, anMax=sz.anHeuteMax||10;
+      check('Heutige Anreisen plausibel ('+anMin+'–'+anMax+')',ci.anHeute>=anMin&&ci.anHeute<=anMax,ci.anHeute+' AN');
       check('Anreise-PAX korrekt gelesen (Personen-Spalte, ≥14)',ci.anPaxHeute>=14,ci.anPaxHeute+' PAX');
       check('Zukunft NIE kritisch (kein rotes Vorausschau-Thema)',ci.redFuture===0,ci.redFuture+' rote Zukunfts-Meldungen');
       check('Planungsradar vorhanden (aggregierte Vorausschau)',ci.radarCount>=1,'nur '+ci.radarCount);
       check('Wenige echte Kritisch-Punkte heute (≤5)',ci.redsTotal<=5,ci.redsTotal+' rot');
     }
 
-    // Ground-Truth-Vergleich (nur Vorausschau-Szenario): unser Plan vs. echter
-    // Hotelier-Plan vom 07.07. — misst "gleiche Logik" als Zahl.
+    // ══ Angelernte Hotelier-Regeln als Prüfsteine (Baustein 1) — laufen auf jedem echten Tag ══
     if(sz.vorausschau){
-      const gtDi=JSON.parse(fs.readFileSync(FIX('ground-truth-di.json'),'utf8'));
-      const gtMo=JSON.parse(fs.readFileSync(FIX('ground-truth-mo.json'),'utf8'));
+      check('Regel A: Bleibegast bleibt auf seinem Tisch (kein Verbleiber umgesetzt)',ci.bleibeMoved===0,ci.bleibeMoved+' Verbleiber umgesetzt');
+      check('Regel B: Studio-Reserve 80x frei für Tiny-Studios (kein gutes Zimmer dort)',ci.goodRoomOn80x.length===0,ci.goodRoomOn80x.join(', '));
+      check('Regel C: kurzes Tiny-Studio nicht auf Premium-Tisch (Kat≤2)',ci.tinyShortOnPremium.length===0,ci.tinyShortOnPremium.join(', '));
+    }
+
+    // Ground-Truth-Vergleich: unser Plan vs. echter Hotelier-Plan des Tages — misst
+    // "gleiche Logik" als Zahl. Jeder Vorausschau-Tag bringt seine eigene Referenz mit,
+    // damit Änderungen an MEHREREN echten Tagen gemessen werden (Anlernen/Stabilität).
+    if(sz.vorausschau&&sz.groundTruth){
+      const gt=sz.groundTruth;
+      const gtHeute=JSON.parse(fs.readFileSync(FIX(gt.heute),'utf8'));
+      const gtVortag=JSON.parse(fs.readFileSync(FIX(gt.vortag),'utf8'));
       const ourMap=await page.evaluate(()=>{
         const m={};
         (assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&g.zimmer).forEach(g=>{
@@ -253,14 +286,14 @@ async function exportInvariants(page){
         });
         return m;
       });
-      const rooms=Object.keys(gtDi);
-      const matched=rooms.filter(z=>ourMap[z]===gtDi[z]).length;
-      const bleibRooms=rooms.filter(z=>gtMo[z]&&ourMap[z]);
-      const treu=bleibRooms.filter(z=>ourMap[z]===gtMo[z]).length;
-      const quote=matched/rooms.length, treue=treu/bleibRooms.length;
-      check('Ground-Truth: ≥85% wie der Hotelier-Plan 07.07.',quote>=0.85,Math.round(quote*100)+'% ('+matched+'/'+rooms.length+')');
-      check('Bleibegast-Treue ≥90% (Hotelier: 63/70)',treue>=0.90,Math.round(treue*100)+'% ('+treu+'/'+bleibRooms.length+')');
-      results.push('    ↳ Übereinstimmung mit Hotelier: '+Math.round(quote*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
+      const rooms=Object.keys(gtHeute);
+      const matched=rooms.filter(z=>ourMap[z]===gtHeute[z]).length;
+      const bleibRooms=rooms.filter(z=>gtVortag[z]&&ourMap[z]);
+      const treu=bleibRooms.filter(z=>ourMap[z]===gtVortag[z]).length;
+      const quote=matched/rooms.length, treue=bleibRooms.length?treu/bleibRooms.length:1;
+      check('Ground-Truth: ≥'+Math.round(gt.minQuote*100)+'% wie der Hotelier-Plan '+gt.label,quote>=gt.minQuote,Math.round(quote*100)+'% ('+matched+'/'+rooms.length+')');
+      check('Bleibegast-Treue ≥'+Math.round(gt.minTreue*100)+'% ('+gt.label+')',treue>=gt.minTreue,Math.round(treue*100)+'% ('+treu+'/'+bleibRooms.length+')');
+      results.push('    ↳ '+gt.label+' Übereinstimmung mit Hotelier: '+Math.round(quote*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
     }
 
     const ei=await exportInvariants(page);
