@@ -1008,7 +1008,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-at</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-au</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1336,7 +1336,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-at · 07.07.2026</span>
+          <span class="set-version">v.25.06-au · 07.07.2026</span>
         </div>
       </div>
 
@@ -3368,7 +3368,7 @@ function groupPseudoGast(gs){
 
 // Finds best available table: respects kategorie, stay length, tischRegeln, future calendar,
 // Hotelier-Merkmale (Wünsche), Zimmer-Qualitäts-Deckel und Freilass-/Notfall-Regeln.
-function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast){
+function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, avoidIds){
   const avail=ts.filter(t=>{
     if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
     for(const r of tischRegeln){
@@ -3385,6 +3385,12 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast){
   // Notfalltische (627/720/804) nur, wenn sonst gar nichts frei ist
   let pool=avail.filter(t=>!t.notfall);
   if(pool.length===0) pool=avail;
+  // Optional: Stammtische noch nicht platzierter Bleibegäste MEIDEN (nicht sperren) —
+  // schützt die Invariante "Bleibegast behält Tisch" im Vorab-Pass (Review-Fund 1).
+  if(avoidIds&&avoidIds.size){
+    const p2=pool.filter(t=>!avoidIds.has(String(t.tisch_id)));
+    if(p2.length) pool=p2;
+  }
   // Wunsch-Merkmale einengen (weich: nur wenn passende Tische frei sind; Rollstuhl zuerst).
   // Nicht erfüllbare Wünsche werden am Gast vermerkt → Hinweis statt stiller Ignoranz.
   const w=gast?getWunschForGuest(gast):null;
@@ -3729,6 +3735,9 @@ function runCalc(){
   // Reine Neugäste-Gruppen übernimmt weiterhin Pass 1a (kalenderbewusst).
   const preAssigned=new Set();
   let dbBleib=0;
+  // Stammtische ALLER Bleibegäste (die in Phase 1 ihren Tisch behalten sollen) —
+  // der Vorab-Pass darf diese nicht als "freien besten Tisch" wegnehmen.
+  const bleibeStamm=new Set(active.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB').map(g=>String(g.vorheriger_tisch)));
   buildLinkedGruppen(active).forEach(gs=>{
     if(!gs.some(g=>g.vorheriger_tisch)) return; // ohne Bleibegast → Pass 1a übernimmt
     // Hotelier-Logik (bewiesen am Plan-Vergleich 07.07., Fälle Becker/Bojarzyn/Faigle):
@@ -3746,7 +3755,7 @@ function runCalc(){
       const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
       if(t){target=t;break;}
     }
-    if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null,groupPseudoGast(gs));
+    if(!target) target=findBestTable(ts,pref,totalPax,nights,null,null,null,groupPseudoGast(gs),bleibeStamm);
     if(target){
       target.belegtPax+=totalPax;
       if(target.belegtPax>=target.kapazitaet) target.belegt=true;
@@ -4146,8 +4155,10 @@ function runCalc(){
     const tIds=Object.keys(tische);
     if(tIds.length>1){
       // Doppelmeldung vermeiden: Wenn Ausweich/Notplatzierung/Doppelbuchung dieses
-      // Zimmer bereits erklärt, ist die Zusatz-Diagnose nur Lärm.
-      const already=warns.some(w=>w.level!=='vorausschau'&&(String(w.msg).includes(`Zi. ${z}`)||String(w.msg).includes(`Zi. ${z},`)||String(w.msg).includes(`(${z})`)||String(w.msg).includes(`${z},`)&&/Doppelbuchung|Mehrfachbuchung/.test(w.msg)));
+      // Zimmer bereits erklärt, ist die Zusatz-Diagnose nur Lärm. Wortgrenzen-Prüfung,
+      // damit "200" nicht fälschlich auf "2003" matcht (Review-Fund 2).
+      const zRe=new RegExp('(^|[^0-9])'+z+'([^0-9]|$)');
+      const already=warns.some(w=>w.level!=='vorausschau'&&zRe.test(String(w.msg)));
       if(!already) warns.push({level:'yellow',msg:`Zimmer ${z} an mehreren Tischen (${tIds.join(', ')}) — bitte prüfen (Zimmerwechsel/Abreise oder Gruppierung)`});
     }
   });
@@ -6082,7 +6093,7 @@ function exportExcel(){
     ...warnings.map(w=>[w.level.toUpperCase(),w.msg]),
     [],
     ['SCHLUSSPROTOKOLL',''],
-    ['Status',redW-resolvedWarnings.size>0?'OFFEN — Kritische Warnungen vorhanden':'FREIGEGEBEN'],
+    ['Status',warnings.filter(w=>w.level==='red'&&!resolvedWarnings.has(w.msg)).length>0?'OFFEN — Kritische Warnungen vorhanden':'FREIGEGEBEN'],
     ['Erstellt von','Hotel Seat Intelligence v2.0'],
   ];
   const ws3=XLSX.utils.aoa_to_sheet(sh3Data);
