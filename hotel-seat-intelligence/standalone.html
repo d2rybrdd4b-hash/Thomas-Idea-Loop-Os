@@ -1008,7 +1008,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-as</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-at</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1336,7 +1336,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-as · 07.07.2026</span>
+          <span class="set-version">v.25.06-at · 07.07.2026</span>
         </div>
       </div>
 
@@ -3660,7 +3660,16 @@ function runCalc(){
 
   // Enrich VorherigerTisch from vortag
   const vtMap={};
-  vortag.forEach(v=>{if(v.zimmer&&v.tisch) vtMap[v.zimmer]=v.tisch;});
+  // Mehrfachbuchungen teilten gestern EINEN Tisch (z.B. "2003,2007 → 636"). Beim
+  // Zimmerwechsel muss jedes einzelne Zimmer seinen Vortagstisch erben können —
+  // deshalb Mehrfachzimmer-Zellen pro Zimmer aufschlüsseln (sonst erben 17 Zimmer
+  // ihren Tisch nicht und verdrängen sich gegenseitig, Fehler-Kette 07.07. Zi 514).
+  vortag.forEach(v=>{
+    if(!v.tisch) return;
+    String(v.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(Boolean).forEach(z=>{
+      if(!vtMap[z]) vtMap[z]=v.tisch;
+    });
+  });
 
   let guests=parseGuests(rows);
   const warns=[];
