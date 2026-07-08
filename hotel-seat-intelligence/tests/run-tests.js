@@ -107,6 +107,11 @@ async function calcInvariants(page){
       // vorhanden, kein Neu-Anreisender), MUSS auf seinem Tisch bleiben. Das Kernversprechen.
       bleibeMoved:guests.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB'
         &&g.zugewiesener_tisch&&String(g.zugewiesener_tisch)!==String(g.vorheriger_tisch)).length,
+      // Doppelplatzierung: kein Zimmer darf an mehreren Tischen stehen (Feedback 09.07.: Weber
+      // auf 621 UND 732). Kernversprechen — ein Zimmer gehört an genau einen Tisch/eine Kombi.
+      roomDoublePlaced:(()=>{const m={};guests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+        String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{(m[z]=m[z]||new Set()).add(String(g.zugewiesener_tisch));});});
+        return Object.entries(m).filter(([z,s])=>s.size>1).map(([z,s])=>z+'→'+[...s].join(','));})(),
       // Regel B — Studio-Reserve (80x) bleibt für Tiny-Studios frei: kein gutes Zimmer (Q≤6)
       // landet auf 801/802/803, solange andere Tische frei sind (Backtest-Fund 08.07.).
       goodRoomOn80x:guests.filter(g=>g.zugewiesener_tisch&&/^80\d/.test(String(g.zugewiesener_tisch))
@@ -267,6 +272,7 @@ async function exportInvariants(page){
     check('Gäste geladen (≥40)',ci.nGuests>=40,'nur '+ci.nGuests);
     check('Alle Gäste platziert',ci.unplaced===0,ci.unplaced+' ohne Tisch');
     check('Keine Geister-Tische (Zuweisung auf unbekannten Tisch)',ci.ghosts===0,ci.ghosts+' Geister');
+    check('Keine Doppelplatzierung (kein Zimmer an mehreren Tischen)',ci.roomDoublePlaced.length===0,ci.roomDoublePlaced.join(' | '));
     if(sz.vorlage==='vorlage-blanco.xlsx'){
       check('Keine STILLE Überbelegung (echte Platzzahlen greifen)',ci.overfullSilent.length===0,ci.overfullSilent.join(', '));
     }

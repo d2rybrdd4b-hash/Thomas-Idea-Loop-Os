@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bg</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bh</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bg · 08.07.2026</span>
+          <span class="set-version">v.25.06-bh · 08.07.2026</span>
         </div>
       </div>
 
@@ -3819,6 +3819,26 @@ function runCalc(){
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
   });
 
+  // ── Zimmer-Turnover bereinigen ──
+  // Gehört ein Zimmer heute einem Neu-Anreisenden (AN/AN·AB), darf dasselbe Zimmer nicht
+  // zusätzlich im Mehrfachzimmer-String eines anderen (Bleibe-)Gastes stehen — sonst erscheint
+  // das Zimmer an ZWEI Tischen (Fund 07.07.: Zi 2001 beim Neu-Gast Wirth UND in der Mehrfach-
+  // buchung Zink "2001, 2005,2008"). Der Neu-Anreisende besitzt das Zimmer; aus dem alten
+  // Mehrfach-String fällt es heraus (Vortags-Tisch des Bleibegasts bleibt unberührt).
+  {
+    const anRooms=new Set();
+    guests.filter(g=>g.status==='AN'||g.status==='AN·AB').forEach(g=>{
+      String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>anRooms.add(z));
+    });
+    guests.forEach(g=>{
+      if(g.status==='AN'||g.status==='AN·AB') return;
+      const parts=String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(Boolean);
+      if(parts.length<=1) return;
+      const kept=parts.filter(z=>!anRooms.has(z));
+      if(kept.length&&kept.length<parts.length) g.zimmer=kept.join(', ');
+    });
+  }
+
   // Step CS1 progress
   stepAnim(1);
 
@@ -4221,6 +4241,26 @@ function runCalc(){
       warns.push({level:'green',msg:`Kombination ${k.tables.join('+')} gebildet — ${t.belegtPax} Pers. (Zi. ${gsAt.map(g=>g.zimmer).join('+')}) passen nicht an Einzeltisch ${t.tisch_id}`});
       break;
     }
+  });
+
+  // ── SELBST-PRÜFUNG: keine Doppelplatzierung ──
+  // Kein Zimmer und kein Gast darf an MEHREREN Tischen stehen. Findet Doppelplatzierungen und
+  // Geister-Dubletten, damit der Hotelier so etwas NIE selbst entdecken muss (Feedback 09.07.:
+  // "Weber" stand auf 621 UND 732). Kritischer Hinweis + blockiert grünes "alles ok".
+  const zimmerTische={}, gastTische={};
+  active.filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const tid=String(g.zugewiesener_tisch);
+    String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{
+      (zimmerTische[z]=zimmerTische[z]||new Set()).add(tid);
+    });
+    const key=(g.nachname||'')+'|'+(g.zimmer||'');
+    if(g.nachname){(gastTische[key]=gastTische[key]||new Set()).add(tid);}
+  });
+  Object.entries(zimmerTische).forEach(([z,set])=>{
+    if(set.size>1) warns.push({level:'red',msg:`Doppelplatzierung: Zimmer ${z} steht an mehreren Tischen (${[...set].sort().join(', ')}) — bitte prüfen, ein Zimmer gehört an genau einen Tisch/eine Kombination`});
+  });
+  Object.entries(gastTische).forEach(([key,set])=>{
+    if(set.size>1){const [nm,zi]=key.split('|');warns.push({level:'red',msg:`Doppelplatzierung: Gast ${nm} (Zi. ${zi}) steht an mehreren Tischen (${[...set].sort().join(', ')}) — bitte prüfen`});}
   });
 
   // ── Unerfüllte Wünsche melden (nie still ignorieren) ──
