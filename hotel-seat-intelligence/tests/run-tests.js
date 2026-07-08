@@ -314,21 +314,30 @@ async function exportInvariants(page){
       const gt=sz.groundTruth;
       const gtHeute=JSON.parse(fs.readFileSync(FIX(gt.heute),'utf8'));
       const gtVortag=JSON.parse(fs.readFileSync(FIX(gt.vortag),'utf8'));
-      const ourMap=await page.evaluate(()=>{
+      const {ourMap,katMap}=await page.evaluate(()=>{
         const m={};
         (assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&g.zimmer).forEach(g=>{
           String(g.zimmer).split(',').map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{m[z]=String(g.zugewiesener_tisch);});
         });
-        return m;
+        // Tisch → Qualitätsstufe (für die Logik-Treue-Messung)
+        const k={}; (lastTables||[]).forEach(t=>{k[String(t.tisch_id)]=t.kategorie||9;});
+        return {ourMap:m,katMap:k};
       });
       const rooms=Object.keys(gtHeute);
       const matched=rooms.filter(z=>ourMap[z]===gtHeute[z]).length;
       const bleibRooms=rooms.filter(z=>gtVortag[z]&&ourMap[z]);
       const treu=bleibRooms.filter(z=>ourMap[z]===gtVortag[z]).length;
       const quote=matched/rooms.length, treue=bleibRooms.length?treu/bleibRooms.length:1;
+      // LOGIK-TREUE: nicht "exakt gleicher Tisch", sondern "gleiche Qualitätsstufe (±1)" — misst,
+      // ob wir DIESELBE Logik anwenden (Dauer→Qualität), auch wenn der exakte Tisch (freie Wahl)
+      // abweicht. Das ist die für Vollautomatik entscheidende Zahl.
+      const vergl=rooms.filter(z=>ourMap[z]&&katMap[ourMap[z]]!=null&&katMap[gtHeute[z]]!=null);
+      const logisch=vergl.filter(z=>Math.abs((katMap[ourMap[z]]||9)-(katMap[gtHeute[z]]||9))<=1).length;
+      const logikTreue=vergl.length?logisch/vergl.length:1;
       check('Ground-Truth: ≥'+Math.round(gt.minQuote*100)+'% wie der Hotelier-Plan '+gt.label,quote>=gt.minQuote,Math.round(quote*100)+'% ('+matched+'/'+rooms.length+')');
       check('Bleibegast-Treue ≥'+Math.round(gt.minTreue*100)+'% ('+gt.label+')',treue>=gt.minTreue,Math.round(treue*100)+'% ('+treu+'/'+bleibRooms.length+')');
-      results.push('    ↳ '+gt.label+' Übereinstimmung mit Hotelier: '+Math.round(quote*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
+      check('Logik-Treue ≥90% (gleiche Qualitätsstufe ±1) '+gt.label,logikTreue>=0.90,Math.round(logikTreue*100)+'% ('+logisch+'/'+vergl.length+')');
+      results.push('    ↳ '+gt.label+' exakter Tisch: '+Math.round(quote*100)+'% | LOGIK-Treue (Qualität ±1): '+Math.round(logikTreue*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
     }
 
     const ei=await exportInvariants(page);

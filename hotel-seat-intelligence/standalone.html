@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bh</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bi</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bh · 08.07.2026</span>
+          <span class="set-version">v.25.06-bi · 08.07.2026</span>
         </div>
       </div>
 
@@ -3450,20 +3450,14 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   // (Die 80x-Studio-Reserve ist bereits über die Stufen-Platzierung oben ausgeschlossen,
   //  solange irgendein regulärer Tisch frei ist — für ALLE Gäste, auch Tiny-Studios.)
   // Sortier-Schlüssel: beste Qualität zuerst; Freilass-Tische (Fall #22) innerhalb gleicher
-  // Qualität zuletzt. Tiny-Studio-Gäste (Zimmer-Q8): der Hotelier gibt KURZEN Aufenthalten
-  // (1–2 Nächte) bewusst die schlechten Tische, damit gute Tische für gute Zimmer frei bleiben
-  // (Backtest 08.07.: Zi 2004, 2 Nächte → Q7 bei ihm, wir gaben Q1). Ab 3+ Nächten neutral, nur
-  // leichte Tendenz weg von Premium. Nie harter Deckel ("hätte ich andere Tische gehabt…" —
-  // Tiny-Studios DÜRFEN gute Tische, wenn frei).
+  // Qualität zuletzt. Tiny-Studio-Gäste (Zimmer-Q8): der Hotelier MEIDET für sie Premium (Q1–2),
+  // gibt ihnen aber MITTLERE Tische — nicht den schlechtesten (Backtest 09.07.: Zi 2006, 2 Nächte
+  // → Q3 bei ihm; unsere frühere harte Abwertung gab Q7). Kurze Aufenthalte etwas stärker weg von
+  // Premium als längere; nie harter Deckel (situativ nach Verfügbarkeit).
   const sKey=t=>{
     const kat=(t.kategorie||9);
-    let k;
-    if(roomQ>=8 && (nights||0)<=2){
-      k = 10 - kat;                    // Tiny-Studio, kurz: schlechte Tische zuerst (Q8→2 … Q1→9)
-    } else {
-      k = kat;
-      if(roomQ>=8 && kat<=2) k += 1.5; // Tiny-Studio, 3+ Nächte: leichte Tendenz weg von Premium
-    }
+    let k=kat;
+    if(roomQ>=8 && kat<=2) k += ((nights||0)<=2 ? 4 : 2.5); // Tiny-Studio: Premium meiden, Mitte bevorzugen
     if(t.freilass) k += 0.5;           // Freilass-Tische innerhalb gleicher Stufe zuletzt
     return k;
   };
