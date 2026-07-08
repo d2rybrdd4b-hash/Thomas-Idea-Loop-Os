@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bb</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bc</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bb · 08.07.2026</span>
+          <span class="set-version">v.25.06-bc · 08.07.2026</span>
         </div>
       </div>
 
@@ -5518,18 +5518,18 @@ async function buildFilledTischplanSheet(){
         name=[g.nachname,g.vorname].filter(Boolean).join(', ')+(g.vip?' ⭐':'')+(g.stammgast?' 🔁':'');
         pax=paxLabel(g.pax||1,g.kinder||0);
         naechte=naechteOf(g);
-        extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
+        extras=extrasForPlan([g.allergie,g.bemerkung,g.extras]);
       } else if(gs.length>1){
         // Verlinkte Gruppe (zu #...): alle Zimmer anzeigen, PAX addieren, Namen deduplizieren
-        zimmer=gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', ');
+        zimmer=zimmerLabel(gs.map(g=>g.zimmer));
         const statSet=[...new Set(gs.map(g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status)).filter(Boolean))];
         status=statSet.join('/');
         const nameSet=[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))];
         name=nameSet.join(' + ')+(gs.some(g=>g.vip)?' ⭐':'')+(gs.some(g=>g.stammgast)?' 🔁':'');
-        pax=paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0));
+        pax=paxLabel(groupPax(gs,'pax')||1,groupPax(gs,'kinder'));
         const gn=gs.map(g=>naechteOf(g)).filter(v=>v!=='');
         naechte=gn.length?Math.max(...gn):'';
-        extras=[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | ');
+        extras=extrasForPlan(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]));
       } else {
         // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
         zimmer=String(ex.zimmer||'');status=String(ex.status||'');
@@ -5668,6 +5668,44 @@ function planDatumDE(){
 // Erkennt Datums-Texte in der Vorlagen-Kopfzeile ("30. Juni - Dienstag", "Datum des Plans")
 const INFO_DATE_RE=/^\d{1,2}\.\s*(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)|^Datum des Plans/i;
 // Dynamische Zeilenhöhe für umgebrochene Texte (Zeile wächst nach unten statt Überlauf)
+// Extras-Spalte auf tisch-relevante Infos reduzieren (Hotelier-Feedback 09.07.: zu viele
+// irrelevante Infos landeten in Extras). BEHALTEN: Allergien, Wünsche (Fenster/ruhig/
+// Rollstuhl/Familie/Tischwunsch), Anlass, Kinder, Gruppen-/Umzugs-Hinweise. RAUS: interne
+// Buchungs-/Preis-/Kurtaxe-/Aufgaben-Infos, Early/Late-Check-in, System-Vorausschau
+// ("RESERVIERT ab …"). Doppelte Segmente werden entfernt.
+function extrasForPlan(list){
+  const segs=[];
+  (Array.isArray(list)?list:[list]).forEach(s=>String(s||'').split(/\s*\|\s*|\s*\/\s*|\n/).forEach(p=>{p=p.trim();if(p)segs.push(p);}));
+  const rel=p=>{const L=p.toLowerCase();
+    return /allergie|gluten|laktose|nuss|zöliak|intoleran|unverträg|vegan|vegi|vegetar|karotte|walnuss|weizen/.test(L)
+      ||/rollstuhl|rollator|fenster|ruhig|aussicht|familientisch|barrierefrei|behindert/.test(L)
+      ||/tisch\s*\d|tischwunsch|wunschtisch|gewünscht|w\.m\./.test(L)
+      ||/geburtstag|hochzeit|jubil|honeymoon|jahrestag/.test(L)
+      ||/\bki\b|kind|baby|hochstuhl|babybett|\d\s*erw/.test(L)
+      ||/zu #|zu fam|tisch mit|gehör|zusammen|#\d{4,}/.test(L)
+      ||/umzug/.test(L);
+  };
+  const keep=[],seen=new Set();
+  segs.forEach(p=>{ if(/^reserviert ab/i.test(p))return; if(!rel(p))return;
+    // Dedup-Schlüssel ohne Satzzeichen/Leerraum, damit "…& Laktose" und "…+ Laktose" als
+    // gleich erkannt werden (dieselbe Info aus zwei Buchungen erscheint nur einmal).
+    const k=p.toLowerCase().replace(/[^a-zäöüß0-9]/g,''); if(!k||seen.has(k))return; seen.add(k); keep.push(p); });
+  return keep.join(' | ');
+}
+// Zimmernummern deduplizieren (Doppelbuchung schrieb "101, 101"): jede Nummer nur einmal;
+// echte Mehrfachzimmer (116, 117) bleiben erhalten.
+function zimmerLabel(list){
+  const nums=[];
+  (Array.isArray(list)?list:[list]).forEach(z=>String(z||'').split(/[,+\s]+/).forEach(n=>{if(/^\d+$/.test(n))nums.push(n);}));
+  return [...new Set(nums)].join(', ');
+}
+// Pax einer Buchungsgruppe: bei mehreren Buchungen im SELBEN Zimmer nicht doppelt zählen
+// (dieselbe Partei auf zwei PMS-Zeilen); über VERSCHIEDENE Zimmer summieren.
+function groupPax(gs,field){
+  const rooms=new Set(gs.map(g=>zimmerLabel(g.zimmer)).filter(Boolean));
+  return rooms.size<=1 ? Math.max(0,...gs.map(g=>g[field]||0))
+                       : gs.reduce((s,g)=>s+(g[field]||0),0);
+}
 function wrapHeight(text,colWidth){
   const s=String(text||'');
   const lines=Math.max(1,Math.ceil(s.length/Math.max(10,colWidth)))+(s.split('\n').length-1);
@@ -5707,25 +5745,26 @@ function fillTischplanFromTemplate(ws,guestsByTable){
           extras:'Teil der Kombination mit Tisch '+lt.kombiMit.haupt+' — '+lt.kombiMit.name+' ('+lt.kombiMit.pax+'P, gemeinsam eingedeckt)'};
       }
       if(lt&&lt.zukunft_info){
-        const zi=lt.zukunft_info;
-        return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,
-          extras:'RESERVIERT ab '+fmtDM(zi.check_in)+': '+zi.name+' ('+zi.pax+'P'+(zi.nights?', '+zi.nights+' Nächte':'')+')'+(zi.vip?' — VIP':'')};
+        // Hotelier-Feedback 09.07.: die ausführliche "RESERVIERT ab …"-Vorausschau gehört
+        // NICHT in den heutigen Tischplan (steht in der Zeitleiste/Vorausschau). Tisch bleibt
+        // als frei/reserviert erkennbar (reserviert:true), aber ohne den langen Extras-Text.
+        return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,extras:''};
       }
       return {zimmer:'',status:'',name:'',pax:'',extras:'',naechte:''};
     }
     if(gs.length===1){
       const g=gs[0];
       return {zimmer:String(g.zimmer||''),status:statusOf(g),name:[g.nachname,g.vorname].filter(Boolean).join(', '),
-        pax:paxLabel(g.pax||1,g.kinder||0),extras:[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | '),naechte:naechteOf(g),
+        pax:paxLabel(g.pax||1,g.kinder||0),extras:extrasForPlan([g.allergie,g.bemerkung,g.extras]),naechte:naechteOf(g),
         hasAllergie:!!(g.allergie&&String(g.allergie).trim())};
     }
     const gn=gs.map(naechteOf).filter(v=>v!=='');
     return {
-      zimmer:gs.map(g=>String(g.zimmer||'')).filter(Boolean).join(', '),
+      zimmer:zimmerLabel(gs.map(g=>g.zimmer)),
       status:[...new Set(gs.map(statusOf).filter(Boolean))].join('/'),
       name:[...new Set(gs.map(g=>[g.nachname,g.vorname].filter(Boolean).join(', ')))].join(' + '),
-      pax:paxLabel(gs.reduce((s,g)=>s+(g.pax||1),0),gs.reduce((s,g)=>s+(g.kinder||0),0)),
-      extras:[...new Set(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]).filter(v=>v&&String(v).trim()))].join(' | '),
+      pax:paxLabel(groupPax(gs,'pax')||1,groupPax(gs,'kinder')),
+      extras:extrasForPlan(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras])),
       naechte:gn.length?Math.max(...gn):'',
       hasAllergie:gs.some(g=>g.allergie&&String(g.allergie).trim())
     };
@@ -5971,8 +6010,8 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
   rows.forEach(g=>{
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
     const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
-    const extras=[g.allergie,g.bemerkung,g.extras].filter(v=>v&&String(v).trim()).join(' | ');
-    const r=ws2.addRow(['',g.zugewiesener_tisch||'',g.zimmer||'',statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
+    const extras=extrasForPlan([g.allergie,g.bemerkung,g.extras]);
+    const r=ws2.addRow(['',g.zugewiesener_tisch||'',zimmerLabel(g.zimmer)||String(g.zimmer||''),statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
     for(let c=2;c<=8;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
     r.getCell(6).alignment={vertical:'middle',horizontal:'center'};
     r.getCell(7).alignment={vertical:'middle',horizontal:'center'};
