@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-be</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bf</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-be · 08.07.2026</span>
+          <span class="set-version">v.25.06-bf · 08.07.2026</span>
         </div>
       </div>
 
@@ -4201,6 +4201,28 @@ function runCalc(){
     warns.unshift({level:fillTight>0?'yellow':'green',msg:`Auffüll-Pass: ${parts.join(', ')}${fillNone>0?`, ${fillNone} ohne Tisch (Kapazität erschöpft)`:''}`});
   }
 
+  // ── Kombi-Ausbau: überbelegte Tische zu einer echten Kombination ausbauen ──
+  // Hotelier-Logik (Feedback 09.07.): eine Partei, die die Tischkapazität übersteigt (z.B.
+  // Familie 4 Pers. an 2er-Tisch 612), sitzt an der Kombination 612+613 statt am überladenen
+  // Einzeltisch. Nur wenn ein Kombi-Partner FREI ist (sonst bleibt die gelebte Kombination mit
+  // Hinweis). Der Partnertisch wird als kombiMit markiert → Export zeigt "zu [Haupttisch]".
+  ts.filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0)&&!t.kombiMit).forEach(t=>{
+    const kombis=getAktiveKombis()
+      .filter(k=>(k.tables||[]).map(String).includes(String(t.tisch_id))&&(k.max||0)>=t.belegtPax)
+      .sort((a,b)=>((a.max||99)-(b.max||99))||(a.tables.length-b.tables.length));
+    for(const k of kombis){
+      const partners=k.tables.map(String).filter(id=>id!==String(t.tisch_id)).map(id=>ts.find(x=>String(x.tisch_id)===id));
+      if(partners.some(p=>!p||!p.aktiv||p.blocked_for||(p.belegtPax||0)>0||p.notfall||p.kombiMit)) continue;
+      const gsAt=active.filter(g=>String(g.zugewiesener_tisch)===String(t.tisch_id));
+      const nm=(gsAt[0]||{}).nachname||'';
+      partners.forEach(p=>{ p.kombiMit={haupt:String(t.tisch_id),name:nm,pax:t.belegtPax}; });
+      // die "Überladung"-Warnung dieses Tischs zurücknehmen → jetzt saubere Kombination
+      for(let wi=warns.length-1;wi>=0;wi--){ if(String(warns[wi].msg).startsWith('Tisch '+t.tisch_id+':')) warns.splice(wi,1); }
+      warns.push({level:'green',msg:`Kombination ${k.tables.join('+')} gebildet — ${t.belegtPax} Pers. (Zi. ${gsAt.map(g=>g.zimmer).join('+')}) passen nicht an Einzeltisch ${t.tisch_id}`});
+      break;
+    }
+  });
+
   // ── Unerfüllte Wünsche melden (nie still ignorieren) ──
   // Harte Anforderung Rollstuhl: über ALLE Platzierungen prüfen (auch Bleibegäste und
   // Gruppen, die nicht durch findBestTable laufen). Bleibegast am gewohnten Tisch ist
@@ -5561,9 +5583,15 @@ async function buildFilledTischplanSheet(){
         naechte=gn.length?Math.max(...gn):'';
         extras=extrasForPlan(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]));
       } else {
-        // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
-        zimmer=String(ex.zimmer||'');status=String(ex.status||'');
-        name=String(ex.name||'');pax=ex.pax!=null?ex.pax:'';extras=String(ex.extras||'');
+        // Kombi-Partnertisch → Hotelier-Notation "zu [Haupttisch]" im Gastname-Feld
+        const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
+        if(lt&&lt.kombiMit){
+          name='zu '+lt.kombiMit.haupt;
+        } else {
+          // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
+          zimmer=String(ex.zimmer||'');status=String(ex.status||'');
+          name=String(ex.name||'');pax=ex.pax!=null?ex.pax:'';extras=String(ex.extras||'');
+        }
       }
       const dataRow=ws.addRow([tid,zimmer,status,name,pax,naechte,extras]);
       applyDataStyle(dataRow,katFill);
@@ -5771,8 +5799,9 @@ function fillTischplanFromTemplate(ws,guestsByTable){
       // vermerken — das Team weiß, warum der Tisch frei bleibt ("Finger weg").
       const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
       if(lt&&lt.kombiMit){
-        return {zimmer:'',status:'',name:'',pax:'',naechte:'',reserviert:true,
-          extras:'Teil der Kombination mit Tisch '+lt.kombiMit.haupt+' — '+lt.kombiMit.name+' ('+lt.kombiMit.pax+'P, gemeinsam eingedeckt)'};
+        // Hotelier-Notation: Partnertisch trägt "zu [Haupttisch]" im Gastname-Feld (wie in
+        // seiner Tischmappe, z.B. 613 → "zu 612"), statt eines langen Kombi-Texts in Extras.
+        return {zimmer:'',status:'',name:'zu '+lt.kombiMit.haupt,pax:'',naechte:'',reserviert:true,extras:''};
       }
       if(lt&&lt.zukunft_info){
         // Hotelier-Feedback 09.07.: die ausführliche "RESERVIERT ab …"-Vorausschau gehört

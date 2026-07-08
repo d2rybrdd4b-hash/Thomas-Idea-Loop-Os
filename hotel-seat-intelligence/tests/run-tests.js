@@ -187,7 +187,9 @@ async function exportInvariants(page){
         if(!/^[678]\d\d(_\d)?$/.test(t)) return;
         const name=String(row.getCell((bl.gastnameCol??3)+1).value||'').trim();
         const room=String(row.getCell((bl.zimmerCol??2)+1).value||'').trim();
-        if(name&&!room) occWithoutRoom++;
+        // Kombi-Partnertische tragen "zu [Haupttisch]" statt eines Gasts und haben bewusst
+        // kein Zimmer — nicht als "belegter Tisch ohne Zimmer" werten.
+        if(name&&!room&&!/^zu\s/i.test(name)) occWithoutRoom++;
         room.split(',').map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>tpPairs.add(z+'|'+t));
       }));
       const szPairs=new Set();
@@ -208,10 +210,10 @@ async function exportInvariants(page){
     }
     return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,
       roomMismatch,occWithoutRoom,diffPairs:(typeof __dp!=='undefined'?__dp:[]),
-      // Kombi-NEBEN­tische (t.kombiMit) tragen Pax, aber der Gastname steht am Haupttisch —
-      // im Export bleibt die Namensspalte des Nebentisches leer (nur Kombi-Vermerk). Daher
-      // hier ausklammern, sonst zählt die Berechnung sie, der Export (zu Recht) nicht.
-      calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&(t.belegtPax||0)>0&&!t.kombiMit).length};
+      // Ein 7xx-Tisch erscheint im Export mit Text, wenn er einen Gast trägt ODER Kombi-
+      // Partner ist (dann steht "zu [Haupttisch]" im Namensfeld). Beide zählen — nur wirklich
+      // leere Tische nicht.
+      calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&((t.belegtPax||0)>0||t.kombiMit)).length};
   });
 }
 
