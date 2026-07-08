@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bc</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bd</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bc · 08.07.2026</span>
+          <span class="set-version">v.25.06-bd · 08.07.2026</span>
         </div>
       </div>
 
@@ -2627,7 +2627,20 @@ function enrichFromBemerkung(g){
   while((zuM=zuRe.exec(bem))!==null) zuRefs.add(zuM[1]);
   const zuNameRe=/\bzu\s+[^#\n]{1,30}?#\s*(\d{3,8})\b/gi;
   while((zuM=zuNameRe.exec(bem))!==null) zuRefs.add(zuM[1]);
+  // Weitere Hotelier-Formulierungen für Zusammengehörigkeit (Feedback 09.07.: Zi 509 →
+  // "Tisch mit Fam. Anschütz #22057"). Nur mit klarem Gruppen-Trigger ("Tisch mit",
+  // "zusammen", "gehören/gehört", "gemeinsam"), damit Fließtext wie "zu 5 Personen, siehe
+  // Res #…" NICHT fälschlich als Verlinkung gilt.
+  const grpRe=/\b(?:tisch\s+mit|zusammen(?:\s+mit)?|geh(?:ö|oe)r(?:t|en)?(?:\s+(?:zu|mit))?|gemeinsam(?:\s+mit)?)\b[^#\n]{0,40}?#\s*(\d{3,8})\b/gi;
+  while((zuM=grpRe.exec(bem))!==null) zuRefs.add(zuM[1]);
   if(zuRefs.size) g.verlinkteRefs=[...zuRefs];
+  // Zusätzlich den NAMEN aus solchen Gruppen-Phrasen erfassen ("Tisch mit Fam. Anschütz"),
+  // damit die Verlinkung auch dann greift, wenn der Partner ein Bleibegast OHNE Res-Nr ist
+  // (aus dem Vortagsplan). Nur mit klarem Trigger, gefolgt von optionalem Fam./Herr/Frau.
+  const grpNameRe=/\b(?:tisch\s+mit|zusammen\s+mit|gemeinsam\s+mit|geh(?:ö|oe)r(?:t|en)?\s+(?:zu|mit))\s+(?:fam(?:ilie)?\.?\s+|hr\.?\s+|fr\.?\s+|herr\s+|frau\s+)?([A-ZÄÖÜ][a-zäöüß\-]{2,})/gi;
+  const grpNames=new Set(); let gnM;
+  while((gnM=grpNameRe.exec(bem))!==null) grpNames.add(gnM[1].toLowerCase());
+  if(grpNames.size) g.verlinkteNamen=[...grpNames];
 
   return g;
 }
@@ -3377,6 +3390,7 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   // Grund-Eignung (Platz, Regeln) — OHNE Vorausschau-Kalender.
   const passesBasics=t=>{
     if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
+    if(t.kombiMit) return false; // Kombi-Partnertisch ist reserviert (Audit-Fund: sonst Fremdbelegung)
     for(const r of tischRegeln){
       if(r.tisch!==t.tisch_id) continue;
       if(r.typ==='max_pax'&&pax>parseInt(r.wert||99)) return false;
@@ -3482,38 +3496,32 @@ function findKombiTables(ts,pax,checkIn,checkOut,cal){
     .sort((a,b)=>((a.max||99)-(b.max||99))||((a.tables.length)-(b.tables.length)));
   for(const k of ks){
     const tabs=k.tables.map(id=>ts.find(t=>String(t.tisch_id)===String(id).trim()));
-    if(tabs.some(t=>!t||!t.aktiv||t.blocked_for||t.belegtPax>0||t.notfall)) continue;
+    if(tabs.some(t=>!t||!t.aktiv||t.blocked_for||t.belegtPax>0||t.notfall||t.kombiMit)) continue;
     if(cal&&checkIn&&checkOut&&tabs.some(t=>!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut))) continue;
     return {kombi:k,tables:tabs};
   }
   return null;
 }
-// Gruppe auf die Kombi-Tische VERTEILEN (gängige Gastro-Praxis): möglichst ein Zimmer je
-// Kombi-Tisch, damit jeder Tisch sein Zimmer zeigt und nichts überbelegt wirkt. Reicht die
-// Zahl der Buchungen nicht (eine große Einzelbuchung), sitzt sie am Haupttisch; leer
-// gebliebene Kombi-Tische tragen einen sichtbaren Kombi-Vermerk.
+// Kombination nach HOTELIER-Konvention führen: alle Gäste einer Gruppe stehen am HAUPTTISCH
+// der Kombination (beide Zimmer, z.B. Weber 116+117 → 732), der/die Partnertische (733) sind
+// als Kombi-Partner vermerkt. So führt es der Hotelier in seiner Tischmappe (Ground-Truth 09.07.:
+// 117 → 732, nicht 733). Die PAX werden für die Kapazitäts-Buchhaltung auf die Tische verteilt.
 function assignKombi(gs,hit,cal,checkIn,checkOut){
   const tabs=hit.tables, first=tabs[0];
   const totalPax=gs.reduce((s,g)=>s+(g.pax||1),0);
   const label=tabs.map(t=>t.tisch_id).join('+');
-  // Buchungen den Tischen zuordnen: bevorzugt ein Tisch mit genug Restplatz, sonst der
-  // Tisch mit dem meisten freien Platz (stapelt nur im Notfall).
-  gs.forEach(g=>{
-    const need=g.pax||1;
-    let t=tabs.find(x=>(x.kapazitaet-x.belegtPax)>=need)
-        ||tabs.slice().sort((a,b)=>((b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax)))[0];
-    t.belegtPax+=need;
+  let rest=totalPax;
+  tabs.forEach((t,i)=>{
+    const take=(i===tabs.length-1)?rest:Math.min(rest,t.kapazitaet||2);
+    t.belegtPax+=Math.max(0,take); rest-=take;
     if(t.belegtPax>=t.kapazitaet) t.belegt=true;
-    if(!t.gast_id) t.gast_id=g.id;
-    g.zugewiesener_tisch=String(t.tisch_id);
-    g.begruendung='Kombination '+label+' — Zi. '+(g.zimmer||'?')+' an Tisch '+t.tisch_id+' (laut Tische & Kombinationen)';
-  });
-  // Kalender + Kombi-Vermerk für die (evtl. leer gebliebenen) Partnertische
-  tabs.forEach(t=>{
-    if(String(t.tisch_id)!==String(first.tisch_id)&&t.belegtPax===0)
-      t.kombiMit={haupt:String(first.tisch_id),name:gs[0].nachname,pax:totalPax};
+    if(!t.gast_id) t.gast_id=gs[0].id;
+    // Alle Partner-Tische als Kombi markieren (auch belegte) — sperrt sie gegen Fremdbelegung
+    // (Audit-Fund: leerer Partnertisch konnte später anderweitig vergeben werden).
+    if(i>0) t.kombiMit={haupt:String(first.tisch_id),name:gs[0].nachname,pax:totalPax};
     if(cal&&checkIn&&checkOut) addStayToCalendar(cal,t.tisch_id,checkIn,checkOut);
   });
+  gs.forEach(g=>{g.zugewiesener_tisch=String(first.tisch_id);g.begruendung='Kombination '+label+' (laut Tische & Kombinationen, max '+hit.kombi.max+' Pax)';});
   return label;
 }
 
@@ -3582,6 +3590,15 @@ function buildLinkedGruppen(guests){
   // Strategie 1 anwenden: alle die dieselbe Nummer nennen zusammenlegen
   Object.values(refToIdx).forEach(idxs=>{
     for(let k=1;k<idxs.length;k++) join(idxs[0],idxs[k]);
+  });
+  // Strategie 2b: expliziter Namens-Verweis ("Tisch mit Fam. Anschütz") → mit gleichnamigem
+  // Gast verbinden — auch mit einem Bleibegast aus dem Vortagsplan, der keine Res-Nr trägt
+  // (Fund 09.07.: Zi 509 "Tisch mit Fam. Anschütz #22057"; Anschütz ist Bleibegast ohne Nr).
+  guests.forEach((g,i)=>{
+    if(!g.verlinkteNamen) return;
+    g.verlinkteNamen.forEach(nm=>{
+      guests.forEach((h,j)=>{ if(i!==j&&String(h.nachname||'').trim().toLowerCase()===nm) join(i,j); });
+    });
   });
   // Strategie 3: Konfidenz-Scoring (multi-hotel Fallback)
   // Verbindet Gäste anhand mehrerer unabhängiger Signale; Schwellenwert ≥4 Punkte verhindert Falschpositive.
