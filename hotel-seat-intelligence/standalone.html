@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bj</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bk</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bj · 08.07.2026</span>
+          <span class="set-version">v.25.06-bk · 08.07.2026</span>
         </div>
       </div>
 
@@ -5566,6 +5566,7 @@ async function buildFilledTischplanSheet(){
     }
     buildSortierungZimmerSheet(wb,ws);
     buildTischeKombiSheet(wb);
+    buildBegruendungSheet(wb);
     return{wb,ws,guestsByTable,exportMissing:missing};
   }
   // ── Fallback (keine Vorlage hochgeladen): frisches, eigenes Layout ──
@@ -5737,12 +5738,45 @@ async function buildFilledTischplanSheet(){
   addKategorienLegende(ws,allIds,N);
   buildSortierungZimmerSheet(wb,ws);
   buildTischeKombiSheet(wb);
+  buildBegruendungSheet(wb);
   return{wb,ws,guestsByTable};
 }
 
 // Drittes Blatt "Tische&Kombinationen" (Tisch|Max Pax|Kombi 1|Kombi 2) unverändert aus
 // der hochgeladenen Vorlage mitliefern — so entspricht der Export der Mappe3-Form und
 // der Hotelier behält Kapazität + Kombinationen im selben Dokument.
+// Blatt "Warum dieser Tisch" — Entscheidungs-Logik je Gast, direkt in der Export-Mappe,
+// damit der Hotelier alle Infos an einem Ort hat (feste Prüf-Reihenfolge, korrekte Umlaute).
+function buildBegruendungSheet(wb){
+  const ws=wb.addWorksheet('Warum dieser Tisch');
+  ws.getColumn(1).width=2;
+  [['Tisch',8],['Zimmer',9],['Gastname',24],['Warum dieser Tisch? (feste Prüf-Reihenfolge)',95]].forEach((c,i)=>{ws.getColumn(i+2).width=c[1];});
+  const now=new Date();
+  const hotelName=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel').trim();
+  ws.addRow(['',hotelName,'','Entscheidungs-Logik je Gast','',now.toLocaleDateString('de-DE')]);
+  ws.getRow(1).getCell(2).font={bold:true,size:11};
+  // Feste Prüf-Reihenfolge als Erklärzeile (gemergt)
+  const ordRow=ws.addRow(['','Prüf-Reihenfolge (für jeden Gast gleich): '+PRUEF_REIHENFOLGE.map(x=>x.nr+'. '+x.name).join('  →  ')]);
+  ordRow.getCell(2).font={italic:true,size:8,color:{argb:'FF666666'}};
+  ws.mergeCells(ordRow.number,2,ordRow.number,5);
+  ws.addRow([]);
+  const thin={style:'thin',color:{argb:'FFCCCCCC'}};const borders={top:thin,bottom:thin,left:thin,right:thin};
+  const hdr=ws.addRow(['','Tisch','Zimmer','Gastname','Warum dieser Tisch? (feste Prüf-Reihenfolge)']);
+  for(let c=2;c<=5;c++){hdr.getCell(c).font={bold:true,size:9};hdr.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};hdr.getCell(c).border=borders;hdr.getCell(c).alignment={vertical:'middle',horizontal:'center'};}
+  const gs=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&g.entscheidung)
+    .sort((a,b)=>String(a.zugewiesener_tisch).localeCompare(String(b.zugewiesener_tisch),undefined,{numeric:true}));
+  gs.forEach(g=>{
+    const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
+    const schritte=g.entscheidung.schritte||[];
+    const text=schritte.map(s=>'• '+s.regel+': '+s.text).join('\n');
+    const r=ws.addRow(['',g.zugewiesener_tisch||'',String(g.zimmer||'').split(',')[0],name,text]);
+    for(let c=2;c<=5;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'top',horizontal:'left',wrapText:true};}
+    r.height=Math.min(130,Math.max(26,15*schritte.length+6));
+  });
+  ws.views=[{state:'frozen',xSplit:0,ySplit:4}];
+  return ws;
+}
+
 function buildTischeKombiSheet(wb){
   if(!tischplanTemplate) return;
   // Das Blatt "Tische & Kombinationen" wird von uns NICHT verändert (reine Referenz:
