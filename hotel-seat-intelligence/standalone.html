@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bl</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bm</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bl · 08.07.2026</span>
+          <span class="set-version">v.25.06-bm · 08.07.2026</span>
         </div>
       </div>
 
@@ -3427,6 +3427,40 @@ function bewerteTischFuerGast(g,t){
   if(t.freilass) push('freilass',MATRIX_W('freilass'));
   return {score:b.reduce((s,x)=>s+x.punkte,0), beitraege:b};
 }
+// ══ Phase 3: LERN-VORSCHLÄGE ══
+// Vergleicht unseren Plan mit dem echten Hotelier-Plan (Zimmer→Tisch) und erkennt SYSTEMATISCHE
+// Abweichungen je Gäste-Kategorie. Schlägt daraufhin Gewichts-Anpassungen der Matrix vor. Passt
+// NICHTS automatisch an — der Mensch bestätigt (Transparenz-Prinzip). Basis für tägliches Lernen.
+function lernVorschlaege(hotelierMap){
+  if(!hotelierMap||!Object.keys(hotelierMap).length) return [];
+  const katOf=tid=>{const t=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));return t?(t.kategorie||9):(typeof TISCH_KAT_MAP!=='undefined'?(TISCH_KAT_MAP[String(tid)]||9):9);};
+  const cats={tiny:[],kurz:[],lang:[],mittel:[]};
+  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const zi=String(g.zimmer||'').split(',')[0].trim();
+    if(!hotelierMap[zi]) return;
+    const delta=katOf(g.zugewiesener_tisch)-katOf(hotelierMap[zi]); // >0 = wir geben schlechteren Tisch
+    const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):null;
+    const roomQ=g.zimmer_qualitaet||9;
+    if(roomQ>=8) cats.tiny.push(delta);
+    else if(nights!=null&&nights<=2) cats.kurz.push(delta);
+    else if(nights!=null&&nights>=5) cats.lang.push(delta);
+    else cats.mittel.push(delta);
+  });
+  const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+  const vor=[];
+  const pruefe=(arr,label,tipp)=>{
+    if(arr.length<3) return; const a=avg(arr); if(Math.abs(a)<1.0) return;
+    const worse=a>0;
+    vor.push({kategorie:label,anzahl:arr.length,schnitt:Math.round(a*10)/10,
+      text:(worse?'System gibt im Schnitt SCHLECHTERE Tische (Δ +'+(Math.round(a*10)/10)+' Stufen) als der Hotelier':'System gibt im Schnitt BESSERE Tische (Δ '+(Math.round(a*10)/10)+' Stufen)')+' → '+tipp(worse)});
+  };
+  pruefe(cats.tiny,'Tiny-Studios',w=>w?'Gewicht „Tiny-Studio auf Premium" abschwächen (weniger Abzug).':'Gewicht „Tiny-Studio auf Premium" verstärken (mehr Abzug).');
+  pruefe(cats.lang,'Langzeit-Gäste (5+ Nächte)',w=>w?'Gewicht „Aufenthaltsdauer" erhöhen.':'Gewicht „Aufenthaltsdauer" senken.');
+  pruefe(cats.kurz,'Kurz-Aufenthalte (≤2 Nächte)',w=>w?'kurze Aufenthalte bekommen zu schlechte Tische — Dauer-Gewicht prüfen.':'kurze Aufenthalte bekommen zu gute Tische — Dauer-Gewicht prüfen.');
+  pruefe(cats.mittel,'Übrige Gäste',w=>'allgemeine Qualitäts-Zuordnung prüfen.');
+  return vor;
+}
+
 // Baut die geordnete Begründung für einen platzierten Gast — IMMER in der Reihenfolge oben.
 function baueEntscheidung(g,ts){
   const t=(ts||[]).find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
