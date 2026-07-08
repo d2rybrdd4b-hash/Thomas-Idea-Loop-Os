@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bd</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-be</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bd · 08.07.2026</span>
+          <span class="set-version">v.25.06-be · 08.07.2026</span>
         </div>
       </div>
 
@@ -2110,6 +2110,8 @@ const FREILASS_TISCHE=new Set(['616','718','721','744','748']);
 
 let tischEigenschaften={...TISCH_EIGENSCHAFTEN_DEFAULT};
 let tischEigenschaftenStand='Standard (06.07.2026)';
+// Tische, die gestern belegt waren (für die Kombi-Regel "am selben Tag abgereist" — 09.07.)
+let vortagBelegteTische=new Set();
 function loadTischEigenschaften(){
   try{
     const raw=localStorage.getItem('hsi_tisch_eig');
@@ -3490,17 +3492,24 @@ const TISCH_KOMBI_DEFAULT=[
 function getAktiveKombis(){
   return (tischplanKombi&&tischplanKombi.length)?tischplanKombi:TISCH_KOMBI_DEFAULT;
 }
-// Kleinste passende, komplett freie Kombination für `pax` Personen finden
+// Kleinste passende, komplett freie Kombination für `pax` Personen finden. Unter gleich großen
+// Kandidaten bevorzugt: ein "sauberes" Paar, dessen Tische am selben Tag durch Abreise frei
+// wurden (Hotelier-Regel 09.07.: bei 728–733 kombinieren, wenn beide Tische abgereist sind).
 function findKombiTables(ts,pax,checkIn,checkOut,cal){
-  const ks=getAktiveKombis().filter(k=>(k.max||0)>=pax&&(k.tables||[]).length>=2)
-    .sort((a,b)=>((a.max||99)-(b.max||99))||((a.tables.length)-(b.tables.length)));
-  for(const k of ks){
+  const cands=[];
+  getAktiveKombis().filter(k=>(k.max||0)>=pax&&(k.tables||[]).length>=2).forEach(k=>{
     const tabs=k.tables.map(id=>ts.find(t=>String(t.tisch_id)===String(id).trim()));
-    if(tabs.some(t=>!t||!t.aktiv||t.blocked_for||t.belegtPax>0||t.notfall||t.kombiMit)) continue;
-    if(cal&&checkIn&&checkOut&&tabs.some(t=>!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut))) continue;
-    return {kombi:k,tables:tabs};
-  }
-  return null;
+    if(tabs.some(t=>!t||!t.aktiv||t.blocked_for||t.belegtPax>0||t.notfall||t.kombiMit)) return;
+    if(cal&&checkIn&&checkOut&&tabs.some(t=>!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut))) return;
+    // "sauberes" Paar: ALLE Tische waren gestern belegt → heute frei = durch Abreise frei geworden
+    const cleanPair=tabs.every(t=>vortagBelegteTische.has(String(t.tisch_id)));
+    cands.push({kombi:k,tables:tabs,clean:cleanPair});
+  });
+  if(!cands.length) return null;
+  cands.sort((a,b)=>((a.kombi.max||99)-(b.kombi.max||99))
+    ||(a.tables.length-b.tables.length)
+    ||((b.clean?1:0)-(a.clean?1:0)));   // gleich groß → Abreise-sauberes Paar zuerst
+  return cands[0];
 }
 // Kombination nach HOTELIER-Konvention führen: alle Gäste einer Gruppe stehen am HAUPTTISCH
 // der Kombination (beide Zimmer, z.B. Weber 116+117 → 732), der/die Partnertische (733) sind
@@ -3780,6 +3789,10 @@ function runCalc(){
       if(!vtMap[z]) vtMap[z]=v.tisch;
     });
   });
+  // Welche Tische waren gestern belegt? Ein heute FREIER Kombi-Tisch, der gestern belegt war,
+  // wurde durch eine Abreise frei. Hotelier-Regel (Feedback 09.07.): eine Kombination bevorzugt
+  // aus Tischen bilden, die am selben Tag frei wurden ("beide Tische abgereist", Weber 732+733).
+  vortagBelegteTische=new Set(vortag.filter(v=>v.tisch).map(v=>String(v.tisch)));
 
   let guests=parseGuests(rows);
   const warns=[];
