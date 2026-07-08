@@ -208,7 +208,10 @@ async function exportInvariants(page){
     }
     return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,
       roomMismatch,occWithoutRoom,diffPairs:(typeof __dp!=='undefined'?__dp:[]),
-      calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&(t.belegtPax||0)>0).length};
+      // Kombi-NEBEN­tische (t.kombiMit) tragen Pax, aber der Gastname steht am Haupttisch —
+      // im Export bleibt die Namensspalte des Nebentisches leer (nur Kombi-Vermerk). Daher
+      // hier ausklammern, sonst zählt die Berechnung sie, der Export (zu Recht) nicht.
+      calcT7:(lastTables||[]).filter(t=>parseInt(t.tisch_id)>=711&&(t.belegtPax||0)>0&&!t.kombiMit).length};
   });
 }
 
@@ -228,13 +231,12 @@ async function exportInvariants(page){
      anHeuteMin:6,anHeuteMax:16,
      groundTruth:{heute:'ground-truth-mi.json',vortag:'ground-truth-di.json',label:'08.07.',minQuote:0.80,minTreue:0.78}},
     // S6: dritter echter Hotelier-Tag. Bester Deckungswert bisher (89% im Datei-Vergleich),
-    // Bleibegast-Treue 100%. Regel B/C (80x) hier BEWUSST noch nicht scharf: der 09.07. löst
-    // den bekannten, noch offenen 80x-Fall aus (guter/langer Gast auf Ersatzreihe, während
-    // reguläre Tische frei sind). Sobald der 80x-Fix freigegeben & umgesetzt ist, wird
-    // knownOffen80x entfernt und B/C auch auf S6 scharf geschaltet.
+    // Bleibegast-Treue 100%. Deckte zwei Funde auf (80x-Überlauf + Bleibegast-Verdrängung bei
+    // geteiltem Vortags-Tisch) — beide inzwischen in findBestTable/Vorab-Pass behoben, daher
+    // laufen die Regeln A/B/C hier jetzt scharf mit.
     {name:'S6 Backtest 09.07. (dritter echter Hotelier-Tag)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
      vortag:'plan-mi-anon.xlsx',ankuenfte:'arr9-anon.xlsx',abreisen:'dep9-anon.xlsx',refDate:'2026-07-09',vorausschau:true,
-     anHeuteMin:6,anHeuteMax:16, knownOffen:true,
+     anHeuteMin:6,anHeuteMax:16,
      groundTruth:{heute:'ground-truth-do.json',vortag:'ground-truth-mi.json',label:'09.07.',minQuote:0.80,minTreue:0.78}},
   ];
 

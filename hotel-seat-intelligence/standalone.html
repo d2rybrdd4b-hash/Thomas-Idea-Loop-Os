@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-az</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ba</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-az · 08.07.2026</span>
+          <span class="set-version">v.25.06-ba · 08.07.2026</span>
         </div>
       </div>
 
@@ -3374,27 +3374,42 @@ function groupPseudoGast(gs){
 // Finds best available table: respects kategorie, stay length, tischRegeln, future calendar,
 // Hotelier-Merkmale (Wünsche), Zimmer-Qualitäts-Deckel und Freilass-/Notfall-Regeln.
 function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, avoidIds){
-  const avail=ts.filter(t=>{
+  // Grund-Eignung (Platz, Regeln) — OHNE Vorausschau-Kalender.
+  const passesBasics=t=>{
     if(t.blocked_for||!t.aktiv||t.kapazitaet-t.belegtPax<pax) return false;
     for(const r of tischRegeln){
       if(r.tisch!==t.tisch_id) continue;
       if(r.typ==='max_pax'&&pax>parseInt(r.wert||99)) return false;
     }
-    // Skip tables with future reservations unless user overrode them
-    if(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id)){
-      if(!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut)) return false;
-    }
     return true;
-  });
-  if(avail.length===0) return null;
-  // Notfalltische (627/720/804) nur, wenn sonst gar nichts frei ist
-  let pool=avail.filter(t=>!t.notfall);
-  if(pool.length===0) pool=avail;
-  // Optional: Stammtische noch nicht platzierter Bleibegäste MEIDEN (nicht sperren) —
-  // schützt die Invariante "Bleibegast behält Tisch" im Vorab-Pass (Review-Fund 1).
+  };
+  // Ist der Tisch über die ganze Aufenthaltsdauer frei (Vorausschau-Reservierungen beachtet)?
+  const freeForStay=t=>!(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id))
+    ||isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut);
+  // Ersatz-Reihe: Notfalltische (627/720/804) UND die 80x-Studio-Reserve (Qualität 8).
+  const istReserve=t=>t.notfall||/^80\d/.test(String(t.tisch_id));
+  const basics=ts.filter(passesBasics);
+  if(basics.length===0) return null;
+  // Platzierung in STUFEN — die Ersatz-Reihe (80x/Notfall) ist echte letzte Reserve, und ein
+  // REALER Gast heute schlägt eine bloße Vorausschau-Reservierung (Fund 09.07.-Backtest:
+  // Zi 518, 7 Nächte, landete auf 80x, obwohl reguläre Tische frei waren — der Hotelier nutzt
+  // die 80x-Reihe an dem Tag gar nicht):
+  //   1) regulärer Tisch, über den ganzen Aufenthalt frei
+  //   2) regulärer Tisch, heute physisch frei (Prognose-Reservierung weicht dem realen Gast)
+  //   3) 80x, über den Aufenthalt frei   4) 80x heute frei   5) absolute Notlage (inkl. Notfall)
+  let pool=basics.filter(t=>!istReserve(t)&&freeForStay(t));
+  if(pool.length===0) pool=basics.filter(t=>!istReserve(t));
+  if(pool.length===0) pool=basics.filter(t=>!t.notfall&&freeForStay(t));
+  if(pool.length===0) pool=basics.filter(t=>!t.notfall);
+  if(pool.length===0) pool=basics;
+  // Stammtische noch nicht platzierter Bleibegäste HART aussparen — die Invariante
+  // "Bleibegast behält Tisch" (Regel A) geht vor. Lieber null zurückgeben, dann weicht der
+  // Aufrufer auf eine Kombination / einen späteren Pass aus, statt einen Verbleiber zu
+  // verdrängen (Fund 09.07.-Backtest: eine Doppelbuchung hätte Bleibegast 106 von 726
+  // verdrängt, weil 726 der einzige freie große Tisch war und die weiche Meidung nachgab).
   if(avoidIds&&avoidIds.size){
-    const p2=pool.filter(t=>!avoidIds.has(String(t.tisch_id)));
-    if(p2.length) pool=p2;
+    pool=pool.filter(t=>!avoidIds.has(String(t.tisch_id)));
+    if(pool.length===0) return null;
   }
   // Wunsch-Merkmale einengen (weich: nur wenn passende Tische frei sind; Rollstuhl zuerst).
   // Nicht erfüllbare Wünsche werden am Gast vermerkt → Hinweis statt stiller Ignoranz.
@@ -3416,14 +3431,8 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   if(inZone.length>0) pool=inZone;
   const maxKat=getMaxKatForNights(nights);
   const roomQ=gast?(gast.zimmer_qualitaet||null):null;
-  // Studio-Reserve (80x, Qualität 8) für Gäste normaler Zimmer MEIDEN, solange andere Tische
-  // frei sind — hält die 80x-Reihe für Tiny-Studios frei. Fund im 08.07.-Backtest: gute Zimmer
-  // (Zi 206/503, Q4) landeten auf 801/802, obwohl der Hotelier normale Tische frei hatte.
-  // Nie hart gesperrt: greift nur, wenn dadurch überhaupt etwas übrig bleibt.
-  if(!(roomQ>=8)){
-    const p80=pool.filter(t=>!/^80\d/.test(String(t.tisch_id)));
-    if(p80.length) pool=p80;
-  }
+  // (Die 80x-Studio-Reserve ist bereits über die Stufen-Platzierung oben ausgeschlossen,
+  //  solange irgendein regulärer Tisch frei ist — für ALLE Gäste, auch Tiny-Studios.)
   // Sortier-Schlüssel: beste Qualität zuerst; Freilass-Tische (Fall #22) innerhalb gleicher
   // Qualität zuletzt. Tiny-Studio-Gäste (Zimmer-Q8): der Hotelier gibt KURZEN Aufenthalten
   // (1–2 Nächte) bewusst die schlechten Tische, damit gute Tische für gute Zimmer frei bleiben
@@ -3816,9 +3825,18 @@ function runCalc(){
     const totalPax=gs.reduce((s,g)=>s+(g.pax||1),0);
     const pref=gs.some(g=>g.kinder>0)?'F':(gs.some(g=>g.vip)?'A':'C');
     const nights=Math.max(1,...gs.map(g=>g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):1));
+    // Stammtische von Bleibegästen AUSSERHALB dieser Gruppe — die dürfen nicht
+    // verdrängt werden, auch wenn ein Gruppenmitglied denselben Vortags-Tisch hatte
+    // (geteilter Tisch/gelebte Kombination). Fund 09.07.-Backtest: Zi 106+116+117 saßen
+    // am Vortag gemeinsam an 726; die Doppelbuchung 116+117 hätte den Verbleiber 106
+    // von 726 verdrängt. → solche geteilten Tische im Vorab-Pass meiden.
+    const gruppenIds=new Set(gs.map(g=>g.id));
+    const fremdeBleibe=new Set(active.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB'&&!gruppenIds.has(g.id)).map(g=>String(g.vorheriger_tisch)));
     // bevorzugt einen bisherigen Tisch eines Mitglieds, der die ganze Gruppe fasst
+    // (aber nicht den Stammtisch eines fremden Verbleibers)
     let target=null;
     for(const g of gs){
+      if(fremdeBleibe.has(String(g.vorheriger_tisch))) continue;
       const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
       if(t){target=t;break;}
     }
