@@ -147,6 +147,16 @@ async function exportInvariants(page){
       });
     });
     const t7Rows=t7Seen.size,t7Filled=t7FilledSet.size;
+    // Geister-Dublette: ein Tischname im Export, obwohl der Tisch in der Berechnung LEER ist
+    // (kein Gast, kein Kombi-Partner) — das war der 09.07.-Fehler (Alt-"Weber" aus der Vorlage).
+    let phantomRows=0;
+    Object.entries(writtenByTid).forEach(([tid,nm])=>{
+      if(!nm||/^zu\s/i.test(nm)) return;
+      const hasGuest=!!(built.guestsByTable&&built.guestsByTable[tid]&&built.guestsByTable[tid].length);
+      const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
+      const occ=!!(lt&&((lt.belegtPax||0)>0||lt.kombiMit));
+      if(!hasGuest&&!occ) phantomRows++;
+    });
     // Jeder platzierte Gast muss an SEINEM Tisch im Blatt stehen (Vorlage vorhanden)
     let wrongRow=0,missingGuest=0;
     if(tischplanTemplate&&Object.keys(tischplanMap||{}).length){
@@ -208,7 +218,7 @@ async function exportInvariants(page){
       globalThis.__diffPairs=diffPairs;
       var __dp=diffPairs;
     }
-    return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,
+    return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,phantomRows,
       roomMismatch,occWithoutRoom,diffPairs:(typeof __dp!=='undefined'?__dp:[]),
       // Ein 7xx-Tisch erscheint im Export mit Text, wenn er einen Gast trägt ODER Kombi-
       // Partner ist (dann steht "zu [Haupttisch]" im Namensfeld). Beide zählen — nur wirklich
@@ -326,6 +336,7 @@ async function exportInvariants(page){
         check('7xx-Belegung Export == Berechnung',ei.t7Filled===ei.calcT7,ei.t7Filled+' ≠ '+ei.calcT7);
         check('Kein Gast in falscher Tischzeile',ei.wrongRow===0,ei.wrongRow+' falsch');
         check('Kein platzierter Gast ohne Zeile',ei.missingGuest===0,ei.missingGuest+' fehlen');
+        check('Keine Geister-Dublette (kein Alt-Gast aus Vorlage auf leerem Tisch)',ei.phantomRows===0,ei.phantomRows+' Geister-Zeilen');
         check('Zimmernummern in beiden Blöcken vorhanden (kein belegter Tisch ohne Zimmer)',ei.occWithoutRoom===0,ei.occWithoutRoom+' ohne Zimmer');
         check('Tischplan ↔ Sortierung Zimmer je Zimmer gleicher Tisch',ei.roomMismatch===0,ei.roomMismatch+' Abweichungen: '+(ei.diffPairs||[]).join(', '));
       }

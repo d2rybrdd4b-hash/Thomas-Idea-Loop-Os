@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bf</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bg</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bf · 08.07.2026</span>
+          <span class="set-version">v.25.06-bg · 08.07.2026</span>
         </div>
       </div>
 
@@ -5583,15 +5583,13 @@ async function buildFilledTischplanSheet(){
         naechte=gn.length?Math.max(...gn):'';
         extras=extrasForPlan(gs.flatMap(g=>[g.allergie,g.bemerkung,g.extras]));
       } else {
-        // Kombi-Partnertisch → Hotelier-Notation "zu [Haupttisch]" im Gastname-Feld
+        // Kein aktueller Gast an diesem Tisch → Zeile LEER lassen (Tisch ist heute frei).
+        // NICHT den Alt-Inhalt der Vorlage übernehmen — sonst erscheint ein früherer Gast
+        // als Geister-Dublette (Fehler 09.07.: "Weber" blieb aus einem Vorlagen-Export auf
+        // Tisch 732 stehen, obwohl der Gast heute auf 621 sitzt). Kombi-Partner tragen "zu X".
         const lt=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));
-        if(lt&&lt.kombiMit){
-          name='zu '+lt.kombiMit.haupt;
-        } else {
-          // Kein App-Gast: vorhandene Hotelier-Einträge aus Template erhalten
-          zimmer=String(ex.zimmer||'');status=String(ex.status||'');
-          name=String(ex.name||'');pax=ex.pax!=null?ex.pax:'';extras=String(ex.extras||'');
-        }
+        if(lt&&lt.kombiMit) name='zu '+lt.kombiMit.haupt;
+        // sonst: alle Felder bleiben leer
       }
       const dataRow=ws.addRow([tid,zimmer,status,name,pax,naechte,extras]);
       applyDataStyle(dataRow,katFill);
