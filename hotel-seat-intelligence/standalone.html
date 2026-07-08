@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bi</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bj</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bi · 08.07.2026</span>
+          <span class="set-version">v.25.06-bj · 08.07.2026</span>
         </div>
       </div>
 
@@ -1477,6 +1477,13 @@ details.set-adv .adv-body{padding-top:12px;}
           <div class="dl-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h3v3H8z"/></svg></div>
           <h4 data-i18n="dl.vs.t">7-Tage-Vorausschau</h4>
           <p data-i18n="dl.vs.d">Belegung & Reservierungen je Tisch — Engpässe früh erkennen.</p>
+          <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+
+        <div class="dl-card" onclick="printBegruendung()">
+          <div class="dl-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+          <h4 data-i18n="dl.why.t">Warum dieser Tisch?</h4>
+          <p data-i18n="dl.why.d">Entscheidungs-Logik je Gast — nachvollziehbar für den Hotelier.</p>
           <span class="dl-cta"><span data-i18n="dl.print">Drucken</span> <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </div>
       </div>
@@ -1834,6 +1841,7 @@ const I18N = {
     'dl.tab.t':'Tische & Kombis','dl.tab.d':'Kapazitäten & Auslastung — für die Küche.',
     'dl.rep.t':'Übergabebericht','dl.rep.d':'Schicht-Übergabe fürs Serviceteam — VIP, Allergien, Freigabe.',
     'dl.vs.t':'7-Tage-Vorausschau','dl.vs.d':'Belegung & Reservierungen je Tisch — Engpässe früh erkennen.',
+    'dl.why.t':'Warum dieser Tisch?','dl.why.d':'Entscheidungs-Logik je Gast — nachvollziehbar für den Hotelier.',
     'dl.p.roomTitle':'Sortierung Zimmer','dl.p.tabTitle':'Tische & Kombinationen','dl.p.printBtn':'Drucken','dl.p.noData':'Keine Daten vorhanden.','dl.p.popup':'Pop-up blockiert — bitte für diese Seite erlauben.',
     'ub.title':'Übergabebericht','ub.created':'Erstellt','ub.shift':'Schicht','ub.o_clock':'Uhr',
     'ub.mealBreakfast':'Frühstück','ub.mealLunch':'Mittagsservice','ub.mealDinner':'Abendservice','ub.mealAll':'Ganztags',
@@ -1909,6 +1917,7 @@ const I18N = {
     'dl.tab.t':'Tables & combos','dl.tab.d':'Capacities & occupancy — for the kitchen.',
     'dl.rep.t':'Handover report','dl.rep.d':'Shift handover for the service team — VIP, allergies, release.',
     'dl.vs.t':'7-day preview','dl.vs.d':'Occupancy & reservations per table — spot bottlenecks early.',
+    'dl.why.t':'Why this table?','dl.why.d':'Decision logic per guest — transparent for the hotelier.',
     'dl.p.roomTitle':'Sort by room','dl.p.tabTitle':'Tables & combinations','dl.p.printBtn':'Print','dl.p.noData':'No data available.','dl.p.popup':'Pop-up blocked — please allow it for this page.',
     'ub.title':'Handover report','ub.created':'Created','ub.shift':'Shift','ub.o_clock':'',
     'ub.mealBreakfast':'Breakfast','ub.mealLunch':'Lunch service','ub.mealDinner':'Dinner service','ub.mealAll':'All day',
@@ -3374,6 +3383,50 @@ function getWunschForGuest(g){
   };
 }
 
+// ══ PRÜF-/PRIORITÄTS-LOGIK — feste Reihenfolge, für JEDEN Gast identisch ══
+// Diese Reihenfolge ist die Denkweise des Systems (1:1 nach Hotelier). Sie läuft immer gleich ab
+// und wird pro Gast als nachvollziehbare Begründung protokolliert ("Warum dieser Tisch?").
+const PRUEF_REIHENFOLGE=[
+  {nr:1,name:'Bleibegast',frage:'War der Gast gestern schon hier? → behält seinen Stammtisch (wird nie umgesetzt).'},
+  {nr:2,name:'Zusammengehörigkeit',frage:'Gehört die Buchung zu einer Gruppe/Doppelbuchung (Vermerk „zu #"/„Tisch mit …")? → gemeinsam an einen Tisch/eine Kombination.'},
+  {nr:3,name:'Harter Wunsch',frage:'Gibt es einen zwingenden Wunsch (Rollstuhl)? → passenden Tisch wählen oder melden.'},
+  {nr:4,name:'Aufenthaltsdauer',frage:'Wie lange bleibt der Gast? → längster Aufenthalt bekommt zuerst die guten Tische (Prio 1).'},
+  {nr:5,name:'Zimmerqualität',frage:'Bei gleicher Dauer: besseres Zimmer → besserer Tisch (Prio 2).'},
+  {nr:6,name:'Weiche Wünsche',frage:'Fenster / ruhig / Familientisch berücksichtigen, soweit frei.'},
+  {nr:7,name:'Tiny-Studio',frage:'Tiny-Studio → Premium meiden, mittlerer Tisch (situativ nach Verfügbarkeit).'},
+  {nr:8,name:'Verfügbarkeit',frage:'Bester freier passender Tisch; reicht keiner → Kombination; Ersatzreihe nur als letzte Reserve.'}
+];
+// Baut die geordnete Begründung für einen platzierten Gast — IMMER in der Reihenfolge oben.
+function baueEntscheidung(g,ts){
+  const t=(ts||[]).find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
+  const nights=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):null;
+  const roomQ=g.zimmer_qualitaet||null, tKat=t?(t.kategorie||null):null;
+  const w=getWunschForGuest(g), s=[];
+  const zi0=String(g.zimmer||'').split(',')[0].trim();
+  const istBleibe=g.vorheriger_tisch&&String(g.vorheriger_tisch)===String(g.zugewiesener_tisch)&&g.status!=='AN'&&g.status!=='AN·AB';
+  if(istBleibe){
+    s.push({nr:1,regel:'Bleibegast',text:'War gestern schon hier → behält seinen Stammtisch '+g.zugewiesener_tisch+' (Bleibegäste werden nie umgesetzt).'});
+  } else {
+    if(/Kombination|Doppelbuchung|Verlinkung/i.test(g.begruendung||''))
+      s.push({nr:2,regel:'Zusammengehörigkeit',text:String(g.begruendung||'').replace(/\s+—\s+Zi\..*/,'').trim()});
+    if(nights!=null)
+      s.push({nr:4,regel:'Aufenthaltsdauer',text:nights+' Nächte'+(nights>=5?' — Langzeit → bevorzugt ein guter Tisch (Dauer ist Prio 1).':(nights<=2?' — kurzer Aufenthalt → einfacherer Tisch (Dauer ist Prio 1).':' — mittlere Dauer.'))});
+    if(roomQ&&tKat!=null)
+      s.push({nr:5,regel:'Zimmerqualität',text:'Zimmer '+zi0+' (Qualität '+roomQ+') → Tisch der Qualität '+tKat+'.'});
+    if(roomQ>=8)
+      s.push({nr:7,regel:'Tiny-Studio',text:'Tiny-Studio → Premium gemieden, mittlerer Tisch gewählt.'});
+    if(w){
+      const wl=[]; if(w.rollstuhl)wl.push('Rollstuhl'); if(w.fenster)wl.push('Fenster'); if(w.ruhig)wl.push('ruhig'); if(w.familie)wl.push('Familientisch');
+      if(wl.length){
+        const offen=(g._wunschOffen||[]).map(x=>x.label);
+        s.push({nr:(w.rollstuhl?3:6),regel:'Wunsch',text:'Wünsche: '+wl.join(', ')+(offen.length?' — nicht erfüllbar: '+offen.join(', ')+' (kein passender Tisch frei, gemeldet).':' — berücksichtigt.')});
+      }
+    }
+  }
+  s.sort((a,b)=>a.nr-b.nr);
+  return {tisch:g.zugewiesener_tisch,tischQ:tKat,schritte:s};
+}
+
 // Pseudo-Gast für Gruppen: bündelt Kinder/Wünsche/Zimmer-Qualität der Mitglieder,
 // damit findBestTable auch bei Gruppenplatzierung Merkmale und Deckel berücksichtigt.
 function groupPseudoGast(gs){
@@ -4330,6 +4383,10 @@ function runCalc(){
   const guestMap={};
   [...bleib,...neu].forEach(g=>{guestMap[g.id]=g;});
   assignedGuests=[...Object.values(guestMap),...active.filter(g=>!guestMap[g.id])];
+
+  // Begründung je Gast protokollieren (feste Prüf-Reihenfolge) — für die Kontroll-Liste
+  // "Warum dieser Tisch?", die dem Hotelier die Denkweise des Systems zeigt.
+  assignedGuests.forEach(g=>{ if(g.zugewiesener_tisch) g.entscheidung=baueEntscheidung(g,ts); });
 
   // Diagnose: gleiche Zimmernummer an mehreren Tischen → meist Zimmerwechsel/Abreise
   // (eine Buchung reist ab, eine andere übernimmt das Zimmer), kann aber auch ein
@@ -6501,6 +6558,21 @@ function printTischeKombis(){
     'K'+(tb.kategorie||'')
   ]}));
   openPrintDoc(t('dl.p.tabTitle'),headers,body);
+}
+
+// ── Kontroll-Liste "Warum dieser Tisch?" — Entscheidungs-Logik je Gast ──
+// Zeigt dem Hotelier die Denkweise des Systems in fester Prüf-Reihenfolge.
+function printBegruendung(){
+  const gs=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch&&g.entscheidung)
+    .sort((a,b)=>String(a.zugewiesener_tisch).localeCompare(String(b.zugewiesener_tisch),undefined,{numeric:true}));
+  const headers=['Tisch','Zimmer','Gast','Warum dieser Tisch? (feste Prüf-Reihenfolge)'];
+  const body=gs.map(g=>({cells:[
+    g.zugewiesener_tisch,
+    String(g.zimmer||'').split(',')[0],
+    ((g.nachname||'')+(g.vorname?', '+g.vorname:'')).trim(),
+    (g.entscheidung.schritte||[]).map(s=>s.regel+': '+s.text).join('  ·  ')
+  ]}));
+  openPrintDoc('Warum dieser Tisch? — Entscheidungs-Logik je Gast',headers,body);
 }
 
 // ── Übergabebericht: Schicht-Übergabeblatt fürs Serviceteam ──
