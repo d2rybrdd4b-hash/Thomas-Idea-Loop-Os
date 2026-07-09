@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bn</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bo</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bn · 08.07.2026</span>
+          <span class="set-version">v.25.06-bo · 08.07.2026</span>
         </div>
       </div>
 
@@ -3907,6 +3907,20 @@ function runCalc(){
   // aus Tischen bilden, die am selben Tag frei wurden ("beide Tische abgereist", Weber 732+733).
   vortagBelegteTische=new Set(vortag.filter(v=>v.tisch).map(v=>String(v.tisch)));
 
+  // Vortags-Kombinationen erkennen: ein Partnertisch, der im Vortag mit "zu X" markiert war
+  // (Hotelier-/unsere Notation für ein GEÖFFNETES Kombi-Paar). Damit erhalten wir eine BESTEHENDE
+  // Kombination am Folgetag (Partner reservieren), statt sie durch einen Fremdgast zu zerlegen —
+  // zielgenau (nur was gestern schon Kombi war), ohne neue Paare aggressiv zu öffnen.
+  const vtPartner={};
+  if(parsedFiles.vortag&&parsedFiles.vortag.rows){
+    parsedFiles.vortag.rows.forEach(r=>{
+      const tisch=String(r.Tisch||r.TischID||r.table_id||'').trim();
+      const nm=[r.Nachname,r.Vorname,r['Gastname(n)'],r.Name,r.Gastname].filter(Boolean).join(' ');
+      const mm=nm.match(/\bzu\s*(\d{3,4})\b/i);
+      if(/^[678]\d\d/.test(tisch)&&mm) vtPartner[tisch]=mm[1];
+    });
+  }
+
   let guests=parseGuests(rows);
   const warns=[];
 
@@ -4072,6 +4086,28 @@ function runCalc(){
     }
   });
   if(el('cs1-res')) el('cs1-res').textContent=bl_ok+' Bleibegäste gesichert'+(bl_fail?' | '+bl_fail+' Konflikte':'');
+
+  // ── KOMBI-ERHALT-PASS (Phase A: bestehende Kombinationen als Einheiten bewahren) ──
+  // Wenn der Vortag ein Kombi-Paar OFFEN hatte (Partner mit "zu X" markiert) und der HAUPTTISCH
+  // heute wieder belegt ist (Bleibegast), reservieren wir den freien Partnertisch VOR der Einzel-
+  // platzierung als kombiMit → kein Fremdgast landet darauf, die Kombination bleibt erhalten (wie
+  // gestern und beim Hotelier). Zielgenau: nur was gestern schon Kombi war — es werden KEINE neuen
+  // Paare aggressiv geöffnet (das übernimmt bei Bedarf der Kombi-Ausbau-Pass nach der Platzierung).
+  Object.entries(vtPartner).forEach(([partnerId,mainId])=>{
+    const main=ts.find(x=>String(x.tisch_id)===String(mainId));
+    const partner=ts.find(x=>String(x.tisch_id)===String(partnerId));
+    if(!main||!partner) return;
+    // Nur erhalten, wenn die Kombination heute WIRKLICH gebraucht wird: der Haupttisch ist
+    // überbelegt (mehr Pers. als Plätze, z.B. Steinbrecher 4>2). Sitzt dort nur eine kleine
+    // Partei (≤ Kapazität), wird der Partner NICHT reserviert (sonst würden andere Gäste
+    // unnötig verdrängt — Fund 08.07.: Tiny-Studio 2004 landete sonst auf Premium 725).
+    if((main.belegtPax||0)>(main.kapazitaet||0) && (partner.belegtPax||0)===0 && !partner.kombiMit
+       && !partner.notfall && !partner.blocked_for && partner.aktiv){
+      const gsAt=active.filter(g=>String(g.zugewiesener_tisch)===String(mainId));
+      partner.kombiMit={haupt:String(mainId),name:(gsAt[0]||{}).nachname||'',pax:main.belegtPax};
+      warns.push({level:'green',msg:`Kombination ${mainId}+${partnerId} erhalten (wie am Vortag) — Zi. ${gsAt.map(g=>g.zimmer).join('+')||main.tisch_id}`});
+    }
+  });
 
   // Build calendar from bleibegäste + vorab platzierte Doppelbuchungen + soft-reserve für PROGNOSE
   stepAnim(5);

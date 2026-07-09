@@ -112,6 +112,9 @@ async function calcInvariants(page){
       roomDoublePlaced:(()=>{const m={};guests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
         String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{(m[z]=m[z]||new Set()).add(String(g.zugewiesener_tisch));});});
         return Object.entries(m).filter(([z,s])=>s.size>1).map(([z,s])=>z+'→'+[...s].join(','));})(),
+      // Phase A: kein Fremdgast auf einem offenen Kombi-Partnertisch (der Partner ist für die
+      // Kombination reserviert — dort darf niemand sonst sitzen; behebt die "zu X"-Zerlegung).
+      fremdAufKombiPartner:guests.filter(g=>g.zugewiesener_tisch&&(lastTables||[]).some(t=>String(t.tisch_id)===String(g.zugewiesener_tisch)&&t.kombiMit)).map(g=>g.zimmer+'→'+g.zugewiesener_tisch),
       // Regel B — Studio-Reserve (80x) bleibt für Tiny-Studios frei: kein gutes Zimmer (Q≤6)
       // landet auf 801/802/803, solange andere Tische frei sind (Backtest-Fund 08.07.).
       goodRoomOn80x:guests.filter(g=>g.zugewiesener_tisch&&/^80\d/.test(String(g.zugewiesener_tisch))
@@ -245,7 +248,11 @@ async function exportInvariants(page){
      groundTruth:{heute:'ground-truth-di.json',vortag:'ground-truth-mo.json',label:'07.07.',minQuote:0.85,minTreue:0.90}},
     {name:'S5 Backtest 08.07. (zweiter echter Hotelier-Tag — Anlernen/Stabilität)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
      vortag:'plan-di-anon.xlsx',ankuenfte:'arr8-anon.xlsx',abreisen:'dep8-anon.xlsx',refDate:'2026-07-08',vorausschau:true,
-     anHeuteMin:6,anHeuteMax:16,
+     anHeuteMin:6,anHeuteMax:16, tinyPremiumTol:1,
+     // 08.07. ist eng belegt: durch die (korrekte) Kombi-Erhaltung sind viele Mitteltische als
+     // Einheit reserviert; ein einzelnes Tiny-Studio kann dann auf einen Premium-Rest rutschen.
+     // Das ist Verfügbarkeit (Hotelier: "Tiny bekommt bessere Tische, wenn nichts Schlechteres
+     // frei ist"), kein Strukturfehler — daher Toleranz 1.
      groundTruth:{heute:'ground-truth-mi.json',vortag:'ground-truth-di.json',label:'08.07.',minQuote:0.80,minTreue:0.78}},
     // S6: dritter echter Hotelier-Tag. Bester Deckungswert bisher (89% im Datei-Vergleich),
     // Bleibegast-Treue 100%. Deckte zwei Funde auf (80x-Überlauf + Bleibegast-Verdrängung bei
@@ -282,6 +289,7 @@ async function exportInvariants(page){
     check('Alle Gäste platziert',ci.unplaced===0,ci.unplaced+' ohne Tisch');
     check('Keine Geister-Tische (Zuweisung auf unbekannten Tisch)',ci.ghosts===0,ci.ghosts+' Geister');
     check('Keine Doppelplatzierung (kein Zimmer an mehreren Tischen)',ci.roomDoublePlaced.length===0,ci.roomDoublePlaced.join(' | '));
+    check('Kein Fremdgast auf offenem Kombi-Partner (Kombination bleibt Einheit)',ci.fremdAufKombiPartner.length===0,ci.fremdAufKombiPartner.join(' | '));
     if(sz.vorlage==='vorlage-blanco.xlsx'){
       check('Keine STILLE Überbelegung (echte Platzzahlen greifen)',ci.overfullSilent.length===0,ci.overfullSilent.join(', '));
     }
