@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bo</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bp</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bo · 08.07.2026</span>
+          <span class="set-version">v.25.06-bp · 08.07.2026</span>
         </div>
       </div>
 
@@ -3431,6 +3431,25 @@ function bewerteTischFuerGast(g,t){
 // Vergleicht unseren Plan mit dem echten Hotelier-Plan (Zimmer→Tisch) und erkennt SYSTEMATISCHE
 // Abweichungen je Gäste-Kategorie. Schlägt daraufhin Gewichts-Anpassungen der Matrix vor. Passt
 // NICHTS automatisch an — der Mensch bestätigt (Transparenz-Prinzip). Basis für tägliches Lernen.
+// ══ Phase B: KOMBI-ÖFFNUNGS-MUSTER LERNEN ══
+// Vergleicht, WELCHE Kombi-Paare der Hotelier öffnet (aus seinen "zu X"-Markern) mit unseren.
+// Für Paare, die ER öffnet und WIR nicht, wird das Gäste-Profil erfasst (Pax, Kinder, Gruppe,
+// Bleibegast) — daraus lernt das System über mehrere Tage die AUSLÖSER (wann öffnen) und kann
+// sie vorschlagen. hotelierPartner: {partnerTisch: hauptTisch} aus dem Hotelier-Plan.
+function kombiLernAnalyse(hotelierPartner){
+  hotelierPartner=hotelierPartner||{};
+  const unsereKombi=new Set((lastTables||[]).filter(t=>t.kombiMit).map(t=>String(t.tisch_id)));
+  const profil=mainId=>{
+    const gs=(assignedGuests||[]).filter(g=>String(g.zugewiesener_tisch)===String(mainId));
+    return {pax:gs.reduce((s,g)=>s+(g.pax||0),0),kinder:gs.some(g=>(g.kinder||0)>0),
+      gruppe:gs.length>1,bleibe:gs.some(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB'),
+      zi:gs.map(g=>g.zimmer).join('+')};
+  };
+  const erOffenWirNicht=Object.keys(hotelierPartner).filter(p=>!unsereKombi.has(p))
+    .map(p=>({paar:hotelierPartner[p]+'+'+p,haupt:hotelierPartner[p],profil:profil(hotelierPartner[p])}));
+  const wirOffenErNicht=[...unsereKombi].filter(p=>!(p in hotelierPartner));
+  return {erOffenWirNicht,wirOffenErNicht};
+}
 function lernVorschlaege(hotelierMap){
   if(!hotelierMap||!Object.keys(hotelierMap).length) return [];
   const katOf=tid=>{const t=(lastTables||[]).find(x=>String(x.tisch_id)===String(tid));return t?(t.kategorie||9):(typeof TISCH_KAT_MAP!=='undefined'?(TISCH_KAT_MAP[String(tid)]||9):9);};
