@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bm</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bn</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bm · 08.07.2026</span>
+          <span class="set-version">v.25.06-bn · 08.07.2026</span>
         </div>
       </div>
 
@@ -4231,6 +4231,10 @@ function runCalc(){
   // Hotelier-Regel (Antwort 08.07.): Aufenthaltsdauer hat IMMER Vorrang vor der
   // Zimmerkategorie — einzige Ausnahme ist die Panorama Spa Suite (Zimmer 307).
   const istSpa=g=>String(g.zimmer||'').split(',')[0].trim()==='307'?1:0;
+  // Freitags-Regel des Hoteliers (viele 2-3-Nächte-Anreisen → tendenziell bessere Tische):
+  // noch NICHT hartcodiert, weil ein sauberer Backtest die ROHEN PMS-Anreise-/Abreisedateien
+  // vom 10.07. braucht (liegen noch nicht vor). Wird geprüft und ggf. eingebaut, sobald echte
+  // Freitags-PMS-Daten da sind — über mehrere Freitage, um Überanpassung zu vermeiden.
   const rankSort=(a,b)=>(istSpa(b)-istSpa(a))||(nightsOf(b)-nightsOf(a))||((a.zimmer_qualitaet||9)-(b.zimmer_qualitaet||9))||(b.prioritaet_score-a.prioritaet_score);
   const sorted=[...fam.sort(rankSort),...rest.sort(rankSort)];
 

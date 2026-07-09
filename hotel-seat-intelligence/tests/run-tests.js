@@ -255,6 +255,11 @@ async function exportInvariants(page){
      vortag:'plan-mi-anon.xlsx',ankuenfte:'arr9-anon.xlsx',abreisen:'dep9-anon.xlsx',refDate:'2026-07-09',vorausschau:true,
      anHeuteMin:6,anHeuteMax:16,
      groundTruth:{heute:'ground-truth-do.json',vortag:'ground-truth-mi.json',label:'09.07.',minQuote:0.80,minTreue:0.78}},
+    // S7 (Freitag 10.07.) NICHT aufnehmbar mit den vorhandenen Daten: für einen 10.07.-Lauf
+    // braucht es die ROHEN PMS-Dateien (Anreisen/Abreisen ab 10.07.). Die 09.07.-7-Tage-Datei
+    // wiederzuverwenden zählt die 09.07.-Anreisen doppelt (Kollision mit Bleibegästen). Sobald
+    // die echten 10.07.-PMS-Dateien vorliegen, wird S7 sauber ergänzt (ground-truth-fr.json liegt
+    // bereit). Der reale 10.07.-Vergleich (Datei vs Datei) ergab: 66% exakt / 90% Logik-Treue.
   ];
 
   for(const sz of SZENARIEN){
@@ -336,7 +341,7 @@ async function exportInvariants(page){
       const logikTreue=vergl.length?logisch/vergl.length:1;
       check('Ground-Truth: ≥'+Math.round(gt.minQuote*100)+'% wie der Hotelier-Plan '+gt.label,quote>=gt.minQuote,Math.round(quote*100)+'% ('+matched+'/'+rooms.length+')');
       check('Bleibegast-Treue ≥'+Math.round(gt.minTreue*100)+'% ('+gt.label+')',treue>=gt.minTreue,Math.round(treue*100)+'% ('+treu+'/'+bleibRooms.length+')');
-      check('Logik-Treue ≥90% (gleiche Qualitätsstufe ±1) '+gt.label,logikTreue>=0.90,Math.round(logikTreue*100)+'% ('+logisch+'/'+vergl.length+')');
+      check('Logik-Treue ≥'+Math.round((gt.minLogik||0.90)*100)+'% (gleiche Qualitätsstufe ±1) '+gt.label,logikTreue>=(gt.minLogik||0.90),Math.round(logikTreue*100)+'% ('+logisch+'/'+vergl.length+')');
       results.push('    ↳ '+gt.label+' exakter Tisch: '+Math.round(quote*100)+'% | LOGIK-Treue (Qualität ±1): '+Math.round(logikTreue*100)+'% | Bleibegast-Treue: '+Math.round(treue*100)+'%');
     }
 
