@@ -298,6 +298,16 @@ async function exportInvariants(page){
      // Freitag = riesige Fluktuation → die (turnover-verwässerte) Ground-Truth-"Treue" ist
      // niedrig; die ECHTE Bleibegast-Treue (Regel A, namensbasiert) ist trotzdem grün.
      groundTruth:{heute:'ground-truth-fr.json',vortag:'ground-truth-do.json',label:'10.07. (Fr)',minQuote:0.55,minTreue:0.55,minLogik:0.83}},
+    // S8: 11.07. (SAMSTAG, voller Wochenend-Wechsel — 50 Zimmer reisen Sonntag früh ab).
+    // Echte PMS-Dateien vom 11.07., Vortag = Hotelier-Plan 10.07. Gemessen bei Aufnahme:
+    // 84% exakt / 93% Logik / 98% echte Bleibegast-Treue. Schwellen mit Puffer darunter.
+    {name:'S8 Backtest 11.07. (fünfter echter Tag — SAMSTAG, Wochenend-Wechsel)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-fr-anon.xlsx',ankuenfte:'arr11-anon.xlsx',abreisen:'dep11-anon.xlsx',refDate:'2026-07-11',vorausschau:true,
+     // tinyPremiumTol 3: am vollen Samstag setzt der HOTELIER SELBST drei verlinkte
+     // Tiny-Studio-Fälle auf Premium (Riedl 501+2004 → 642; Seehars+Gerngroß 2009/2006 → 726,
+     // Ground-Truth-identisch) — Regel C gilt für Einzel-Studios, nicht für verlinkte Paare.
+     anHeuteMin:10,anHeuteMax:25, tinyPremiumTol:3,
+     groundTruth:{heute:'ground-truth-sa.json',vortag:'ground-truth-fr.json',label:'11.07. (Sa)',minQuote:0.75,minTreue:0.75,minLogik:0.88}},
   ];
 
   for(const sz of SZENARIEN){
