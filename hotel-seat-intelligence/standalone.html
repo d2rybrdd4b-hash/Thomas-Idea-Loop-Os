@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bq</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-br</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bq · 08.07.2026</span>
+          <span class="set-version">v.25.06-br · 08.07.2026</span>
         </div>
       </div>
 
@@ -4208,6 +4208,37 @@ function runCalc(){
   let assigned=0,groupsPlaced=0;
   let linkOk=0,linkCalOverride=0,linkOverfill=0,linkSplit=0;
 
+  // ── Pass 1·Vorausschau-Partner: heutiger Gast, dessen verlinkter Partner ERST SPÄTER anreist ──
+  // Hotelier 10.07.: Seehars (Zi 2009, Res.#19533) „zu #19709 Gerngroß (Anreise 11.07.)" — der
+  // Tisch wird ab morgen für 4 gebraucht; auf 749 nur mit Umsetzen. Solche Gäste GLEICH auf eine
+  // Kombinations-fähige Stelle setzen (Partner-Tisch als kombiMit reserviert → morgen ohne
+  // Umsetzen belegbar). Läuft VOR Pass 1a, damit der Vorausschau-Bedarf die Wahl bestimmt.
+  // Match über die Reservierungsnummer (eigene gastId ↔ verlinkteRefs des jeweils anderen).
+  const futurePartnerOf=g=>{
+    const myRefs=new Set((g.verlinkteRefs||[]).map(String));
+    const myId=String(g.id||'');
+    const parts=(prognoseFuture||[]).filter(f=>f.check_in&&f.check_in>refDate&&(
+        (f.id&&myRefs.has(String(f.id)))||
+        (myId&&(f.verlinkteRefs||[]).map(String).includes(myId))
+      ));
+    if(!parts.length) return null;
+    const extra=parts.reduce((s,f)=>s+(f.pax||1),0);
+    const co=[...parts.map(f=>f.check_out),g.check_out].filter(Boolean).sort().pop();
+    return {extra,combined:(g.pax||1)+extra,parts,check_out:co,anreise:parts.map(f=>f.check_in).sort()[0]};
+  };
+  neu.filter(g=>!groupAssigned.has(g.id)&&!g.zugewiesener_tisch).forEach(g=>{
+    const fp=futurePartnerOf(g);
+    if(!fp||fp.combined<3||fp.combined<=(g.pax||1)) return;
+    const hit=findKombiTables(ts,fp.combined,g.check_in,fp.check_out,tableCalendar);
+    if(hit){
+      const label=assignKombi([g],hit,tableCalendar,g.check_in,fp.check_out);
+      groupAssigned.add(g.id); assigned++; groupsPlaced++;
+      warns.push({level:'vorausschau',msg:`Zi. ${g.zimmer} ${g.nachname}: Partner (Res.#${fp.parts.map(x=>x.id).filter(Boolean).join('/')||'—'}, +${fp.extra} Pers.) reist ${fmtDM(fp.anreise)} an → Kombination ${label} für ${fp.combined} Pers. vorbereitet (kein Umsetzen nötig)`});
+    } else {
+      warns.push({level:'vorausschau',msg:`Zi. ${g.zimmer} ${g.nachname}: Partner reist ${fmtDM(fp.anreise)} an → ab dann Tisch für ${fp.combined} Pers. nötig; bitte eine Kombinations-Stelle einplanen`});
+    }
+  });
+
   // Pass 1a: Verlinkte Reservierungen (zu #NNNNN) — höchste Priorität vor Nachnamen-Gruppen
   buildLinkedGruppen(neu.filter(g=>!groupAssigned.has(g.id))).forEach(gs=>{
     const totalPax=gs.reduce((s,g)=>s+g.pax,0);
@@ -4573,8 +4604,12 @@ function runCalc(){
   // Phase 3: Hochstufungs-Optimierung — attraktive Tische nicht leer lassen
   const emptyPremium=ts.filter(t=>t.aktiv&&(t.kategorie||9)<=3&&(t.belegtPax||0)===0&&!t.blocked_for);
   if(emptyPremium.length>0){
+    // Kombi-Hauptgäste NICHT zur Hochstufung vorschlagen — sie sitzen bewusst auf einer
+    // Kombination (z.B. Vorausschau-Partner Seehars 745+746). Ein Umzug bräche die Einheit.
+    const kombiHaupt=new Set(ts.filter(t=>t.kombiMit).map(t=>String(t.kombiMit.haupt)));
     const onPoorTables=assignedGuests.filter(g=>{
       if(!g.zugewiesener_tisch) return false;
+      if(kombiHaupt.has(String(g.zugewiesener_tisch))) return false;
       const t=ts.find(t=>t.tisch_id===g.zugewiesener_tisch);
       return t&&(t.kategorie||9)>=6;
     });
@@ -6033,12 +6068,26 @@ function zimmerLabel(list){
   (Array.isArray(list)?list:[list]).forEach(z=>String(z||'').split(/[,+\s]+/).forEach(n=>{if(/^\d+$/.test(n))nums.push(n);}));
   return [...new Set(nums)].join(', ');
 }
-// Pax einer Buchungsgruppe: bei mehreren Buchungen im SELBEN Zimmer nicht doppelt zählen
-// (dieselbe Partei auf zwei PMS-Zeilen); über VERSCHIEDENE Zimmer summieren.
+// Pax einer Buchungsgruppe: dieselbe Partei nie doppelt zählen.
+// Drei Fälle:
+//  1) Alles dasselbe Zimmer (zwei PMS-Zeilen einer Partei) → Maximum, nicht Summe.
+//  2) Eine Sammelzeile deckt ALLE Zimmer der Gruppe ab (Vortags-Kombizeile, z.B. Bojarzyn
+//     "207,208,2002" = 6 Pers.) und daneben stehen die Einzel-Buchungszeilen derselben
+//     Zimmer → NICHT addieren; die vollständigere Zahl (Sammelzeile vs. Summe der Einzel-
+//     zimmer) gilt. Behebt Fehler 10.07.: 728 zeigte 11 statt 6, 741 zeigte 8 statt 4.
+//  3) Verschiedene Zimmer ohne abdeckende Sammelzeile → über die Zimmer summieren.
 function groupPax(gs,field){
-  const rooms=new Set(gs.map(g=>zimmerLabel(g.zimmer)).filter(Boolean));
-  return rooms.size<=1 ? Math.max(0,...gs.map(g=>g[field]||0))
-                       : gs.reduce((s,g)=>s+(g[field]||0),0);
+  const roomsOf=g=>[...new Set(String(g.zimmer||'').split(/[,+\s]+/).filter(n=>/^\d+$/.test(n)))];
+  const entries=gs.map(g=>({rooms:roomsOf(g),v:g[field]||0}));
+  const allRooms=new Set(entries.flatMap(e=>e.rooms));
+  if(allRooms.size<=1) return Math.max(0,...entries.map(e=>e.v),0);
+  const covering=entries.filter(e=>e.rooms.length===allRooms.size); // Sammelzeile über alle Zimmer
+  if(covering.length){
+    const einzelSumme=[...allRooms].reduce((s,r)=>s+Math.max(0,
+      ...entries.filter(e=>e.rooms.length===1&&e.rooms[0]===r).map(e=>e.v),0),0);
+    return Math.max(0,...covering.map(e=>e.v),einzelSumme);
+  }
+  return entries.reduce((s,e)=>s+e.v,0);
 }
 function wrapHeight(text,colWidth){
   const s=String(text||'');
