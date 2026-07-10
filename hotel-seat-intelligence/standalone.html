@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bx</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-by</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bx · 08.07.2026</span>
+          <span class="set-version">v.25.06-by · 08.07.2026</span>
         </div>
       </div>
 
@@ -6662,23 +6662,58 @@ function triggerXlsxDownload(buffer,filename){
 // und weiterleiten, ohne die Warnung je gesehen zu haben (Fund 11.07.: Überbuchung/Day Spa).
 // Diese Funktion bündelt die kritischen Punkte für einen sichtbaren Bestätigungsdialog.
 function sammleKritischeBefunde(){
-  const befunde=[];
+  const befunde=[], hart=[];
   const ag=assignedGuests||[], ts=lastTables||[];
   const ohne=ag.filter(g=>!g.zugewiesener_tisch);
   if(ohne.length) befunde.push(ohne.length+' Gast/Gäste OHNE Tisch: '+ohne.slice(0,4).map(g=>g.nachname+' Zi'+g.zimmer).join(', ')+(ohne.length>4?' …':''));
-  // Echte Überbelegung = mehr Personen als Plätze, ÜBER die Kinderzahl hinaus. „2 Erw. + 1 Kind"
-  // auf 2 Plätzen (Kind auf Zusatzstuhl) ist ok; „6 Pers. auf 5 Plätzen" durch drei fremde
-  // Parteien (Fund 726) ist ein echter Fehler — und wird IMMER gemeldet, auch wenn eine Kombi-
-  // Warnung existiert (eine Kombination rechtfertigt keine Überschreitung ihrer Kapazität).
-  const kinderAn=t=>ag.filter(g=>String(g.zugewiesener_tisch)===String(t.tisch_id)).reduce((s,g)=>s+(g.kinder||0),0);
-  const over=ts.filter(t=>t.aktiv&&((t.belegtPax||0)-(t.kapazitaet||0))>kinderAn(t));
-  if(over.length) befunde.push(over.length+' ÜBERBELEGTE(R) Tisch(e): '+over.map(t=>t.tisch_id+' ('+t.belegtPax+' Pers. auf '+t.kapazitaet+' Plätzen)').join(', '));
+  // ── Überbelegung KORREKT zählen (Fehlalarm-Fix 11.07.) ──
+  // 1. ZIMMER-basiert statt zeilenbasiert (groupPax — dieselbe Logik wie die Export-Anzeige):
+  //    dieselbe Partei liegt oft als ZWEI Zeilen vor (Vortags-Sammelzeile „Ott, Golombek" +
+  //    Abreise-Zeile „Ott" — gleiches Zimmer 503). Zeilenweise gezählt ergab das fälschlich
+  //    6 Pers. auf Tisch 622 und sperrte einen korrekten Plan.
+  // 2. KOMBINATIONS-Kapazität einrechnen: reservierte Partnertische (kombiMit) zählen mit;
+  //    deckt ein Hotelier-Kombieintrag die Tische ab, gilt dessen Personen-Maximum
+  //    (z.B. 749–750 bis 9 Pers., obwohl die Einzeltische nur 3+2 Plätze listen).
+  // 3. Kinder sind kein Überlauf (Zusatzstuhl/Hochstuhl).
+  // HART gesperrt wird nur, was wirklich nie stimmen kann: MEHRERE unabhängige Parteien über
+  // der Kapazität (Fund 726: drei fremde Parteien auf einem 5er) oder eine Doppelplatzierung.
+  // EINE Partei, die ihren eigenen Tisch um 1 überzieht, ist gelebte Hotelier-Praxis
+  // („3 Erw." am 2er, Plan 11.07. Tisch 622) → nur Hinweis im Prüf-Gate, keine Sperre.
+  const kombis=getAktiveKombis();
+  ts.filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0)).forEach(t=>{
+    const gs=ag.filter(g=>String(g.zugewiesener_tisch)===String(t.tisch_id));
+    if(!gs.length) return;
+    const belegt=groupPax(gs,'pax'), kinder=groupPax(gs,'kinder');
+    const partner=ts.filter(p=>p.kombiMit&&String(p.kombiMit.haupt)===String(t.tisch_id));
+    let effKap=(t.kapazitaet||0)+partner.reduce((s,p)=>s+(p.kapazitaet||0),0);
+    const setIds=new Set([String(t.tisch_id),...partner.map(p=>String(p.tisch_id))]);
+    kombis.forEach(k=>{const kt=(k.tables||[]).map(String);
+      if(kt.length===setIds.size&&kt.every(id=>setIds.has(id))) effKap=Math.max(effKap,k.max||0);});
+    const exc=belegt-effKap-kinder;
+    if(exc<=0) return;
+    // Unabhängige Parteien am Tisch zählen (über gemeinsame Zimmer verbunden = eine Partei)
+    const roomSets=gs.map(g=>String(g.zimmer||'').split(/[,+\s]+/).filter(x=>/^\d+$/.test(x)));
+    const used=new Array(roomSets.length).fill(false);let parties=0;
+    for(let i=0;i<roomSets.length;i++){
+      if(used[i])continue;parties++;used[i]=true;const cur=new Set(roomSets[i]);let grew=true;
+      while(grew){grew=false;for(let j=0;j<roomSets.length;j++){
+        if(used[j])continue;
+        if(roomSets[j].some(r=>cur.has(r))){used[j]=true;roomSets[j].forEach(r=>cur.add(r));grew=true;}}}
+    }
+    const info='Tisch '+t.tisch_id+': '+belegt+' Pers. auf '+effKap+' Plätzen'+(partner.length?' (Kombination '+[...setIds].join('+')+')':'');
+    if(parties>1) hart.push(info+' — mehrere fremde Parteien, so nicht umsetzbar');
+    else befunde.push('Eng belegt: '+info+' — eine Partei am eigenen Tisch, bitte kurz prüfen');
+  });
+  // Doppelplatzierung (ein Zimmer an zwei Tischen) ist IMMER ein harter Fehler — genau so
+  // pflanzte sich der 726-Fehler über wiederverwendete Exporte fort.
+  (warnings||[]).filter(w=>w.level==='red'&&/Doppelplatzierung/.test(w.msg)).forEach(w=>hart.push(w.msg));
+  if(hart.length) befunde.unshift('NICHT EXPORTIERBAR: '+hart.join(' | '));
   const pseudo=ag.filter(g=>{ if(!g.zugewiesener_tisch) return false;
     const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):0; return n>21; });
   if(pseudo.length) befunde.push('Möglicher Pseudo-/Datenfehler-Gast (>21 Nächte): '+pseudo.map(g=>g.nachname+' Zi'+g.zimmer).join(', '));
-  (warnings||[]).filter(w=>w.level==='red').forEach(w=>befunde.push('Kritisch: '+w.msg));
+  (warnings||[]).filter(w=>w.level==='red'&&!/Doppelplatzierung/.test(w.msg)).forEach(w=>befunde.push('Kritisch: '+w.msg));
   (warnings||[]).filter(w=>/Regel D/.test(w.msg)).forEach(w=>befunde.push('Hinweis: '+w.msg));
-  return {befunde,over};
+  return {befunde,hart};
 }
 
 async function exportToTischplanTemplate(){
@@ -6692,17 +6727,17 @@ async function exportToTischplanTemplate(){
     return;
   }
   // Prüf-Gate: kritische Punkte sichtbar machen, bevor die Datei rausgeht.
-  const {befunde:kritisch, over}=sammleKritischeBefunde();
-  // HARTE SPERRE bei echter Überbelegung: ein Tisch mit mehr Personen als Plätzen (über Kinder
-  // hinaus) darf NICHT exportiert werden — sonst wird der fehlerhafte Plan als Vortag der nächsten
-  // Berechnung wiederverwendet und der Fehler pflanzt sich fort (Fund 726: „Kanal+Seehars+Gerngroß"
-  // wanderte über re-eingelesene Exporte immer weiter). Lieber Export stoppen als Fehler streuen.
-  if(over&&over.length){
-    alert('Export gestoppt: '+over.length+' Tisch(e) sind ÜBERBELEGT (mehr Personen als Plätze):\n\n'
-      +over.map(t=>'• Tisch '+t.tisch_id+': '+t.belegtPax+' Pers. auf '+t.kapazitaet+' Plätzen').join('\n')
-      +'\n\nBitte im Plan korrigieren (Gast auf einen freien Tisch umsetzen). Der Download wurde zur '
-      +'Sicherheit blockiert — ein überbelegter Plan darf nicht weiterverwendet werden.');
-    setStatus('Export gestoppt — '+over.length+' überbelegte(r) Tisch(e)','err');
+  const {befunde:kritisch, hart}=sammleKritischeBefunde();
+  // HARTE SPERRE nur bei Fehlern, die nie stimmen können: mehrere fremde Parteien über der
+  // (Kombinations-)Kapazität oder eine Doppelplatzierung — sonst pflanzt sich der Fehler über
+  // wiederverwendete Exporte fort (Fund 726). Legitime Hotelier-Praxis (eine Partei +1 am
+  // eigenen Tisch, Kind auf Zusatzstuhl, Kombinationen) sperrt NICHT mehr (Fehlalarm 11.07.).
+  if(hart&&hart.length){
+    alert('Export gestoppt — '+hart.length+' harte(r) Fehler:\n\n'
+      +hart.map(h=>'• '+h).join('\n')
+      +'\n\nBitte im Plan korrigieren. Der Download wurde zur Sicherheit blockiert — ein solcher '
+      +'Plan darf nicht weiterverwendet werden.');
+    setStatus('Export gestoppt — '+hart.length+' harte(r) Fehler','err');
     return;
   }
   if(kritisch.length){
