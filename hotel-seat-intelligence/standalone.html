@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bv</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bw</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bv · 08.07.2026</span>
+          <span class="set-version">v.25.06-bw · 08.07.2026</span>
         </div>
       </div>
 
@@ -5744,6 +5744,104 @@ function insertWsColumn(ws,col){
 
 // Baut die befüllte Tischplan-Vorlage (Workbook + Gast-Zuordnung) ohne sie herunterzuladen —
 // wird sowohl für den echten Export als auch für die Vorschau verwendet.
+// ── Service-Hinweise aus den AKTUELLEN Plandaten (nicht aus veralteten Vorlagen-Resten) ──
+// Der Hotelier führt am Fuß seines Plans die Abschnitte „Geburtstage & Grüße", „Early Check In"
+// und „Änderungen". Diese Infos sind service-relevant und werden hier aus den echten Gast-Notizen
+// des heutigen Plans frisch zusammengestellt (Fund 11.07.: die alten Vorlagen-Reste 66/144/Day
+// Spa wurden entfernt und durch diese aktuellen Abschnitte ersetzt).
+function collectGeburtstage(){
+  const seen=new Set(), out=[];
+  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const txt=[g.allergie,g.bemerkung,g.extras].filter(Boolean).join(' | ');
+    // Nur die Geburtstags-Aussage je Notiz-Segment herausziehen (Trennung an | und Zeilenumbruch),
+    // damit Allergien/andere Vermerke NICHT mit hineinrutschen.
+    txt.split(/\s*\|\s*|\n/).forEach(s=>{
+      if(!/\bgeb\.?\b|geburtstag/i.test(s)) return;
+      const clean=s.trim().replace(/\s+/g,' ').slice(0,80);
+      const key=g.zugewiesener_tisch+'|'+clean.toLowerCase().replace(/[^a-zäöüß0-9]/g,'');
+      if(seen.has(key)) return; seen.add(key);
+      out.push('Tisch '+g.zugewiesener_tisch+' ('+g.nachname+'): '+clean);
+    });
+  });
+  return out;
+}
+function collectEarlyCheckIn(){
+  const seen=new Set(), out=[];
+  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    const txt=[g.allergie,g.bemerkung,g.extras].filter(Boolean).join(' | ');
+    if(!/early\s*c\/?i|early\s*check|frühe?\s*anreise|früh(er|es)?\s*check/i.test(txt)) return;
+    const key=g.zugewiesener_tisch+'|'+g.nachname;
+    if(seen.has(key)) return; seen.add(key);
+    out.push('Tisch '+g.zugewiesener_tisch+' (Zi. '+g.zimmer+'): '+g.nachname);
+  });
+  return out;
+}
+// Verifizierte Summen (Tische pro Hunderter-Gruppe + Gesamt) — echte Zahlen aus lastTables,
+// ersetzt die veralteten Vorlagen-Summen (66/144 → korrekte Summe 600er/700er/Gesamt).
+function appendSummenBlock(ws,N){
+  const st=computeHouseStats();
+  const sumByH={};
+  (lastTables||[]).filter(t=>t.aktiv).forEach(t=>{const n=parseInt(t.tisch_id)||0;if(n<100)return;
+    const h=Math.floor(n/100)*100;if(!sumByH[h])sumByH[h]={pax:0,tische:0,belegt:0};
+    const bp=t.belegtPax||0;sumByH[h].tische++;sumByH[h].pax+=bp;if(bp>0)sumByH[h].belegt++;});
+  const bd={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+  const sep=ws.addRow(Array(N).fill(''));sep.height=6;
+  const hdr=ws.addRow(['Summen-Übersicht (verifiziert)',...Array(N-1).fill('')]);
+  hdr.getCell(1).font={bold:true,size:10};ws.mergeCells(hdr.number,1,hdr.number,N);
+  const addSumRow=(label,s,bold)=>{const r=ws.addRow([label,'','',s.belegt+' belegt / '+s.tische+' gesamt','',s.pax,'']);
+    r.height=15;for(let c=1;c<=N;c++){r.getCell(c).border=bd;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};}
+    r.getCell(1).font={bold:true,size:9};r.getCell(4).font={bold:!!bold,size:9};r.getCell(6).font={bold:true,size:9};ws.mergeCells(r.number,1,r.number,3);};
+  Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Tische '+h+'er',s,false));
+  addSumRow('Tische gesamt',{belegt:st.tischeBelegt,tische:st.tischeGesamt,pax:st.platziertPax},true);
+}
+// Service-Abschnitte anhängen: Geburtstage & Grüße, Early Check In, Änderungen (leeres Notizfeld).
+function appendServiceHinweise(ws,N){
+  const bd={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
+  const header=(title)=>{const sep=ws.addRow(Array(N).fill(''));sep.height=6;
+    const h=ws.addRow([title,...Array(N-1).fill('')]);h.getCell(1).font={bold:true,size:10};ws.mergeCells(h.number,1,h.number,N);};
+  const item=(text)=>{const r=ws.addRow([text,...Array(N-1).fill('')]);r.getCell(1).font={size:9};r.getCell(1).alignment={wrapText:true,vertical:'top'};ws.mergeCells(r.number,1,r.number,N);};
+  const gebs=collectGeburtstage();
+  header('Geburtstage & Grüße');
+  if(gebs.length) gebs.forEach(item); else item('— heute keine vermerkt —');
+  const eci=collectEarlyCheckIn();
+  header('Early Check In');
+  if(eci.length) eci.forEach(item); else item('— keine —');
+  header('Änderungen (Hand-Notizen)');
+  const leer=ws.addRow(Array(N).fill(''));leer.height=34;ws.mergeCells(leer.number,1,leer.number,N);
+  for(let c=1;c<=N;c++) leer.getCell(c).border=bd;
+}
+// ── PRÜFBERICHT-Blatt: die Selbstkontrolle IN der Excel sichtbar machen (nicht nur in der App) ──
+// Bündelt kritische Befunde (sammleKritischeBefunde) + eine Positiv-Checkliste der geprüften Regeln.
+function buildPruefberichtSheet(wb){
+  const ws=wb.addWorksheet('Prüfbericht');
+  ws.getColumn(1).width=100;
+  const t=ws.addRow(['Prüfbericht — automatische Kontrolle des Tischplans']);
+  t.getCell(1).font={bold:true,size:12};
+  ws.addRow([(el('dash-date-display')?.textContent||planDatumDE?.()||'')+'  ·  automatisch erstellt']);
+  ws.addRow(['']);
+  let befunde=[]; try{ befunde=sammleKritischeBefunde(); }catch(e){}
+  if(!befunde.length){
+    const r=ws.addRow(['✓ Keine kritischen Punkte gefunden — der Plan ist strukturell sauber.']);
+    r.getCell(1).font={bold:true,size:11,color:{argb:'FF1A7A3A'}};
+  } else {
+    const h=ws.addRow(['⚠ '+befunde.length+' Punkt(e) zu prüfen:']);
+    h.getCell(1).font={bold:true,size:11,color:{argb:'FFB00000'}};
+    befunde.forEach((b,i)=>{ const r=ws.addRow([(i+1)+'. '+b]); r.getCell(1).alignment={wrapText:true}; r.getCell(1).font={size:10}; });
+  }
+  ws.addRow(['']);
+  const cl=ws.addRow(['Geprüfte Regeln:']); cl.getCell(1).font={bold:true,size:10};
+  ['Alle Gäste haben einen Tisch (kein Gast ohne Platz)',
+   'Kein Tisch überbelegt (Personen ≤ Sitzplätze)',
+   'Keine Pseudo-Gäste (Day Spa & Co. / >21 Nächte)',
+   'Bleibegäste behalten ihren Tisch (Regel A)',
+   'Tiny-Studio-Reserve 80x bleibt frei (Regel B/C)',
+   'Kein guter Tisch verschenkt (Regel D)',
+   'Kombinationen bleiben Einheiten (kein Fremdgast auf Partnertisch)',
+   'Kapazitäts-Schutz an vollen Tagen (große Parteien → große Tische)'
+  ].forEach(x=>{ const r=ws.addRow(['• '+x]); r.getCell(1).font={size:9}; });
+  return ws;
+}
+
 async function buildFilledTischplanSheet(){
   if(!calcDone||(lastTables||[]).length===0) return null;
   // Frisches Workbook — kein Template-Laden, keine ExcelJS/SheetJS-Inkompatibilität.
@@ -5797,9 +5895,15 @@ async function buildFilledTischplanSheet(){
       try{updateHinweiseBadge();}catch(e){}
       setStatus('⚠ '+msg,'err');
     }
+    // Frische Fuß-Abschnitte statt veralteter Vorlagen-Reste: echte Summen + Service-Hinweise
+    // (Geburtstage & Grüße, Early Check In, Änderungen). Die alten Vorlagen-Reste (66/144/Day
+    // Spa) wurden beim Einlesen/Kopieren entfernt — hier kommen die AKTUELLEN Daten dafür rein.
+    appendSummenBlock(ws,N);
+    appendServiceHinweise(ws,N);
     buildSortierungZimmerSheet(wb,ws);
     buildTischeKombiSheet(wb);
     buildBegruendungSheet(wb);
+    buildPruefberichtSheet(wb);
     return{wb,ws,guestsByTable,exportMissing:missing};
   }
   // ── Fallback (keine Vorlage hochgeladen): frisches, eigenes Layout ──
@@ -5966,12 +6070,14 @@ async function buildFilledTischplanSheet(){
     Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Tische '+h+'er',s,false));
     addSumRow('Tische gesamt',{belegt:st.tischeBelegt,tische:st.tischeGesamt,pax:st.platziertPax},true);
   }
+  appendServiceHinweise(ws,N); // Geburtstage & Grüße / Early Check In / Änderungen (auch ohne Vorlage)
   // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
   const allIds=hasTischplan?Object.keys(tischplanMap):(lastTables||[]).map(t=>String(t.tisch_id));
   addKategorienLegende(ws,allIds,N);
   buildSortierungZimmerSheet(wb,ws);
   buildTischeKombiSheet(wb);
   buildBegruendungSheet(wb);
+  buildPruefberichtSheet(wb);
   return{wb,ws,guestsByTable};
 }
 
@@ -6544,8 +6650,10 @@ function sammleKritischeBefunde(){
   const ag=assignedGuests||[], ts=lastTables||[];
   const ohne=ag.filter(g=>!g.zugewiesener_tisch);
   if(ohne.length) befunde.push(ohne.length+' Gast/Gäste OHNE Tisch: '+ohne.slice(0,4).map(g=>g.nachname+' Zi'+g.zimmer).join(', ')+(ohne.length>4?' …':''));
-  const over=ts.filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0));
-  if(over.length) befunde.push(over.length+' ÜBERBELEGTE(R) Tisch(e): '+over.map(t=>t.tisch_id+' ('+t.belegtPax+'/'+t.kapazitaet+' Pers.)').join(', '));
+  // Nur STILLE Überbelegung melden (ohne erklärende Warnung) — bewusste Fälle wie „2 Erw. + 1 Kind"
+  // (Pax 3 auf 2 Listenplätzen, Kind auf Zusatzstuhl) tragen bereits eine Warnung und sind ok.
+  const over=ts.filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0)&&!(warnings||[]).some(w=>String(w.msg).includes(String(t.tisch_id))));
+  if(over.length) befunde.push(over.length+' ÜBERBELEGTE(R) Tisch(e) ohne Erklärung: '+over.map(t=>t.tisch_id+' ('+t.belegtPax+'/'+t.kapazitaet+' Pers.)').join(', '));
   const pseudo=ag.filter(g=>{ if(!g.zugewiesener_tisch) return false;
     const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):0; return n>21; });
   if(pseudo.length) befunde.push('Möglicher Pseudo-/Datenfehler-Gast (>21 Nächte): '+pseudo.map(g=>g.nachname+' Zi'+g.zimmer).join(', '));
