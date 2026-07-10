@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bt</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bu</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bt · 08.07.2026</span>
+          <span class="set-version">v.25.06-bu · 08.07.2026</span>
         </div>
       </div>
 
@@ -4631,15 +4631,20 @@ function runCalc(){
   }
   warnings=warns;
 
-  // Phase 3: Hochstufungs-Optimierung — attraktive Tische nicht leer lassen
-  const emptyPremium=ts.filter(t=>t.aktiv&&(t.kategorie||9)<=3&&(t.belegtPax||0)===0&&!t.blocked_for);
+  // Phase 3 / REGEL D — kein guter Tisch bleibt verschenkt: steht ein guter Tisch (Kat≤3) leer
+  // und verfügbar, obwohl ein Gast auf einem klar schlechteren Tisch (Kat≥6) sitzt, der dort
+  // hineinpasst, wird das sichtbar gemeldet. AUSGENOMMEN (bewusst, keine Fehlmeldung):
+  // Tiny-Studios (Zimmer-Q8 → gehören NICHT auf Premium, Regel C), Kombi-Haupttische (sitzen
+  // bewusst zusammen) und reservierte/Freilass/Notfall-/Kombi-Tische. Dieselbe Prüfung ist als
+  // harte Test-Invariante „Regel D" in tests/run-tests.js verankert (premiumWaste===0).
+  const emptyPremium=ts.filter(t=>t.aktiv&&(t.kategorie||9)<=3&&(t.belegtPax||0)===0
+    &&!t.blocked_for&&!t.zukunft_belegt&&!t.kombiMit&&!t.freilass&&!t.notfall);
   if(emptyPremium.length>0){
-    // Kombi-Hauptgäste NICHT zur Hochstufung vorschlagen — sie sitzen bewusst auf einer
-    // Kombination (z.B. Vorausschau-Partner Seehars 745+746). Ein Umzug bräche die Einheit.
     const kombiHaupt=new Set(ts.filter(t=>t.kombiMit).map(t=>String(t.kombiMit.haupt)));
     const onPoorTables=assignedGuests.filter(g=>{
       if(!g.zugewiesener_tisch) return false;
       if(kombiHaupt.has(String(g.zugewiesener_tisch))) return false;
+      if((g.zimmer_qualitaet||0)===8) return false; // Tiny-Studio gehört bewusst nicht auf Premium
       const t=ts.find(t=>t.tisch_id===g.zugewiesener_tisch);
       return t&&(t.kategorie||9)>=6;
     });
@@ -4648,7 +4653,7 @@ function runCalc(){
       const upgrade=emptyPremium.find(t=>!usedUpgrades.has(t.tisch_id)&&t.kapazitaet-t.belegtPax>=g.pax);
       if(upgrade){
         usedUpgrades.add(upgrade.tisch_id);
-        warns.push({level:'yellow',msg:`Hochstufung möglich: ${g.nachname} Zi.${g.zimmer} von Tisch ${g.zugewiesener_tisch} → ${upgrade.tisch_id} (Kat.${upgrade.kategorie})`});
+        warns.push({level:'yellow',msg:`Regel D — guter Tisch bleibt frei: ${g.nachname} Zi.${g.zimmer} sitzt auf ${g.zugewiesener_tisch}, obwohl Tisch ${upgrade.tisch_id} (Kat.${upgrade.kategorie}) leer ist → hochstufen`});
       }
     });
   }

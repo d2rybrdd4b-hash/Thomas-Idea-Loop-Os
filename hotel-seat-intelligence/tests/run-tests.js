@@ -127,7 +127,27 @@ async function calcInvariants(page){
         if(n>2) return false;
         const t=(lastTables||[]).find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
         return t&&(t.kategorie||9)<=2;
-      }).map(g=>g.zimmer+'→'+g.zugewiesener_tisch)
+      }).map(g=>g.zimmer+'→'+g.zugewiesener_tisch),
+      // Regel D — kein guter Tisch bleibt VERSCHENKT: ein guter Tisch (Kat≤3) steht leer und
+      // verfügbar, obwohl ein Gast auf einem klar schlechteren Tisch (Kat≥6) sitzt, der dort
+      // hineinpassen würde. Ausgenommen: Tiny-Studios (Q8 — die gehören bewusst NICHT auf Premium),
+      // Kombi-Haupttische (sitzen bewusst zusammen), reservierte/Freilass/Notfall-/Kombi-Tische.
+      premiumWaste:(()=>{
+        const ts=lastTables||[];
+        const emptyGood=ts.filter(t=>t.aktiv&&(t.kategorie||9)<=3&&(t.belegtPax||0)===0
+          &&!t.blocked_for&&!t.zukunft_belegt&&!t.kombiMit&&!t.freilass&&!t.notfall);
+        if(!emptyGood.length) return [];
+        const kombiHaupt=new Set(ts.filter(t=>t.kombiMit).map(t=>String(t.kombiMit.haupt)));
+        const used=new Set(); const res=[];
+        guests.filter(g=>g.zugewiesener_tisch&&!kombiHaupt.has(String(g.zugewiesener_tisch))
+          &&(g.zimmer_qualitaet||0)!==8).forEach(g=>{
+          const t=ts.find(x=>String(x.tisch_id)===String(g.zugewiesener_tisch));
+          if(!t||(t.kategorie||9)<6) return;
+          const up=emptyGood.find(e=>!used.has(e.tisch_id)&&(e.kapazitaet-e.belegtPax)>=(g.pax||1));
+          if(up){used.add(up.tisch_id);res.push(g.zimmer+'→'+g.zugewiesener_tisch+'(frei '+up.tisch_id+')');}
+        });
+        return res;
+      })()
     };
   });
 }
@@ -290,6 +310,7 @@ async function exportInvariants(page){
     check('Keine Geister-Tische (Zuweisung auf unbekannten Tisch)',ci.ghosts===0,ci.ghosts+' Geister');
     check('Keine Doppelplatzierung (kein Zimmer an mehreren Tischen)',ci.roomDoublePlaced.length===0,ci.roomDoublePlaced.join(' | '));
     check('Kein Fremdgast auf offenem Kombi-Partner (Kombination bleibt Einheit)',ci.fremdAufKombiPartner.length===0,ci.fremdAufKombiPartner.join(' | '));
+    check('Regel D: kein guter Tisch verschenkt (Kat≤3 leer, während Gast auf Kat≥6 passt)',ci.premiumWaste.length===0,ci.premiumWaste.join(' | '));
     if(sz.vorlage==='vorlage-blanco.xlsx'){
       check('Keine STILLE Überbelegung (echte Platzzahlen greifen)',ci.overfullSilent.length===0,ci.overfullSilent.join(', '));
     }
