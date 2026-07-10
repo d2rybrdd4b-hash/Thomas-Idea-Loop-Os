@@ -147,7 +147,14 @@ async function calcInvariants(page){
           if(up){used.add(up.tisch_id);res.push(g.zimmer+'→'+g.zugewiesener_tisch+'(frei '+up.tisch_id+')');}
         });
         return res;
-      })()
+      })(),
+      // Pseudo-Gäste im Plan: „Pseudozimmer" (Day-Spa-/Service-Buchungen) dürfen NIE einen Tisch
+      // bekommen. Erkennungsmerkmal im Plan: absurd langer „Aufenthalt" (>21 Nächte, Day Spa=28).
+      pseudoInPlan:guests.filter(g=>{
+        if(!g.zugewiesener_tisch) return false;
+        const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):0;
+        return n>21;
+      }).map(g=>g.nachname+' Zi'+g.zimmer)
     };
   });
 }
@@ -311,6 +318,7 @@ async function exportInvariants(page){
     check('Keine Doppelplatzierung (kein Zimmer an mehreren Tischen)',ci.roomDoublePlaced.length===0,ci.roomDoublePlaced.join(' | '));
     check('Kein Fremdgast auf offenem Kombi-Partner (Kombination bleibt Einheit)',ci.fremdAufKombiPartner.length===0,ci.fremdAufKombiPartner.join(' | '));
     check('Regel D: kein guter Tisch verschenkt (Kat≤3 leer, während Gast auf Kat≥6 passt)',ci.premiumWaste.length===0,ci.premiumWaste.join(' | '));
+    check('Kein Pseudo-Gast im Plan (Day Spa & Co. / >21 Nächte)',ci.pseudoInPlan.length===0,ci.pseudoInPlan.join(' | '));
     if(sz.vorlage==='vorlage-blanco.xlsx'){
       check('Keine STILLE Überbelegung (echte Platzzahlen greifen)',ci.overfullSilent.length===0,ci.overfullSilent.join(', '));
     }

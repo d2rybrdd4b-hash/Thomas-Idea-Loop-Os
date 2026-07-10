@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bu</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bv</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bu · 08.07.2026</span>
+          <span class="set-version">v.25.06-bv · 08.07.2026</span>
         </div>
       </div>
 
@@ -2400,6 +2400,13 @@ function extractTablesFromVortag(rows){
   };
 }
 
+// PMS-„Pseudozimmer" (Day-Spa-/Service-/Package-Buchungen ohne echtes Zimmer) sind KEINE
+// Tischgäste. Sie erscheinen mit Kat. = „Pseudozimmer" (Fund 11.07.: „Day Spa", Zimmer 100,
+// 28 Nächte, landete auf einem Premiumtisch). Wird beim Einlesen HART verworfen.
+function istPseudozimmer(katRaw){
+  return /pseudo\s*-?\s*zimmer/i.test(String(katRaw||''));
+}
+
 // ── Panorama "reservations_by_arrival" parser ─────────────────
 // Sheet: DynamicListReport_*  |  Row 7 = headers
 // Col B(1)=Zimmer, C(2)=Gastname(n), F(5)=Nächte, H(7)=Personen, I(8)=Bemerk., O(14)=Res.-Status
@@ -2435,6 +2442,7 @@ function parsePanoramaArrival(wb){
   const colAnreise=findCol(['anreise','anreisedatum','arrival','ankunft']);
   // Personen-Spalte variiert zwischen Tages- (Spalte 7) und 7-Tage-Export (Spalte 6)
   const colPers=findCol(['personen','pers.','anzahl personen','pax','erwachsene']);
+  const colKat=findCol(['kat.','kat','kategorie','zimmerkat','zimmer-kat','zimmerkategorie','room type','category']);
 
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
@@ -2445,6 +2453,8 @@ function parsePanoramaArrival(wb){
     if(!zimmerRaw&&!nameRaw) continue;
     // Stop at totals row
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
+    // Pseudozimmer (Day Spa & Co.) sind keine Tischgäste → überspringen
+    if(colKat>=0&&istPseudozimmer(row[colKat])) continue;
 
     const naechte=parseInt(row[5])||1;
     const pax=parseInt(colPers>=0?row[colPers]:row[7])||1;
@@ -2534,6 +2544,8 @@ function parsePanoramaDeparture(wb){
     const nameRaw=String(row[2]||'').trim();
     if(!zimmerRaw&&!nameRaw) continue;
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
+    // Pseudozimmer (Day Spa & Co., Kat.-Spalte K=Index 10) sind keine Tischgäste → überspringen
+    if(istPseudozimmer(row[10])) continue;
 
     const anreiseRaw=String(row[5]||'').trim();
     const abreiseRaw=String(row[7]||'').trim();
@@ -6201,6 +6213,10 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     const rowEntries={};
     Object.entries(tischplanMap).forEach(([tid,e])=>{ (rowEntries[e.r]=rowEntries[e.r]||[]).push({tid,e}); });
     const rowHasGrayM=r=>{ for(let c=range.s.c;c<=maxCol;c++){ const x=tcell(r,c); if(x&&x.s&&x.s.fgColor&&grayish(x.s.fgColor.rgb)) return true; } return false; };
+    // Kein Fußzeilen-Abschnitt im Mehrblock-Pfad: nebeneinanderliegende Blöcke teilen sich die
+    // Zeilen — ein Marker in EINEM Block würde die echten Tische des Nachbarblocks abschneiden
+    // (Blanco-Vorfall im Test). Der Einzelblock-Pfad (Hotelier-Format) bereinigt die Fußzeile;
+    // saubere Mehrblock-Vorlagen (Blanco) haben ohnehin keine solchen Reste.
     for(let r=range.s.r;r<=range.e.r;r++){
       const xlRow=ws.getRow(r+1);
       const isInfo=(r===range.s.r);
@@ -6279,7 +6295,17 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     return;
   }
 
-  for(let r=range.s.r;r<=range.e.r;r++){
+  // ── Vorlagen-Fußzeile abschneiden (Fund 11.07.): statische Notiz-/Alt-Daten-Bereiche der
+  // Vorlage („Änderungen", „STAMM", „Day Spa", „Geburtstage & Grüße", freie Summen-Zahlen wie
+  // 66/144) sind KEINE heutigen Tischdaten — sie wurden bisher 1:1 mitkopiert und standen als
+  // veraltete Reste im Export. Ab der ersten solchen Markierung wird nichts mehr übernommen;
+  // die verlässliche Summen-Übersicht steht separat. Echte Tisch-Abschnitte (z.B. „Bar" mit
+  // 80x) stehen DAVOR und bleiben erhalten.
+  const FOOTER_MARKERS=['änderung','geburtstag','grüße','grüsse','stamm','day spa','einfügen','tischwünsche','tischwunsch'];
+  const istFooterMarker=s=>{s=String(s||'').trim().toLowerCase();return !!s&&FOOTER_MARKERS.some(m=>s.startsWith(m));};
+  let footerStart=range.e.r+1;
+  for(let r=range.s.r+1;r<=range.e.r;r++){ if(istFooterMarker(txt(r,tischCol))||istFooterMarker(txt(r,gastnameCol))){footerStart=r;break;} }
+  for(let r=range.s.r;r<footerStart;r++){
     const xlRow=ws.getRow(r+1);
     const entry=rowToEntry[r];
     const tischRaw=txt(r,tischCol);
@@ -6508,6 +6534,26 @@ function triggerXlsxDownload(buffer,filename){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
+// ── PRÜF-GATE: kritische Befunde VOR dem Export sammeln ──
+// Die Selbstprüfungen erzeugen Warnungen in der App — die aber NICHT in der Excel-Datei stehen
+// und den Download bisher nicht aufhielten. Man konnte also einen fehlerhaften Plan exportieren
+// und weiterleiten, ohne die Warnung je gesehen zu haben (Fund 11.07.: Überbuchung/Day Spa).
+// Diese Funktion bündelt die kritischen Punkte für einen sichtbaren Bestätigungsdialog.
+function sammleKritischeBefunde(){
+  const befunde=[];
+  const ag=assignedGuests||[], ts=lastTables||[];
+  const ohne=ag.filter(g=>!g.zugewiesener_tisch);
+  if(ohne.length) befunde.push(ohne.length+' Gast/Gäste OHNE Tisch: '+ohne.slice(0,4).map(g=>g.nachname+' Zi'+g.zimmer).join(', ')+(ohne.length>4?' …':''));
+  const over=ts.filter(t=>t.aktiv&&(t.belegtPax||0)>(t.kapazitaet||0));
+  if(over.length) befunde.push(over.length+' ÜBERBELEGTE(R) Tisch(e): '+over.map(t=>t.tisch_id+' ('+t.belegtPax+'/'+t.kapazitaet+' Pers.)').join(', '));
+  const pseudo=ag.filter(g=>{ if(!g.zugewiesener_tisch) return false;
+    const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):0; return n>21; });
+  if(pseudo.length) befunde.push('Möglicher Pseudo-/Datenfehler-Gast (>21 Nächte): '+pseudo.map(g=>g.nachname+' Zi'+g.zimmer).join(', '));
+  (warnings||[]).filter(w=>w.level==='red').forEach(w=>befunde.push('Kritisch: '+w.msg));
+  (warnings||[]).filter(w=>/Regel D/.test(w.msg)).forEach(w=>befunde.push('Hinweis: '+w.msg));
+  return befunde;
+}
+
 async function exportToTischplanTemplate(){
   if(!calcDone||(lastTables||[]).length===0){setStatus('Erst Tischplan berechnen','err');return;}
   const built=await buildFilledTischplanSheet();
@@ -6517,6 +6563,14 @@ async function exportToTischplanTemplate(){
   if(built.exportMissing&&built.exportMissing.length){
     alert('Export gestoppt: '+built.exportMissing.length+' belegte Tische würden im Tischplan-Blatt fehlen.\n\nBetroffen: '+built.exportMissing.slice(0,5).join(', ')+(built.exportMissing.length>5?' …':'')+'\n\nBitte Tischplan-Vorlage prüfen (Einstellungen) — der Download wurde zur Sicherheit blockiert.');
     return;
+  }
+  // Prüf-Gate: kritische Punkte sichtbar machen, bevor die Datei rausgeht.
+  const kritisch=sammleKritischeBefunde();
+  if(kritisch.length){
+    const ok=confirm('⚠ Prüf-Gate — '+kritisch.length+' Punkt(e) im Plan gefunden:\n\n'
+      +kritisch.map((k,i)=>(i+1)+'. '+k).join('\n')
+      +'\n\nTrotzdem exportieren? (Abbrechen = zurück zum Prüfen)');
+    if(!ok){ setStatus('Export abgebrochen — bitte die '+kritisch.length+' Punkte prüfen','err'); return; }
   }
   const hotel=(el('hotel-name-input')?.value||el('export-hotel')?.value||'Hotel')
     .replace(/[^\w\s-]/g,'').trim();
