@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-br</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bs</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-br · 08.07.2026</span>
+          <span class="set-version">v.25.06-bs · 08.07.2026</span>
         </div>
       </div>
 
@@ -3969,9 +3969,18 @@ function runCalc(){
     // 7-Tage-Fenster: Anreisen mit künftigem Datum sind PROGNOSE (fließen in den
     // Vorausschau-Kalender, aber nicht in den heutigen Plan); Abreise-Zeilen, deren
     // Abreise schon heute/früher war, sind bereits abgereist (kein Abendessen mehr).
-    if(g.quelle_anreise&&g.quelle_abreise) status=(g.check_in&&g.check_in>refDate)?'PROGNOSE':'AN·AB';
-    else if(g.quelle_anreise) status=(g.check_in&&g.check_in>refDate)?'PROGNOSE':'AN';
-    else if(g.quelle_abreise) status=(g.check_out&&g.check_out<=refDate)?'ABGEREIST':'AB';
+    // Abreise-Fenster: „Abreise heute/morgen früh" heißt check_out ist heute (schon weg =
+    // ABGEREIST) oder morgen früh (AB — heute Abend noch im Haus). Steht ein Gast in einer
+    // MEHRTAGES-Abreiseliste, reist aber erst SPÄTER ab (check_out > morgen), ist er heute ein
+    // normaler Hausgast — NICHT als „Abreise" zählen (sonst zeigt eine 7-Tage-Abreisedatei
+    // die ganze Woche als heutige Abreisen, z.B. 105 statt der echten Handvoll).
+    const morgen=addDays(refDate,1);
+    const abSchon=g.check_out&&g.check_out<=refDate;        // heute früh / früher schon weg
+    const abMorgen=g.check_out&&g.check_out>refDate&&g.check_out<=morgen; // morgen früh weg → heute Abend da
+    if(g.quelle_anreise&&g.check_in&&g.check_in>refDate) status='PROGNOSE'; // künftige Anreise
+    else if(g.quelle_anreise&&g.quelle_abreise) status=abMorgen?'AN·AB':'AN'; // Langlieger-Anreise: nur ·AB, wenn morgen weg
+    else if(g.quelle_anreise) status='AN';
+    else if(g.quelle_abreise) status=abSchon?'ABGEREIST':(abMorgen?'AB':'BL'); // spätere Abreise → heute Hausgast (NICHT calcStatus: dessen GastTyp='AB' würde sonst wieder AB liefern)
     else status=calcStatus({...g,vorheriger_tisch:vt},refDate);
     const score=scoreGuest({...g,status},refDate);
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
