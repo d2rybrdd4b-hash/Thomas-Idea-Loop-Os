@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bp</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bq</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bp · 08.07.2026</span>
+          <span class="set-version">v.25.06-bq · 08.07.2026</span>
         </div>
       </div>
 
@@ -3493,8 +3493,19 @@ function baueEntscheidung(g,ts){
   } else {
     if(/Kombination|Doppelbuchung|Verlinkung/i.test(g.begruendung||''))
       s.push({nr:2,regel:'Zusammengehörigkeit',text:String(g.begruendung||'').replace(/\s+—\s+Zi\..*/,'').trim()});
-    if(nights!=null)
-      s.push({nr:4,regel:'Aufenthaltsdauer',text:nights+' Nächte'+(nights>=5?' — Langzeit → bevorzugt ein guter Tisch (Dauer ist Prio 1).':(nights<=2?' — kurzer Aufenthalt → einfacherer Tisch (Dauer ist Prio 1).':' — mittlere Dauer.'))});
+    if(nights!=null){
+      // Text muss zur TATSÄCHLICHEN Platzierung passen (ehrlich, kein Schablonen-Widerspruch wie
+      // "kurzer Aufenthalt → einfacherer Tisch" bei einem Premium-Tisch — Fund 10.07. Zi 406).
+      let dText;
+      if(nights>=5) dText=(tKat!=null&&tKat>=4)
+        ?' — Langzeit (Dauer ist Prio 1); bester über die Dauer verfügbarer Tisch — bessere waren belegt/vergeben.'
+        :' — Langzeit → bevorzugt ein guter Tisch (Dauer ist Prio 1).';
+      else if(nights<=2) dText=(tKat!=null&&tKat<=2)
+        ?' — kurzer Aufenthalt; dennoch guter Tisch: bester verfügbarer, kein einfacherer passender frei (Verfügbarkeit entschied).'
+        :' — kurzer Aufenthalt → einfacherer Tisch (Dauer ist Prio 1).';
+      else dText=' — mittlere Dauer.';
+      s.push({nr:4,regel:'Aufenthaltsdauer',text:nights+' Nächte'+dText});
+    }
     if(roomQ&&tKat!=null)
       s.push({nr:5,regel:'Zimmerqualität',text:'Zimmer '+zi0+' (Qualität '+roomQ+') → Tisch der Qualität '+tKat+'.'});
     if(roomQ>=8)
@@ -3544,16 +3555,13 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   const istReserve=t=>t.notfall||/^80\d/.test(String(t.tisch_id));
   const basics=ts.filter(passesBasics);
   if(basics.length===0) return null;
-  // Platzierung in STUFEN — die Ersatz-Reihe (80x/Notfall) ist echte letzte Reserve, und ein
-  // REALER Gast heute schlägt eine bloße Vorausschau-Reservierung (Fund 09.07.-Backtest:
-  // Zi 518, 7 Nächte, landete auf 80x, obwohl reguläre Tische frei waren — der Hotelier nutzt
-  // die 80x-Reihe an dem Tag gar nicht):
-  //   1) regulärer Tisch, über den ganzen Aufenthalt frei
-  //   2) regulärer Tisch, heute physisch frei (Prognose-Reservierung weicht dem realen Gast)
-  //   3) 80x, über den Aufenthalt frei   4) 80x heute frei   5) absolute Notlage (inkl. Notfall)
-  let pool=basics.filter(t=>!istReserve(t)&&freeForStay(t));
-  if(pool.length===0) pool=basics.filter(t=>!istReserve(t));
-  if(pool.length===0) pool=basics.filter(t=>!t.notfall&&freeForStay(t));
+  // Platzierung: die Ersatz-Reihe (80x/Notfall) ist echte letzte Reserve. Eine Vorausschau-
+  // Reservierung ist KEINE harte Vorstufe mehr, sondern nur ein weicher Malus in der Sortierung
+  // („Heute schlägt Morgen", Fund 10.07. Zi 505: der 7-Nächte-Gast von HEUTE bekam Q4, weil 651
+  // für eine Anreise von MORGEN reserviert war — der Hotelier gibt 651 dem heutigen Gast und
+  // plant den morgigen Gast morgen neu). Ein realer Gast weicht einer Reservierung nur dann
+  // nicht aus, wenn er dadurch DEUTLICH besser sitzt (Malus 1.25 ≈ eine gute Qualitätsstufe).
+  let pool=basics.filter(t=>!istReserve(t));
   if(pool.length===0) pool=basics.filter(t=>!t.notfall);
   if(pool.length===0) pool=basics;
   // Stammtische noch nicht platzierter Bleibegäste HART aussparen — die Invariante
@@ -3596,6 +3604,10 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
     const kat=(t.kategorie||9);
     let k=kat;
     if(roomQ>=8 && kat<=2) k += ((nights||0)<=2 ? 4 : 2.5); // Tiny-Studio: Premium meiden, Mitte bevorzugen
+    // „Heute schlägt Morgen": ein für eine KÜNFTIGE Anreise reservierter Tisch kostet gut eine
+    // Qualitätsstufe — der heutige Gast nimmt ihn nur, wenn er dadurch deutlich besser sitzt
+    // (Zi 505: Q1-reserviert schlägt Q4-frei; aber Q3-frei schlägt Q2-reserviert).
+    if(!freeForStay(t)) k += 1.25;
     if(t.freilass) k += 0.5;           // Freilass-Tische innerhalb gleicher Stufe zuletzt
     return k;
   };
@@ -4044,7 +4056,7 @@ function runCalc(){
     let target=null;
     for(const g of gs){
       if(fremdeBleibe.has(String(g.vorheriger_tisch))) continue;
-      const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&t.kapazitaet>=totalPax);
+      const t=ts.find(t=>t.tisch_id===g.vorheriger_tisch&&t.belegtPax===0&&!t.blocked_for&&t.aktiv&&!t.kombiMit&&t.kapazitaet>=totalPax);
       if(t){target=t;break;}
     }
     if(!target){
@@ -4224,7 +4236,8 @@ function runCalc(){
     }
     if(!groupTable){
       // Fallback 2: Kalender ignorieren — verlinkte Zimmer MÜSSEN zusammensitzen
-      groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt)
+      // (kombiMit-Partnertische bleiben tabu — eine Kombination ist eine Einheit)
+      groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt&&!t.kombiMit)
         .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax))[0]||null;
       if(groupTable) calendarOverridden=true;
     }
@@ -4315,7 +4328,7 @@ function runCalc(){
         if(t){targetTisch=t;ruleApplied++;}
         else warns.push({level:'red',msg:`Sonderregel Zimmer ${g.zimmer}: Tisch ${override.tisch} nicht verfügbar oder voll`});
       } else if(override.zone){
-        targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
+        targetTisch=ts.find(t=>!t.blocked_for&&t.aktiv&&!t.kombiMit&&t.zone===override.zone&&t.kapazitaet-t.belegtPax>=g.pax);
         if(targetTisch) ruleApplied++;
       }
     }
@@ -4367,7 +4380,7 @@ function runCalc(){
         warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}) → Tisch ${t.tisch_id}: heute gesetzt, Folgetag-Konflikt möglich`});return;}
       // Stufe 4: Notplatzierung — aktiver, nicht gesperrter Tisch mit größter Restkapazität
       // (cand wird je Gast neu berechnet → Überlauf verteilt sich gleichmäßig)
-      const cand=ts.filter(x=>x.aktiv&&!x.blocked_for)
+      const cand=ts.filter(x=>x.aktiv&&!x.blocked_for&&!x.kombiMit)
         .sort((a,b)=>(b.kapazitaet-b.belegtPax)-(a.kapazitaet-a.belegtPax));
       if(cand.length){
         const t2=cand[0];
@@ -4412,6 +4425,19 @@ function runCalc(){
       for(let wi=warns.length-1;wi>=0;wi--){ if(String(warns[wi].msg).startsWith('Tisch '+t.tisch_id+':')) warns.splice(wi,1); }
       warns.push({level:'green',msg:`Kombination ${k.tables.join('+')} gebildet — ${t.belegtPax} Pers. (Zi. ${gsAt.map(g=>g.zimmer).join('+')}) passen nicht an Einzeltisch ${t.tisch_id}`});
       break;
+    }
+  });
+
+  // ── Reservierungs-Aufräumen („Heute schlägt Morgen") ──
+  // Hat ein realer Gast von heute einen für eine künftige Anreise reservierten Tisch übernommen
+  // und sein Aufenthalt überschneidet die Reservierung, wird die Reservierung aufgehoben und als
+  // ruhiger Radar-Hinweis gemeldet — sonst zeigt die Zeitleiste ein veraltetes „R" (Audit-Fund).
+  ts.filter(t=>t.zukunft_belegt&&t.zukunft_info&&(t.belegtPax||0)>0).forEach(t=>{
+    const zi=t.zukunft_info;
+    const conflict=active.some(g=>String(g.zugewiesener_tisch)===String(t.tisch_id)&&g.check_out&&zi.check_in&&g.check_out>zi.check_in);
+    if(conflict){
+      warns.push({level:'vorausschau',msg:`Tisch ${t.tisch_id}: Vorausschau-Reservierung für ${zi.name} (ab ${fmtDM(zi.check_in)}) aufgehoben — der heutige Gast hat Vorrang. ${zi.name} am Anreisetag neu einplanen.`});
+      t.zukunft_belegt=false; t.zukunft_info=null;
     }
   });
 
