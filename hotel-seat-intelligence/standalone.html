@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-by</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bz</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-by · 08.07.2026</span>
+          <span class="set-version">v.25.06-bz · 08.07.2026</span>
         </div>
       </div>
 
@@ -2281,6 +2281,11 @@ const VORTAG_FIELD_LABELS={
   pax:['pax','pax-summe','personen'],
   extras:['extras','bemerkung']
 };
+// Wird beim Vortag-Einlesen gesetzt, wenn die Datei ein EIGENER App-Export ist (Kopfzeilen-
+// Kürzel „APP" statt Hotelier-Kürzel wie „LH"). Eigene Exporte sind Druck-Dokumente, keine
+// Datenquelle: verklebte Kombi-Zeilen („Kanal + Seehars + Gerngroß") wandern sonst als EIN
+// Pseudo-Bleibegast weiter (Fund 726, zweimal passiert) → deutliche Warnung + Prüf-Gate-Punkt.
+let vortagIstEigenerExport=false;
 function parseVortagPanorama(wb){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()));
   if(!sheetName) return null;
@@ -2293,6 +2298,11 @@ function parseVortagPanorama(wb){
     if((aoa[r]||[]).some(c=>norm(c)==='tisch')){headerRow=r;break;}
   }
   if(headerRow<0) return null;
+  // Eigener Export als Vortag? (Bearbeiter-Kürzel „APP" oberhalb der Kopfzeile — schreiben nur wir)
+  vortagIstEigenerExport=false;
+  for(let r=0;r<headerRow;r++){
+    if((aoa[r]||[]).some(c=>String(c||'').trim()==='APP')){vortagIstEigenerExport=true;break;}
+  }
 
   const headerCells=aoa[headerRow]||[];
   const blocks=[];
@@ -3966,6 +3976,11 @@ function runCalc(){
 
   let guests=parseGuests(rows);
   const warns=[];
+  // Eigener App-Export als Vortag = bekannte Fehlerquelle (verklebte Kombi-Zeilen wandern
+  // als Pseudo-Bleibegast weiter, Fund 726). Laut warnen — der Plan rechnet trotzdem.
+  if(vortagIstEigenerExport){
+    warns.push({level:'red',msg:'Vortag ist ein EIGENER App-Export (Kürzel „APP") — bitte den ORIGINAL-Tischplan des Hoteliers als Vortag verwenden. Eigene Exporte sind Druck-Dokumente: zusammengefasste Kombi-Zeilen können sonst als eine Partei weiterwandern (Fehlerquelle Tisch 726).'});
+  }
 
   // Set refDate from input
   refDate=el('ref-date').value||getTodayStr();
@@ -5776,27 +5791,44 @@ function collectEarlyCheckIn(){
   });
   return out;
 }
+// Personen je Hunderter-Gruppe ZIMMER-basiert zählen (groupPax je Tisch — dieselbe Logik wie
+// die Pax-Spalte des Plans): dieselbe Partei aus Vortags- UND An-/Abreise-Zeile zählt nur
+// EINMAL. Vorher zählte belegtPax zeilenbasiert doppelt (Fund 11.07.: Summe Gesamt 192 statt
+// ~152 wie beim Hotelier). „belegt" bleibt die physische Nutzung (inkl. Kombi-Partnertische).
+function summenProHunderter(){
+  const byTable={};
+  (assignedGuests||[]).forEach(g=>{if(!g.zugewiesener_tisch)return;
+    const k=String(g.zugewiesener_tisch);(byTable[k]=byTable[k]||[]).push(g);});
+  const sumByH={};let totalPax=0,totalBelegt=0,totalTische=0;
+  (lastTables||[]).filter(t=>t.aktiv).forEach(t=>{
+    const n=parseInt(t.tisch_id)||0;if(n<100)return;
+    const h=Math.floor(n/100)*100;
+    if(!sumByH[h])sumByH[h]={pax:0,tische:0,belegt:0};
+    const gs=byTable[String(t.tisch_id)]||[];
+    const px=gs.length?groupPax(gs,'pax'):0;
+    sumByH[h].tische++;totalTische++;
+    if((t.belegtPax||0)>0){sumByH[h].belegt++;totalBelegt++;}
+    sumByH[h].pax+=px;totalPax+=px;
+  });
+  return {sumByH,totalPax,totalBelegt,totalTische};
+}
 // Verifizierte Summen (Tische pro Hunderter-Gruppe + Gesamt) — echte Zahlen aus lastTables,
 // ersetzt die veralteten Vorlagen-Summen (66/144 → korrekte Summe 600er/700er/Gesamt).
 function appendSummenBlock(ws,N){
-  const st=computeHouseStats();
-  const sumByH={};
-  (lastTables||[]).filter(t=>t.aktiv).forEach(t=>{const n=parseInt(t.tisch_id)||0;if(n<100)return;
-    const h=Math.floor(n/100)*100;if(!sumByH[h])sumByH[h]={pax:0,tische:0,belegt:0};
-    const bp=t.belegtPax||0;sumByH[h].tische++;sumByH[h].pax+=bp;if(bp>0)sumByH[h].belegt++;});
+  const {sumByH,totalPax,totalBelegt,totalTische}=summenProHunderter();
   const bd={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
   const sep=ws.addRow(Array(N).fill(''));sep.height=6;
   const hdr=ws.addRow(['Summen-Übersicht (verifiziert)',...Array(N-1).fill('')]);
   hdr.getCell(1).font={bold:true,size:10};ws.mergeCells(hdr.number,1,hdr.number,N);
   // Klare Spalten-Logik: Label (Spalte 1–3), „X/Y Tische belegt" (Spalte 4=Gastname), Personen
   // in Spalte 5 = PAX-Spalte (steht dadurch sinnvoll unter der Pax-Überschrift, überlappt nicht
-  // mehr mit Nächte). Die Zahlen sind BERECHNET (belegtPax je Hunderter aus lastTables), nicht
+  // mehr mit Nächte). Die Zahlen sind BERECHNET (zimmerbasiert via summenProHunderter), nicht
   // aus der Vorlage übernommen.
   const addSumRow=(label,s,bold)=>{const r=ws.addRow([label,'','',s.belegt+' / '+s.tische+' Tische belegt',s.pax+' Pers.','','']);
     r.height=15;for(let c=1;c<=N;c++){r.getCell(c).border=bd;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};}
     r.getCell(1).font={bold:true,size:9};r.getCell(4).font={bold:!!bold,size:9};r.getCell(5).font={bold:true,size:9};ws.mergeCells(r.number,1,r.number,3);};
   Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Summe '+h+'er',s,false));
-  addSumRow('Summe Gesamt',{belegt:st.tischeBelegt,tische:st.tischeGesamt,pax:st.platziertPax},true);
+  addSumRow('Summe Gesamt',{belegt:totalBelegt,tische:totalTische,pax:totalPax},true);
 }
 // Service-Abschnitte anhängen — Aufbau wie in der Hotelier-Vorlage: STAMM, Day Spa,
 // Geburtstage & Grüße, Early Check In, Änderungen. Populierte Abschnitte kommen aus den echten
@@ -6042,17 +6074,11 @@ async function buildFilledTischplanSheet(){
     });
   });
   // ── Verifizierte Summen-Übersicht — IDENTISCHE Quelle wie das Dashboard ──
-  // Haus-Zahlen aus computeHouseStats(); Tisch-Belegung pro Hunderter-Gruppe direkt
-  // aus lastTables (Sitzplatz-Wahrheit), sodass belegt + frei sich exakt reconcilen.
+  // Haus-Zahlen aus computeHouseStats(); Tisch-Belegung pro Hunderter-Gruppe ZIMMER-basiert
+  // via summenProHunderter() — identische Zähllogik wie der Vorlagen-Export (keine
+  // Doppelzählung derselben Partei aus Vortags- + An-/Abreise-Zeile).
   const st=computeHouseStats();
-  const sumByH={};
-  (lastTables||[]).filter(t=>t.aktiv).forEach(t=>{
-    const n=parseInt(t.tisch_id)||0; if(n<100) return;
-    const h=Math.floor(n/100)*100;
-    if(!sumByH[h]) sumByH[h]={pax:0,tische:0,belegt:0};
-    const bp=t.belegtPax||0;
-    sumByH[h].tische++; sumByH[h].pax+=bp; if(bp>0) sumByH[h].belegt++;
-  });
+  const {sumByH,totalPax:sumTotalPax,totalBelegt:sumTotalBelegt,totalTische:sumTotalTische}=summenProHunderter();
   {
     const sep=ws.addRow(['','','','','','','']);sep.height=6;
     const sumHdr=ws.addRow(['Summen-Übersicht (verifiziert)','','','','','','']);
@@ -6084,7 +6110,7 @@ async function buildFilledTischplanSheet(){
       ws.mergeCells(r.number,1,r.number,3);
     };
     Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Tische '+h+'er',s,false));
-    addSumRow('Tische gesamt',{belegt:st.tischeBelegt,tische:st.tischeGesamt,pax:st.platziertPax},true);
+    addSumRow('Tische gesamt',{belegt:sumTotalBelegt,tische:sumTotalTische,pax:sumTotalPax},true);
   }
   appendServiceHinweise(ws,N); // Geburtstage & Grüße / Early Check In / Änderungen (auch ohne Vorlage)
   // Tischkategorien-Legende + Sortierung-Zimmer-Blatt
@@ -6701,7 +6727,13 @@ function sammleKritischeBefunde(){
         if(roomSets[j].some(r=>cur.has(r))){used[j]=true;roomSets[j].forEach(r=>cur.add(r));grew=true;}}}
     }
     const info='Tisch '+t.tisch_id+': '+belegt+' Pers. auf '+effKap+' Plätzen'+(partner.length?' (Kombination '+[...setIds].join('+')+')':'');
+    // HART: mehrere fremde Parteien ODER 2+ Personen über Kapazität ODER eine „Partei" mit
+    // 3+ Zimmern (= verklebte Kombi-Zeile aus einem re-importierten Export, Fund 726 — eine
+    // echte Einzelpartei belegt nie 3 Zimmer an EINEM Einzeltisch über Kapazität).
+    const alleZimmer=new Set(roomSets.flat());
     if(parties>1) hart.push(info+' — mehrere fremde Parteien, so nicht umsetzbar');
+    else if(exc>=2) hart.push(info+' — '+exc+' Personen über Kapazität, so nicht umsetzbar');
+    else if(alleZimmer.size>=3) hart.push(info+' — eine „Partei" über 3+ Zimmer ('+[...alleZimmer].join(', ')+') deutet auf eine verklebte Zeile aus einem re-importierten Export hin');
     else befunde.push('Eng belegt: '+info+' — eine Partei am eigenen Tisch, bitte kurz prüfen');
   });
   // Doppelplatzierung (ein Zimmer an zwei Tischen) ist IMMER ein harter Fehler — genau so
