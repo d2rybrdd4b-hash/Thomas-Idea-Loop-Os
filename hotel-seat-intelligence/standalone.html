@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-bz</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ca</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-bz · 08.07.2026</span>
+          <span class="set-version">v.25.06-ca · 08.07.2026</span>
         </div>
       </div>
 
@@ -5769,13 +5769,18 @@ function collectGeburtstage(){
   (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
     const txt=[g.allergie,g.bemerkung,g.extras].filter(Boolean).join(' | ');
     // Nur die Geburtstags-Aussage je Notiz-Segment herausziehen (Trennung an | und Zeilenumbruch),
-    // damit Allergien/andere Vermerke NICHT mit hineinrutschen.
+    // damit Allergien/andere Vermerke NICHT mit hineinrutschen. Verweis-Reste („zu #19406/")
+    // werden entfernt. DEDUPE über (Tisch + Datum): dieselbe Geburtstags-Info steht oft in
+    // ZWEI Buchungs-Zeilen mit leicht anderem Wortlaut („Dame 12.07. Geb. Ohne Gruß" vs.
+    // „Dame am 12.07. Geb. - ohne Gruß") — sie erscheint nur noch einmal.
     txt.split(/\s*\|\s*|\n/).forEach(s=>{
       if(!/\bgeb\.?\b|geburtstag/i.test(s)) return;
-      const clean=s.trim().replace(/\s+/g,' ').slice(0,80);
-      const key=g.zugewiesener_tisch+'|'+clean.toLowerCase().replace(/[^a-zäöüß0-9]/g,'');
+      const clean=s.trim().replace(/\bzu\s*#\s*\d+\s*\/?\s*/gi,'').replace(/^[\s\/\-–]+/,'').replace(/\s+/g,' ').slice(0,80);
+      if(!clean) return;
+      const datum=(clean.match(/\d{1,2}\.\d{1,2}\.?/)||[])[0]||'';
+      const key=g.zugewiesener_tisch+'|'+(datum||clean.toLowerCase().replace(/[^a-zäöüß0-9]/g,''));
       if(seen.has(key)) return; seen.add(key);
-      out.push('Tisch '+g.zugewiesener_tisch+' ('+g.nachname+'): '+clean);
+      out.push({tisch:String(g.zugewiesener_tisch),zimmer:String(g.zimmer||''),name:g.nachname||'',text:clean});
     });
   });
   return out;
@@ -5787,9 +5792,40 @@ function collectEarlyCheckIn(){
     if(!/early\s*c\/?i|early\s*check|frühe?\s*anreise|früh(er|es)?\s*check/i.test(txt)) return;
     const key=g.zugewiesener_tisch+'|'+g.nachname;
     if(seen.has(key)) return; seen.add(key);
-    out.push('Tisch '+g.zugewiesener_tisch+' (Zi. '+g.zimmer+'): '+g.nachname);
+    out.push({tisch:String(g.zugewiesener_tisch),zimmer:String(g.zimmer||''),name:g.nachname||'',pax:g.pax||''});
   });
   return out;
+}
+// ── Spaltenlayout des GESCHRIEBENEN Blattes ermitteln ──
+// Die Fuß-Abschnitte müssen unter DENSELBEN Spalten stehen wie der Plan selbst (Fund 11.07.:
+// sie waren fest auf Spalte 1–7 verdrahtet — bei Vorlagen, deren Daten z.B. in Spalte B
+// beginnen oder die zwei Blöcke haben, wirkte der ganze Fuß verschoben und uneinheitlich).
+// Quelle der Wahrheit: die geschriebene Kopfzeile („Tisch | Zimmer | … | Gastname | Pax …")
+// des ERSTEN Blocks; maxCol = tatsächliche Blattbreite.
+function exportSpaltenLayout(ws){
+  let map=null,maxCol=7;
+  ws.eachRow({includeEmpty:false},(row,rn)=>{
+    maxCol=Math.max(maxCol,row.cellCount||0);
+    if(map||rn>10) return;
+    const m={};
+    row.eachCell({includeEmpty:false},(cell,cn)=>{
+      const v=String(cell.value==null?'':cell.value).trim().toLowerCase();
+      if(v==='tisch'&&m.tisch==null)m.tisch=cn;
+      else if(m.tisch!=null){
+        if(/^zimmer/.test(v)&&m.zimmer==null)m.zimmer=cn; // „Zimmer" UND „Zimmernummer"
+        else if(/^gastname/.test(v)&&m.name==null)m.name=cn;
+        else if(v==='pax'&&m.pax==null)m.pax=cn;
+        else if(v==='nächte'&&m.naechte==null)m.naechte=cn;
+        else if(v==='extras'&&m.extras==null)m.extras=cn;
+      }
+    });
+    if(m.tisch!=null&&m.name!=null) map=m;
+  });
+  if(!map) map={tisch:1,zimmer:2,name:4,pax:5,naechte:6,extras:7};
+  if(map.zimmer==null)map.zimmer=map.tisch+1;
+  if(map.pax==null)map.pax=map.name+1;
+  if(map.extras==null)map.extras=map.naechte!=null?map.naechte+1:map.pax+1;
+  return {...map,maxCol:Math.max(maxCol,map.extras)};
 }
 // Personen je Hunderter-Gruppe ZIMMER-basiert zählen (groupPax je Tisch — dieselbe Logik wie
 // die Pax-Spalte des Plans): dieselbe Partei aus Vortags- UND An-/Abreise-Zeile zählt nur
@@ -5814,36 +5850,58 @@ function summenProHunderter(){
 }
 // Verifizierte Summen (Tische pro Hunderter-Gruppe + Gesamt) — echte Zahlen aus lastTables,
 // ersetzt die veralteten Vorlagen-Summen (66/144 → korrekte Summe 600er/700er/Gesamt).
+// SPALTENGETREU: Beschriftung/Werte stehen unter denselben Spalten wie der Plan selbst
+// (Gastname-/Pax-Spalte der jeweiligen Vorlage), nicht mehr fest auf Spalte 1–7.
 function appendSummenBlock(ws,N){
   const {sumByH,totalPax,totalBelegt,totalTische}=summenProHunderter();
+  const L=exportSpaltenLayout(ws);
   const bd={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
-  const sep=ws.addRow(Array(N).fill(''));sep.height=6;
-  const hdr=ws.addRow(['Summen-Übersicht (verifiziert)',...Array(N-1).fill('')]);
-  hdr.getCell(1).font={bold:true,size:10};ws.mergeCells(hdr.number,1,hdr.number,N);
-  // Klare Spalten-Logik: Label (Spalte 1–3), „X/Y Tische belegt" (Spalte 4=Gastname), Personen
-  // in Spalte 5 = PAX-Spalte (steht dadurch sinnvoll unter der Pax-Überschrift, überlappt nicht
-  // mehr mit Nächte). Die Zahlen sind BERECHNET (zimmerbasiert via summenProHunderter), nicht
-  // aus der Vorlage übernommen.
-  const addSumRow=(label,s,bold)=>{const r=ws.addRow([label,'','',s.belegt+' / '+s.tische+' Tische belegt',s.pax+' Pers.','','']);
-    r.height=15;for(let c=1;c<=N;c++){r.getCell(c).border=bd;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};}
-    r.getCell(1).font={bold:true,size:9};r.getCell(4).font={bold:!!bold,size:9};r.getCell(5).font={bold:true,size:9};ws.mergeCells(r.number,1,r.number,3);};
+  const sep=ws.addRow([]);sep.height=6;
+  const hdr=ws.addRow([]);hdr.getCell(L.tisch).value='Summen-Übersicht (verifiziert)';
+  hdr.getCell(L.tisch).font={bold:true,size:10};ws.mergeCells(hdr.number,L.tisch,hdr.number,L.maxCol);
+  const addSumRow=(label,s,bold)=>{
+    const r=ws.addRow([]);r.height=15;
+    r.getCell(L.tisch).value=label;
+    r.getCell(L.name).value=s.belegt+' / '+s.tische+' Tische belegt';
+    r.getCell(L.pax).value=s.pax+' Pers.';
+    for(let c=L.tisch;c<=L.maxCol;c++){r.getCell(c).border=bd;r.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?'FFBFBFBF':'FFD9D9D9'}};}
+    r.getCell(L.tisch).font={bold:true,size:9};r.getCell(L.name).font={bold:!!bold,size:9};r.getCell(L.pax).font={bold:true,size:9};
+    if(L.name-1>L.tisch) ws.mergeCells(r.number,L.tisch,r.number,L.name-1);
+  };
   Object.entries(sumByH).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).forEach(([h,s])=>addSumRow('Summe '+h+'er',s,false));
   addSumRow('Summe Gesamt',{belegt:totalBelegt,tische:totalTische,pax:totalPax},true);
 }
 // Service-Abschnitte anhängen — Aufbau wie in der Hotelier-Vorlage: STAMM, Day Spa,
 // Geburtstage & Grüße, Early Check In, Änderungen. Populierte Abschnitte kommen aus den echten
 // Plandaten; reine Hand-Notiz-Abschnitte (Day Spa, Änderungen) sind leere, beschriftete Felder.
+// SPALTENGETREU wie der Plan: Tisch | Zimmer | Gastname | Pax | Extras — genau wie der Hotelier
+// seine Fuß-Listen führt („116 | Weiß, Beer | 2" unter Early Check In).
 function appendServiceHinweise(ws,N){
+  const L=exportSpaltenLayout(ws);
   const bd={top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
-  const header=(title)=>{const sep=ws.addRow(Array(N).fill(''));sep.height=6;
-    const h=ws.addRow([title,...Array(N-1).fill('')]);h.getCell(1).font={bold:true,size:10};ws.mergeCells(h.number,1,h.number,N);};
-  const item=(text)=>{const r=ws.addRow([text,...Array(N-1).fill('')]);r.getCell(1).font={size:9};r.getCell(1).alignment={wrapText:true,vertical:'top'};ws.mergeCells(r.number,1,r.number,N);};
-  const notizfeld=()=>{const leer=ws.addRow(Array(N).fill(''));leer.height=34;ws.mergeCells(leer.number,1,leer.number,N);for(let c=1;c<=N;c++) leer.getCell(c).border=bd;};
+  const header=(title)=>{const sep=ws.addRow([]);sep.height=6;
+    const h=ws.addRow([]);h.getCell(L.tisch).value=title;
+    h.getCell(L.tisch).font={bold:true,size:10};ws.mergeCells(h.number,L.tisch,h.number,L.maxCol);};
+  // Fuß-Listen nach HOTELIER-Konvention: ZIMMER vorn („116 | Weiß, Beer | 2"), KEINE Tisch-ID
+  // in der Tisch-Spalte — sonst liest der Blatt-Scanner (Export-Selbstprüfung) die Fuß-Zeile
+  // als Tischzeile. Zimmernummern (1xx–5xx, 20xx) kollidieren nie mit Tisch-IDs (6xx–8xx).
+  const zeile=(vals)=>{ // {zimmer,name,pax,extras} → in die Plan-Spalten schreiben
+    const r=ws.addRow([]);
+    if(vals.zimmer!=null)r.getCell(L.zimmer).value=vals.zimmer;
+    if(vals.name!=null)r.getCell(L.name).value=vals.name;
+    if(vals.pax!=null)r.getCell(L.pax).value=vals.pax;
+    if(vals.extras!=null){r.getCell(L.extras).value=vals.extras;r.getCell(L.extras).alignment={wrapText:true,vertical:'top'};}
+    for(let c=L.tisch;c<=L.maxCol;c++){r.getCell(c).font={size:9};r.getCell(c).border=bd;}
+    return r;
+  };
+  const notizfeld=()=>{const leer=ws.addRow([]);leer.height=34;ws.mergeCells(leer.number,L.tisch,leer.number,L.maxCol);
+    for(let c=L.tisch;c<=L.maxCol;c++) leer.getCell(c).border=bd;};
   // STAMM — Stammgäste aus den echten Plandaten
-  const stamm=[...new Set((assignedGuests||[]).filter(g=>g.stammgast&&g.zugewiesener_tisch)
-    .map(g=>'Tisch '+g.zugewiesener_tisch+': '+g.nachname))];
+  const stamm=(assignedGuests||[]).filter(g=>g.stammgast&&g.zugewiesener_tisch);
   header('STAMM (Stammgäste)');
-  if(stamm.length) stamm.forEach(item); else item('— keine vermerkt —');
+  if(stamm.length){const seen=new Set();stamm.forEach(g=>{const k=g.zugewiesener_tisch+'|'+g.nachname;if(seen.has(k))return;seen.add(k);
+    zeile({zimmer:String(g.zimmer||''),name:g.nachname});});}
+  else zeile({name:'— keine vermerkt —'});
   // Day Spa — Hand-Notizfeld (die Day-Spa-Besucherliste des Hoteliers kommt aus einer separaten
   // Quelle, die nicht in Anreise-/Abreisedatei enthalten ist; Pseudozimmer-Gäste bleiben zu Recht
   // von den Tischen fern). Struktur wie in der Vorlage, zum Hand-Eintragen.
@@ -5851,10 +5909,12 @@ function appendServiceHinweise(ws,N){
   notizfeld();
   const gebs=collectGeburtstage();
   header('Geburtstage & Grüße');
-  if(gebs.length) gebs.forEach(item); else item('— heute keine vermerkt —');
+  if(gebs.length) gebs.forEach(g=>zeile({zimmer:g.zimmer,name:g.name,extras:g.text}));
+  else zeile({name:'— heute keine vermerkt —'});
   const eci=collectEarlyCheckIn();
   header('Early Check In');
-  if(eci.length) eci.forEach(item); else item('— keine —');
+  if(eci.length) eci.forEach(g=>zeile({zimmer:g.zimmer,name:g.name,pax:g.pax}));
+  else zeile({name:'— keine —'});
   header('Änderungen (Hand-Notizen)');
   notizfeld();
 }
@@ -6361,18 +6421,34 @@ function fillTischplanFromTemplate(ws,guestsByTable){
     const rowEntries={};
     Object.entries(tischplanMap).forEach(([tid,e])=>{ (rowEntries[e.r]=rowEntries[e.r]||[]).push({tid,e}); });
     const rowHasGrayM=r=>{ for(let c=range.s.c;c<=maxCol;c++){ const x=tcell(r,c); if(x&&x.s&&x.s.fgColor&&grayish(x.s.fgColor.rgb)) return true; } return false; };
-    // Kein Fußzeilen-Abschnitt im Mehrblock-Pfad: nebeneinanderliegende Blöcke teilen sich die
-    // Zeilen — ein Marker in EINEM Block würde die echten Tische des Nachbarblocks abschneiden
-    // (Blanco-Vorfall im Test). Der Einzelblock-Pfad (Hotelier-Format) bereinigt die Fußzeile;
-    // saubere Mehrblock-Vorlagen (Blanco) haben ohnehin keine solchen Reste.
+    // Mehrblock-Pfad: KEINE Zeilen abschneiden (nebeneinanderliegende Blöcke teilen sich die
+    // Zeilen — ein Schnitt würde echte Tische des Nachbarblocks löschen, Blanco-Vorfall im Test).
+    // Stattdessen werden die ALTEN Fuß-Reste der Vorlage ZELLWEISE geleert: nackte Abschnitts-
+    // Labels („Geburtstage", „Early Check in", „Day Spa", „STAMM", „Änderungen") und die
+    // veralteten „Summe …"-Zellen samt Nachbar-Zahlen (Fund 11.07.: „Summe 600er | 0" aus der
+    // Vorlage stand mit falschen Werten im Export). Unsere korrekten, spaltengetreuen Abschnitte
+    // werden unten frisch angehängt — so gibt es nur EINEN, richtigen Fuß.
+    const altFussLabel=v=>{const s=String(v==null?'':v).trim().toLowerCase();
+      return /^(geburtstage( ?& ?grüße)?|early ?check ?in|änderungen|day ?spa|stamm)$/.test(s)||/^summe\s/.test(s);};
     for(let r=range.s.r;r<=range.e.r;r++){
       const xlRow=ws.getRow(r+1);
       const isInfo=(r===range.s.r);
       const isHeaderRow=blocks.some(bl=>txt(r,bl.tischCol).toLowerCase()==='tisch');
       const entries=rowEntries[r]||[];
       const hasTisch=blocks.some(bl=>/^\d/.test(txt(r,bl.tischCol)));
-      // 1) Vorlage 1:1 kopieren (inkl. Platzzahl-Spalten, Summen, Notizen)
+      // 1) Vorlage 1:1 kopieren (inkl. Platzzahl-Spalten, Notizen) — außer alte Fuß-Reste.
+      // Erst die zu leerenden Spalten dieser Zeile bestimmen (Label + angrenzende alte
+      // Summen-Zahlen), DANN kopieren — sonst überschreibt die nächste Iteration die Leerung.
+      const skipCols=new Set();
       for(let c=range.s.c;c<=maxCol;c++){
+        const x=tcell(r,c);
+        if(x&&x.v!=null&&altFussLabel(x.v)){
+          skipCols.add(c);
+          [c-1,c+1].forEach(cc=>{const nx=tcell(r,cc);if(nx&&typeof nx.v==='number') skipCols.add(cc);});
+        }
+      }
+      for(let c=range.s.c;c<=maxCol;c++){
+        if(skipCols.has(c)){xlRow.getCell(c+1).value=null;continue;}
         let val=tcell(r,c); val=val!=null?val.v:null;
         xlRow.getCell(c+1).value=(val!=null&&val!=='')?val:null;
       }
