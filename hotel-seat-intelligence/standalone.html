@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ca</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cb</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ca · 08.07.2026</span>
+          <span class="set-version">v.25.06-cb · 08.07.2026</span>
         </div>
       </div>
 
@@ -2298,10 +2298,15 @@ function parseVortagPanorama(wb){
     if((aoa[r]||[]).some(c=>norm(c)==='tisch')){headerRow=r;break;}
   }
   if(headerRow<0) return null;
-  // Eigener Export als Vortag? (Bearbeiter-Kürzel „APP" oberhalb der Kopfzeile — schreiben nur wir)
-  vortagIstEigenerExport=false;
-  for(let r=0;r<headerRow;r++){
-    if((aoa[r]||[]).some(c=>String(c||'').trim()==='APP')){vortagIstEigenerExport=true;break;}
+  // Eigener Export als Vortag? Zwei Fingerabdrücke: (1) unsere Zusatz-Blätter „Warum dieser
+  // Tisch"/„Prüfbericht" — die schreibt NUR unsere App, der Hotelier nie (100 % zuverlässig,
+  // vorlagenunabhängig); (2) Bearbeiter-Kürzel „APP" oberhalb der Kopfzeile (Fallback für
+  // Exporte älterer Versionen ohne Zusatz-Blätter).
+  vortagIstEigenerExport=(wb.SheetNames||[]).some(n=>/^(warum dieser tisch|prüfbericht)$/i.test(String(n).trim()));
+  if(!vortagIstEigenerExport){
+    for(let r=0;r<headerRow;r++){
+      if((aoa[r]||[]).some(c=>String(c||'').trim()==='APP')){vortagIstEigenerExport=true;break;}
+    }
   }
 
   const headerCells=aoa[headerRow]||[];
@@ -2745,6 +2750,11 @@ function handleFile(key,input){
       try{
         const wb=XLSX.read(e.target.result,{type:'array'});
         const panorama=parseVortagPanorama(wb);
+        if(panorama&&rejectEigenerExportVortag()){
+          delete parsedFiles[key];fileStatus[key]=false;
+          const fb0=el('fb-'+key);if(fb0) fb0.textContent='✗ abgelehnt (eigener Export)';
+          return;
+        }
         if(panorama){
           parsedFiles[key]=panorama;
           fileStatus[key]=true;
@@ -5087,6 +5097,18 @@ function restoreTemplateFromStorage(){
 }
 
 // ── Tischplan vom Vortag (liefert Bleibegast-Zuordnung) ────────
+// Eigener App-Export als Vortag: HART ABLEHNEN (Freigabe 11.07.). Die wegklickbare rote
+// Warnung hat zweimal nicht gereicht — verklebte Kombi-Zeilen wanderten erneut in den Plan
+// (Tisch 726: „Kanal + Seehars + Gerngroß"). Eigene Exporte sind Druck-Dokumente, keine
+// Datenquelle. Erkennung: Bearbeiter-Kürzel „APP" in der Kopfzeile (der Hotelier schreibt
+// sein eigenes Kürzel, z.B. „LH").
+function rejectEigenerExportVortag(){
+  if(!vortagIstEigenerExport) return false;
+  vortagIstEigenerExport=false;
+  alert('Diese Datei ist ein EIGENER App-Export (erkennbar an den Zusatz-Blättern „Warum dieser Tisch"/„Prüfbericht" bzw. dem Kürzel „APP") und wird als Vortag NICHT übernommen.\n\nEigene Exporte sind Druck-Dokumente, keine Datenquelle — zusammengefasste Kombi-Zeilen würden sonst als eine Partei weiterwandern (Fehlerquelle Tisch 726).\n\nBitte den ORIGINAL-Tischplan des Hoteliers hochladen (z. B. „10. Juli Freitag.xlsx").');
+  setStatus('Vortag abgelehnt: eigener App-Export — bitte Original-Hotelier-Plan hochladen','err');
+  return true;
+}
 function quickLoadVortag(file){
   if(!file) return;
   quickVortagFileName=file.name;
@@ -5124,6 +5146,7 @@ function quickLoadVortag(file){
       try{
         const wb=XLSX.read(e.target.result,{type:'array'});
         const panorama=parseVortagPanorama(wb);
+        if(panorama&&rejectEigenerExportVortag()){clearVortagFile();return;}
         if(panorama){apply(panorama,true);return;}
         const ws=wb.Sheets[wb.SheetNames[0]];
         apply(parseCSV(XLSX.utils.sheet_to_csv(ws)));
