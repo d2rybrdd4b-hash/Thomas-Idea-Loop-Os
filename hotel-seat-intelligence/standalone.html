@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cd</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ce</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cd · 08.07.2026</span>
+          <span class="set-version">v.25.06-ce · 08.07.2026</span>
         </div>
       </div>
 
@@ -4366,6 +4366,34 @@ function runCalc(){
       }
     }
     if(!groupTable){
+      // ── AUFTEILEN statt stapeln (Fund 12.07.): Passt die Gruppe weder an einen Einzeltisch
+      // noch in eine Kombination, wird sie NICHT komplett auf den größten Resttisch gestopft
+      // (Jaspers: 10 Personen auf dem 3er 621 → Export zu Recht gesperrt), sondern pro
+      // Buchungszeile auf mehrere Tische verteilt — so macht es der Hotelier bei Großfamilien
+      // über 4 Zimmer auch. Nur wenn selbst das nicht gelingt, greifen die alten Fallbacks.
+      const maxFrei=Math.max(0,...ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.kombiMit&&!t.notfall)
+        .map(t=>t.kapazitaet-t.belegtPax));
+      if(gs.length>1&&totalPax>maxFrei){
+        const placed=[];let ok=true;
+        for(const g of gs){
+          const t=findBestTable(ts,pref,g.pax,nights,g.check_in,g.check_out,tableCalendar,g)
+               ||findBestTable(ts,pref,g.pax,nights,null,null,null,g);
+          if(!t){ok=false;break;}
+          t.belegtPax+=g.pax; if(t.belegtPax>=t.kapazitaet)t.belegt=true; if(!t.gast_id)t.gast_id=g.id;
+          addStayToCalendar(tableCalendar,t.tisch_id,g.check_in,g.check_out);
+          g.zugewiesener_tisch=t.tisch_id;
+          placed.push({g,t});
+        }
+        if(ok){
+          const label=placed.map(p=>p.t.tisch_id).join(' + ');
+          gs.forEach(g=>{g.begruendung='Gruppe ('+totalPax+' Pers.) aufgeteilt → Tische '+label;groupAssigned.add(g.id);assigned++;});
+          groupsPlaced++; linkSplit++;
+          warns.push({level:'yellow',msg:`Verlinkung Zi.${gs.map(g=>g.zimmer).join('+')} (${totalPax} PAX): kein Einzeltisch/keine Kombination frei → auf Tische ${label} aufgeteilt — bitte möglichst nah beieinander bedienen`});
+          return;
+        }
+        // Rückabwicklung (seltener Teil-Fehlschlag) — danach greifen die alten Fallbacks
+        placed.forEach(({g,t})=>{t.belegtPax-=g.pax;t.belegt=t.belegtPax>=t.kapazitaet;g.zugewiesener_tisch=null;});
+      }
       // Fallback 1: Kalender berücksichtigen, freisten Tisch wählen
       groupTable=ts.filter(t=>t.aktiv&&!t.blocked_for&&!t.belegt&&
         !(tableCalendar&&ci&&co&&!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(tableCalendar,t.tisch_id,ci,co)))
