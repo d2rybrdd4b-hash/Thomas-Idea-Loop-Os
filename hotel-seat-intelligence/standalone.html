@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ce</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cf</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ce · 08.07.2026</span>
+          <span class="set-version">v.25.06-cf · 08.07.2026</span>
         </div>
       </div>
 
@@ -6929,7 +6929,7 @@ function sammleKritischeBefunde(){
   // Doppelplatzierung (ein Zimmer an zwei Tischen) ist IMMER ein harter Fehler — genau so
   // pflanzte sich der 726-Fehler über wiederverwendete Exporte fort.
   (warnings||[]).filter(w=>w.level==='red'&&/Doppelplatzierung/.test(w.msg)).forEach(w=>hart.push(w.msg));
-  if(hart.length) befunde.unshift('NICHT EXPORTIERBAR: '+hart.join(' | '));
+  if(hart.length) befunde.unshift('⛔ KRITISCH — bitte in der Excel von Hand lösen (Gäste umsetzen): '+hart.join(' | '));
   const pseudo=ag.filter(g=>{ if(!g.zugewiesener_tisch) return false;
     const n=g.check_in&&g.check_out?Math.round((new Date(g.check_out)-new Date(g.check_in))/86400000):0; return n>21; });
   if(pseudo.length) befunde.push('Möglicher Pseudo-/Datenfehler-Gast (>21 Nächte): '+pseudo.map(g=>g.nachname+' Zi'+g.zimmer).join(', '));
@@ -6948,21 +6948,22 @@ async function exportToTischplanTemplate(){
     alert('Export gestoppt: '+built.exportMissing.length+' belegte Tische würden im Tischplan-Blatt fehlen.\n\nBetroffen: '+built.exportMissing.slice(0,5).join(', ')+(built.exportMissing.length>5?' …':'')+'\n\nBitte Tischplan-Vorlage prüfen (Einstellungen) — der Download wurde zur Sicherheit blockiert.');
     return;
   }
-  // Prüf-Gate: kritische Punkte sichtbar machen, bevor die Datei rausgeht.
+  // Prüf-Gate: kritische Punkte sichtbar machen — aber NIE eine Sackgasse bauen.
+  // Design-Entscheidung (Thomas, 12.07.): Die Eingabedateien sind fix (PMS-Exporte), im
+  // Programm kann niemand Gäste umsetzen — eine harte Sperre ließe den Nutzer ohne jeden
+  // Ausweg. Deshalb: kritische Punkte werden DEUTLICH gezeigt (Dialog + Blatt „Prüfbericht"
+  // in der Datei) und der Hotelier löst sie von Hand in der Excel — der Export bleibt möglich.
+  // Die 726-Fehler-Fortpflanzung ist trotzdem ausgeschlossen: eigene Exporte werden als
+  // Vortag grundsätzlich ABGELEHNT (rejectEigenerExportVortag) — dort gibt es einen echten
+  // Ausweg (richtige Datei wählen), darum darf NUR diese Sperre hart bleiben.
   const {befunde:kritisch, hart}=sammleKritischeBefunde();
-  // HARTE SPERRE nur bei Fehlern, die nie stimmen können: mehrere fremde Parteien über der
-  // (Kombinations-)Kapazität oder eine Doppelplatzierung — sonst pflanzt sich der Fehler über
-  // wiederverwendete Exporte fort (Fund 726). Legitime Hotelier-Praxis (eine Partei +1 am
-  // eigenen Tisch, Kind auf Zusatzstuhl, Kombinationen) sperrt NICHT mehr (Fehlalarm 11.07.).
   if(hart&&hart.length){
-    alert('Export gestoppt — '+hart.length+' harte(r) Fehler:\n\n'
+    const ok=confirm('⛔ KRITISCH — '+hart.length+' Punkt(e), die so am Tisch nicht umsetzbar sind:\n\n'
       +hart.map(h=>'• '+h).join('\n')
-      +'\n\nBitte im Plan korrigieren. Der Download wurde zur Sicherheit blockiert — ein solcher '
-      +'Plan darf nicht weiterverwendet werden.');
-    setStatus('Export gestoppt — '+hart.length+' harte(r) Fehler','err');
-    return;
-  }
-  if(kritisch.length){
+      +'\n\nDiese Punkte stehen auch im Blatt „Prüfbericht" der Excel-Datei und müssen dort von Hand '
+      +'gelöst werden (Gäste umsetzen).\n\nTrotzdem exportieren?');
+    if(!ok){ setStatus('Export abgebrochen — '+hart.length+' kritische(r) Punkt(e)','err'); return; }
+  } else if(kritisch.length){
     const ok=confirm('⚠ Prüf-Gate — '+kritisch.length+' Punkt(e) im Plan gefunden:\n\n'
       +kritisch.map((k,i)=>(i+1)+'. '+k).join('\n')
       +'\n\nTrotzdem exportieren? (Abbrechen = zurück zum Prüfen)');
