@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ci</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cj</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ci · 08.07.2026</span>
+          <span class="set-version">v.25.06-cj · 08.07.2026</span>
         </div>
       </div>
 
@@ -4089,6 +4089,33 @@ function runCalc(){
   // Set refDate from input
   refDate=el('ref-date').value||getTodayStr();
 
+  // ── Bleibegast-Vermerke aus der 7-Tage-Anreisedatei nachtragen (Fund 13.07.) ──
+  // Ein Bleibegast wird aus dem Vortag rekonstruiert und trägt nur dessen knappe Notiz. Seine
+  // volle PMS-Notiz — Geburtstag, Allergie, Wunsch — steht aber in der Anreisedatei auf seiner
+  // FRÜHEREN Anreisezeile (z.B. Kölle Zi 216: angereist 12.07., „40. Geb. Kuchen Gruß"). Diese
+  // wird per Zimmer-Abgleich an den heutigen Gast angehängt (nur die Anreise, deren Aufenthalt
+  // HEUTE noch läuft), damit Geburtstage & Co. vollständig im Fuß erscheinen.
+  {
+    const arr=(parsedFiles.ankuenfte&&parsedFiles.ankuenfte.rows)||[];
+    const noteByRoom={};
+    arr.forEach(r=>{
+      const zi=String(r.Zimmernummer||'').trim();
+      const bem=String(r.Bemerkung||'').trim();
+      if(!zi||!bem) return;
+      if(r.CheckIn&&r.CheckIn>refDate) return;        // Anreise erst in der Zukunft → nicht heute
+      if(r.CheckOut&&r.CheckOut<=refDate) return;     // schon abgereist
+      if(!noteByRoom[zi]||bem.length>noteByRoom[zi].length) noteByRoom[zi]=bem;
+    });
+    guests.forEach(g=>{
+      String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>{
+        const note=noteByRoom[z]; if(!note) return;
+        const have=(String(g.bemerkung||'')+' '+String(g.extras||'')).toLowerCase().replace(/[^a-zäöüß0-9]/g,'');
+        const key=note.toLowerCase().replace(/[^a-zäöüß0-9]/g,'').slice(0,40);
+        if(key&&!have.includes(key)) g.bemerkung=(g.bemerkung?g.bemerkung+' | ':'')+note;
+      });
+    });
+  }
+
   // Set status + vorheriger tisch
   guests=guests.map(g=>{
     const vt=g.vorheriger_tisch||vtMap[g.zimmer]||'';
@@ -5996,23 +6023,37 @@ function collectGeburtstage(){
       if(!/\bgeb\.?\b|geburtstag/i.test(s)) return;
       const clean=s.trim().replace(/\bzu\s*#\s*\d+\s*\/?\s*/gi,'').replace(/^[\s\/\-–]+/,'').replace(/\s+/g,' ').slice(0,80);
       if(!clean) return;
-      const datum=(clean.match(/\d{1,2}\.\d{1,2}\.?/)||[])[0]||'';
-      const key=g.zugewiesener_tisch+'|'+(datum||clean.toLowerCase().replace(/[^a-zäöüß0-9]/g,''));
-      if(seen.has(key)) return; seen.add(key);
+      // DEDUPE über den TEXT selbst (global, nicht je Tisch): dieselbe Geburtstags-Info steht bei
+      // Zimmerwechsel oft an zwei Gästen (Fund 13.07., Zi 2005: Koelbel + Kraus, identischer Text).
+      const key=clean.toLowerCase().replace(/[^a-zäöüß0-9]/g,'');
+      if(!key||seen.has(key)) return; seen.add(key);
       out.push({tisch:String(g.zugewiesener_tisch),zimmer:String(g.zimmer||''),name:g.nachname||'',text:clean});
     });
   });
   return out;
 }
 function collectEarlyCheckIn(){
+  // Wie der Hotelier: die MORGIGEN Early-Check-ins listen (Team-Vorbereitung) — aus der
+  // 7-Tage-Anreisedatei die Zeilen mit Anreise = morgen und Early-C/I-Vermerk.
+  const isEarly=t=>/early\s*c\/?i|early\s*check|frühe?\s*anreise|früh(er|es)?\s*check|frühanreise/i.test(String(t||''));
+  const morgen=(typeof addDays==='function'&&refDate)?addDays(refDate,1):null;
   const seen=new Set(), out=[];
-  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
-    const txt=[g.allergie,g.bemerkung,g.extras].filter(Boolean).join(' | ');
-    if(!/early\s*c\/?i|early\s*check|frühe?\s*anreise|früh(er|es)?\s*check/i.test(txt)) return;
-    const key=g.zugewiesener_tisch+'|'+g.nachname;
-    if(seen.has(key)) return; seen.add(key);
-    out.push({tisch:String(g.zugewiesener_tisch),zimmer:String(g.zimmer||''),name:g.nachname||'',pax:g.pax||''});
+  const arr=(parsedFiles.ankuenfte&&parsedFiles.ankuenfte.rows)||[];
+  arr.forEach(r=>{
+    if(morgen&&r.CheckIn!==morgen) return;
+    if(!isEarly(r.Bemerkung)) return;
+    const zi=String(r.Zimmernummer||'').trim(), nm=String(r.Nachname||'').trim();
+    const key=zi+'|'+nm; if(seen.has(key)) return; seen.add(key);
+    out.push({tisch:'',zimmer:zi,name:nm,pax:String(r.AnzahlPersonen||'')});
   });
+  // Fallback: keine Anreisedatei/keine morgigen → heutige platzierte Early-Check-ins zeigen
+  if(!out.length){
+    (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+      if(!isEarly([g.allergie,g.bemerkung,g.extras].filter(Boolean).join(' | '))) return;
+      const key=g.zugewiesener_tisch+'|'+g.nachname; if(seen.has(key)) return; seen.add(key);
+      out.push({tisch:String(g.zugewiesener_tisch),zimmer:String(g.zimmer||''),name:g.nachname||'',pax:g.pax||''});
+    });
+  }
   return out;
 }
 // ── Spaltenlayout des GESCHRIEBENEN Blattes ermitteln ──
@@ -6136,7 +6177,7 @@ function appendServiceHinweise(ws,N){
   if(gebs.length) gebs.forEach(g=>zeile({zimmer:g.zimmer,name:g.name,extras:g.text}));
   else zeile({name:'— heute keine vermerkt —'});
   const eci=collectEarlyCheckIn();
-  header('Early Check In');
+  header('Early Check In (morgen)');
   if(eci.length) eci.forEach(g=>zeile({zimmer:g.zimmer,name:g.name,pax:g.pax}));
   else zeile({name:'— keine —'});
   header('Änderungen (Hand-Notizen)');
