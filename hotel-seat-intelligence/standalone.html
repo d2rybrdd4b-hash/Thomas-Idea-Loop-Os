@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cc</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cd</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cc · 08.07.2026</span>
+          <span class="set-version">v.25.06-cd · 08.07.2026</span>
         </div>
       </div>
 
@@ -2658,11 +2658,20 @@ function enrichFromBemerkung(g){
   const kiM=bem.match(/(\d+)\s*ki(?:nd(?:er)?|\.|\b)/i);
   if(ewM&&kiM){
     const erw=parseInt(ewM[1])||0, ki=parseInt(kiM[1])||0, total=erw+ki;
-    if(ki>0&&!g.kinder) g.kinder=ki; // Kinderzahl für die "(N Ki)"-Anzeige
-    if(total>(g.pax||0)){ // Kind fehlt in der PMS-PAX → echte Gesamtzahl verwenden
-      g._paxOriginal=g.pax;
-      g.pax=total;
-      g._paxAdjusted=true;
+    // ACHTUNG „insg./insgesamt/gesamt": Der Vermerk nennt die GESAMTE verlinkte Gruppe, nicht
+    // diese eine Zeile (Fund 12.07., Jaspers: 4 Zimmer je „insg. 6 Erw 4 Ki." → jede Zeile
+    // wurde auf 10 gesetzt = 40 Pers. an einem Tisch). Die PMS-Zeilen-PAX summieren sich
+    // bereits korrekt über die Gruppe → Einzelzeile NICHT anheben.
+    const istGruppenSumme=/\binsg(?:es(?:amt)?)?\.?\b|\bgesamt\b|\bzusammen\b/i.test(bem);
+    if(istGruppenSumme){
+      g._gruppePaxGesamt=total; // fürs Protokoll/Radar, nie für die Einzel-Zeile
+    } else {
+      if(ki>0&&!g.kinder) g.kinder=ki; // Kinderzahl für die "(N Ki)"-Anzeige
+      if(total>(g.pax||0)){ // Kind fehlt in der PMS-PAX → echte Gesamtzahl verwenden
+        g._paxOriginal=g.pax;
+        g.pax=total;
+        g._paxAdjusted=true;
+      }
     }
   }
 
@@ -4036,15 +4045,40 @@ function runCalc(){
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
   });
 
+  // ── ZIMMER-AUTORITÄT: Datei-Zeilen schlagen Vortags-Zeilen ──
+  // Die An-/Abreise-Dateien sind die Wahrheit über heutige Gäste. Eine Vortags-Zeile, deren
+  // Zimmer VOLLSTÄNDIG von An-/Abreise-Gästen (heute aktiv oder heute früh abgereist) abgedeckt
+  // sind, ist dieselbe Partei in anderer Schreibweise (Kombi-Sammelzeile „506,507", Namens-
+  // Variante „Ott, Golombek" vs „Ott") ODER der heute-früh abgereiste Vorgänger des Zimmers.
+  // Bisher wurde nur bei EXAKT gleichem Namen zusammengeführt — am Wechseltag 12.07. blieben
+  // dadurch Dutzende Phantom-Bleibegäste im Plan (77 statt 69 Zimmer, 209 statt ~175 Pers.)
+  // → Stühle reichten nicht → Notplatzierungs-Kaskade (40 Pers. auf Tisch 614).
+  // Die Tisch-Historie geht NICHT verloren: vorheriger_tisch kommt aus vtMap (zimmerbasiert).
+  {
+    const fileRooms=new Set();
+    guests.filter(g=>(g.quelle_anreise||g.quelle_abreise)&&g.status!=='PROGNOSE')
+      .forEach(g=>String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z)).forEach(z=>fileRooms.add(z)));
+    if(fileRooms.size){
+      const vorher=guests.length;
+      guests=guests.filter(g=>{
+        if(g.quelle_anreise||g.quelle_abreise) return true;
+        const rooms=String(g.zimmer||'').split(/[,+]/).map(z=>z.trim()).filter(z=>/^\d+$/.test(z));
+        if(!rooms.length) return true;
+        return !rooms.every(z=>fileRooms.has(z));
+      });
+      const entfernt=vorher-guests.length;
+      if(entfernt>0) warns.push({level:'green',msg:entfernt+' Vortags-Zeile(n) übersprungen — dieselben Zimmer sind bereits durch die An-/Abreise-Dateien abgedeckt (Datei-Angaben sind maßgeblich; Stammtisch-Info bleibt erhalten)'});
+    }
+  }
+
   // ── Plausibilitäts-Bremse: absurd viele „heutige" Anreisen = Datenfehler ──
-  // Das Haus hat ~70 Zimmer; normal sind 10–30 Anreise-Zimmer pro Tag. Deutlich mehr heißt
-  // fast immer: die Datumsspalte der Anreise-Datei war nicht lesbar und die GANZE Woche ist
-  // auf „heute" gefallen (z.B. Datei mit Excel neu gespeichert → Text-Daten wurden
-  // Datumszahlen; Fund 12.07.: 133 Ankünfte, 40 Personen auf Tisch 621). Laut warnen —
-  // die Export-Sperre fängt den kaputten Plan ohnehin, aber die URSACHE muss sichtbar sein.
+  // Das Haus hat ~70 Zimmer; ein voller Wechseltag erreicht real bis ~50 Anreise-Zimmer
+  // (Sonntag 12.07.: 49 — legitim!). Erst DARÜBER ist es fast sicher ein Datenfehler
+  // (Datumsspalte unlesbar → ganze Woche zählt als „heute"). Laut warnen — die Export-
+  // Sperre fängt den kaputten Plan ohnehin, aber die URSACHE muss sichtbar sein.
   {
     const anZimmerHeute=guests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
-    if(anZimmerHeute>45){
+    if(anZimmerHeute>58){
       warns.push({level:'red',msg:'Unplausibel: '+anZimmerHeute+' Anreise-Zimmer für EINEN Tag erkannt (Haus hat ~70 Zimmer). Vermutlich konnte die Anreise-Datumsspalte nicht gelesen werden und die ganze Woche zählt als „heute". Bitte den ORIGINAL-PMS-Export laden (Datei nicht vorher mit Excel öffnen/neu speichern) und das Plandatum prüfen.'});
     }
   }
@@ -6852,13 +6886,16 @@ function sammleKritischeBefunde(){
         if(roomSets[j].some(r=>cur.has(r))){used[j]=true;roomSets[j].forEach(r=>cur.add(r));grew=true;}}}
     }
     const info='Tisch '+t.tisch_id+': '+belegt+' Pers. auf '+effKap+' Plätzen'+(partner.length?' (Kombination '+[...setIds].join('+')+')':'');
-    // HART: mehrere fremde Parteien ODER 2+ Personen über Kapazität ODER eine „Partei" mit
-    // 3+ Zimmern (= verklebte Kombi-Zeile aus einem re-importierten Export, Fund 726 — eine
-    // echte Einzelpartei belegt nie 3 Zimmer an EINEM Einzeltisch über Kapazität).
+    // HART (nie umsetzbar): eine „Partei" über 3+ Zimmer (= verklebte Kombi-Zeile aus einem
+    // re-importierten Export, Fund 726), 2+ Personen über Kapazität, oder 3+ fremde Parteien.
+    // NUR HINWEIS: +1 über Kapazität — das ist gelebte Hotelier-Quetschung („3 Erw." am 2er;
+    // am maximal vollen Wechseltag 12.07. auch mal zwei Parteien am 3er, wenn kein Tisch mehr
+    // frei ist). Der Hotelier entscheidet im Prüf-Gate, nicht die Software.
     const alleZimmer=new Set(roomSets.flat());
-    if(parties>1) hart.push(info+' — mehrere fremde Parteien, so nicht umsetzbar');
+    if(parties<=1&&alleZimmer.size>=3) hart.push(info+' — eine „Partei" über 3+ Zimmer ('+[...alleZimmer].join(', ')+') deutet auf eine verklebte Zeile aus einem re-importierten Export hin');
     else if(exc>=2) hart.push(info+' — '+exc+' Personen über Kapazität, so nicht umsetzbar');
-    else if(alleZimmer.size>=3) hart.push(info+' — eine „Partei" über 3+ Zimmer ('+[...alleZimmer].join(', ')+') deutet auf eine verklebte Zeile aus einem re-importierten Export hin');
+    else if(parties>2) hart.push(info+' — '+parties+' fremde Parteien, so nicht umsetzbar');
+    else if(parties>1) befunde.push('Eng (2 Parteien): '+info+' — 1 Person über Kapazität; nur sinnvoll, wenn wirklich kein Tisch mehr frei ist — bitte prüfen');
     else befunde.push('Eng belegt: '+info+' — eine Partei am eigenen Tisch, bitte kurz prüfen');
   });
   // Doppelplatzierung (ein Zimmer an zwei Tischen) ist IMMER ein harter Fehler — genau so
