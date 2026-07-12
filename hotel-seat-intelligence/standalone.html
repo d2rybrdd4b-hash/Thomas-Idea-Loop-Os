@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ch</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ci</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ch · 08.07.2026</span>
+          <span class="set-version">v.25.06-ci · 08.07.2026</span>
         </div>
       </div>
 
@@ -2684,6 +2684,31 @@ function enrichFromBemerkung(g){
 
   // STAMM → Stammgast (eigene Kategorie, kein automatischer VIP)
   if(/\bstamm\b/i.test(bem)) g.stammgast=true;
+
+  // ── STAMMTISCH-GRUPPE (Fund 13.07., Berger Zi 116) ──
+  // Vermerk „…am Stammtisch" bzw. „Abendessen mit Familie X, Y … am Stammtisch": Der Gast ist
+  // GASTGEBER einer Stammtisch-Runde. Die genannten Familien sind i.d.R. EXTERNE Gäste (keine
+  // Zimmer, nicht in den Dateien) — der Hotelier führt den Gastgeber deshalb in der STAMM-Sektion
+  // mit der Gesamt-Personenzahl. Wir markieren ihn als Stammgast + Stammtisch-Gastgeber und
+  // erfassen die genannten Namen + (falls im Text) die Personenzahl, ohne etwas zu erfinden.
+  if(/\bstammtisch\b/i.test(bem)){
+    g.stammgast=true;
+    g.stammtischHost=true;
+    // Begleitende Familien/Namen nach „mit (Fam.) …" bis „am Stammtisch" o.ä. herausziehen
+    const mm=bem.match(/\bmit\s+(?:fam(?:ilie)?n?\.?\s+)?([^.\n]{2,80}?)\s*(?:am\s+stammtisch|$)/i);
+    if(mm){
+      const namen=mm[1].split(/\s*[,&\/]|\s+und\s+/).map(s=>s.trim())
+        .filter(s=>/^[A-ZÄÖÜ][a-zäöüß\-]{1,}$/.test(s));
+      if(namen.length) g.stammtischNamen=namen;
+    }
+    // Gesamt-Personenzahl NUR merken (fürs STAMM-Blatt), NICHT als Tisch-Belegung erzwingen:
+    // Der Stammtisch ist kein Tisch im normalen Raster — der Hotelier führt den Gastgeber separat
+    // in der STAMM-Sektion (Berger „6 Pers."). Würden wir g.pax auf 6 setzen, käme der Gast auf
+    // einen zu kleinen Tisch → Überbelegung. Die externen Familien haben ohnehin keine Zimmer.
+    const pm=bem.match(/\b(?:in\s+summe|insg(?:es(?:amt)?)?\.?)\s*(\d{1,2})\s*(?:pers(?:onen)?|pax|erw|gäste|leute)/i)
+          ||bem.match(/(\d{1,2})\s*(?:pers(?:onen)?|pax|gäste)\b/i);
+    if(pm){const n=parseInt(pm[1]);if(n>(g.pax||0)&&n<=14) g.stammtischPax=n;}
+  }
 
   // "zu #NNNNN" ODER "zu Fam. Maier #10501" → verlinkte Reservierungen.
   // Hotelier-Konvention (Antwort 08.07.): Gruppen werden IMMER per Vermerk verknüpft,
@@ -6094,7 +6119,12 @@ function appendServiceHinweise(ws,N){
   const stamm=(assignedGuests||[]).filter(g=>g.stammgast&&g.zugewiesener_tisch);
   header('STAMM (Stammgäste)');
   if(stamm.length){const seen=new Set();stamm.forEach(g=>{const k=g.zugewiesener_tisch+'|'+g.nachname;if(seen.has(k))return;seen.add(k);
-    zeile({zimmer:String(g.zimmer||''),name:g.nachname});});}
+    // Stammtisch-Gastgeber: Gesamt-Pax + genannte Begleit-Familien mitausgeben (Hotelier führt
+    // Berger so als „6 Pers." in STAMM). Externe Familien haben kein Zimmer → nur als Notiz.
+    const extra=g.stammtischHost
+      ? 'Stammtisch-Runde'+(g.stammtischNamen&&g.stammtischNamen.length?' mit Fam. '+g.stammtischNamen.join(', '):'')+(g.stammtischPax?' — in Summe '+g.stammtischPax+' Pers., Stammtisch vorbereiten':' — Gruppengröße prüfen')
+      : null;
+    zeile({zimmer:String(g.zimmer||''),name:g.nachname,pax:g.stammtischHost&&g.stammtischPax?g.stammtischPax:null,extras:extra});});}
   else zeile({name:'— keine vermerkt —'});
   // Day Spa — Hand-Notizfeld (die Day-Spa-Besucherliste des Hoteliers kommt aus einer separaten
   // Quelle, die nicht in Anreise-/Abreisedatei enthalten ist; Pseudozimmer-Gäste bleiben zu Recht
@@ -6501,6 +6531,7 @@ function extrasForPlan(list){
       ||/geburtstag|hochzeit|jubil|honeymoon|jahrestag/.test(L)
       ||/\bki\b|kind|baby|hochstuhl|babybett|\d\s*erw/.test(L)
       ||/zu #|zu fam|tisch mit|gehör|zusammen|#\d{4,}/.test(L)
+      ||/stammtisch/.test(L)
       ||/umzug/.test(L);
   };
   const keep=[],seen=new Set();
