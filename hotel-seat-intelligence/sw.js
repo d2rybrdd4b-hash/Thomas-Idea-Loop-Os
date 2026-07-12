@@ -1,4 +1,4 @@
-const CACHE = 'hsi-v25.06-cb';
+const CACHE = 'hsi-v25.06-cc';
 
 // Kern-Dateien, die beim Installieren VORGELADEN werden — damit die App auch ohne
 // Internet vollständig läuft (inkl. Excel-Lesen/Schreiben über die lokalen Bibliotheken).
@@ -34,13 +34,21 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // HTML (Navigation): network-first (immer neueste Version), bei Offline aus dem Cache
+  // HTML (Navigation): network-first (immer neueste Version), bei Offline aus dem Cache.
+  // NUR erfolgreiche Antworten (res.ok) cachen und ausliefern — bei einer GitHub-Störung
+  // (Serverfehler/„Unicorn"-Seite, Fund 12.07.) würde sonst die Fehlerseite gecacht und
+  // angezeigt. Stattdessen: zuletzt geladene, funktionierende App-Version aus dem Cache.
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
-        return res;
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          return res;
+        }
+        return caches.match(req)
+          .then(m => m || caches.match('standalone.html'))
+          .then(m => m || res); // kein Cache vorhanden (Erstbesuch) → Original-Antwort zeigen
       }).catch(() => caches.match(req).then(m => m || caches.match('standalone.html')))
     );
     return;

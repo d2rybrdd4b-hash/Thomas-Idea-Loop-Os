@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cb</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cc</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cb · 08.07.2026</span>
+          <span class="set-version">v.25.06-cc · 08.07.2026</span>
         </div>
       </div>
 
@@ -1636,7 +1636,15 @@ function addDays(s,n){
 }
 function parseDate(s){
   if(!s) return null;
+  // Echte Date-Objekte (XLSX mit cellDates) und Excel-Datumszahlen (auch mit Uhrzeit-Anteil,
+  // z.B. 46215.75) direkt umrechnen — passiert, wenn die PMS-Datei mit Excel neu gespeichert
+  // wurde und Text-Daten („12.07.26") in echte Datumszellen umgewandelt wurden. Ohne diese
+  // Behandlung fiel JEDE Zeile auf das Kopfzeilen-Datum → alle 7 Tage wirkten wie „heute"
+  // (Fund 12.07.: 133 Ankünfte, 40 Personen auf Tisch 621).
+  if(s instanceof Date&&!isNaN(s)) return s.toISOString().slice(0,10);
+  if(typeof s==='number'&&s>20000&&s<80000) return new Date(Math.round((s-25569))*86400000).toISOString().slice(0,10);
   s=String(s).trim();
+  if(/^\d{5}\.\d+$/.test(s)) return new Date(Math.round(parseFloat(s)-25569)*86400000).toISOString().slice(0,10);
   // DD.MM.YYYY
   if(/^\d{2}\.\d{2}\.\d{4}$/.test(s)){
     const[dd,mm,yyyy]=s.split('.');
@@ -2488,11 +2496,14 @@ function parsePanoramaArrival(wb){
     const nachname=parts[0]||nameRaw;
     const vorname=parts.slice(1).join(' ');
 
-    // Anreise-Datum: aus der Zeilen-Spalte (7-Tage-Export) oder aus dem "Vom:"-Kopf
+    // Anreise-Datum: aus der Zeilen-Spalte (7-Tage-Export) oder aus dem "Vom:"-Kopf.
+    // parseDate() statt reinem Text-Match: versteht auch Excel-Datumszahlen/Date-Objekte
+    // (Datei mit Excel neu gespeichert) — sonst fielen ALLE Zeilen auf das Kopf-Datum
+    // und die ganze Woche wirkte wie heutige Anreisen (Fund 12.07.: 133 Ankünfte).
     let rowArrival=arrivalDate;
     if(colAnreise>=0){
-      const m=String(row[colAnreise]||'').trim().match(/(\d{2})\.(\d{2})\.(\d{2,4})/);
-      if(m) rowArrival=(m[3].length===2?'20'+m[3]:m[3])+'-'+m[2]+'-'+m[1];
+      const iso=parseDate(row[colAnreise]);
+      if(iso) rowArrival=iso;
     }
     // Compute checkout
     const cin=new Date(rowArrival);
@@ -2576,8 +2587,10 @@ function parsePanoramaDeparture(wb){
     const nachname=parts[0]||nameRaw;
     const vorname=parts.slice(1).join(' ');
 
-    const checkIn=parseDate(anreiseRaw)||'';
-    const checkOut=parseDate(abreiseRaw)||departureDate||'';
+    // Rohwerte an parseDate (nicht die String-Fassung): versteht so auch Excel-Datumszahlen/
+    // Date-Objekte, falls die Datei mit Excel neu gespeichert wurde (siehe Anreise-Parser).
+    const checkIn=parseDate(row[5])||parseDate(anreiseRaw)||'';
+    const checkOut=parseDate(row[7])||parseDate(abreiseRaw)||departureDate||'';
 
     rows.push({
       ...(gastIdDep?{GastID:gastIdDep}:{}),
@@ -4022,6 +4035,19 @@ function runCalc(){
     const score=scoreGuest({...g,status},refDate);
     return{...g,vorheriger_tisch:vt,status,prioritaet_score:score};
   });
+
+  // ── Plausibilitäts-Bremse: absurd viele „heutige" Anreisen = Datenfehler ──
+  // Das Haus hat ~70 Zimmer; normal sind 10–30 Anreise-Zimmer pro Tag. Deutlich mehr heißt
+  // fast immer: die Datumsspalte der Anreise-Datei war nicht lesbar und die GANZE Woche ist
+  // auf „heute" gefallen (z.B. Datei mit Excel neu gespeichert → Text-Daten wurden
+  // Datumszahlen; Fund 12.07.: 133 Ankünfte, 40 Personen auf Tisch 621). Laut warnen —
+  // die Export-Sperre fängt den kaputten Plan ohnehin, aber die URSACHE muss sichtbar sein.
+  {
+    const anZimmerHeute=guests.filter(g=>g.status==='AN'||g.status==='AN·AB').length;
+    if(anZimmerHeute>45){
+      warns.push({level:'red',msg:'Unplausibel: '+anZimmerHeute+' Anreise-Zimmer für EINEN Tag erkannt (Haus hat ~70 Zimmer). Vermutlich konnte die Anreise-Datumsspalte nicht gelesen werden und die ganze Woche zählt als „heute". Bitte den ORIGINAL-PMS-Export laden (Datei nicht vorher mit Excel öffnen/neu speichern) und das Plandatum prüfen.'});
+    }
+  }
 
   // ── Zimmer-Turnover bereinigen ──
   // Gehört ein Zimmer heute einem Neu-Anreisenden (AN/AN·AB), darf dasselbe Zimmer nicht
