@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cf</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cg</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cf · 08.07.2026</span>
+          <span class="set-version">v.25.06-cg · 08.07.2026</span>
         </div>
       </div>
 
@@ -2429,6 +2429,12 @@ function extractTablesFromVortag(rows){
 function istPseudozimmer(katRaw){
   return /pseudo\s*-?\s*zimmer/i.test(String(katRaw||''));
 }
+// Pseudo-Buchung am GASTNAMEN erkennen — nötig, weil die ANREISE-Datei keine Kategorie-Spalte
+// hat (Fund 12.07.: „Day Spa", Zimmer 100, kam über die Anreise-Datei durch und saß auf dem
+// Premiumtisch 643). Erfasst die bekannten Service-Pseudobuchungen der PMS.
+function istPseudoGastname(nameRaw){
+  return /^\s*day\s*[- ]?\s*spa\b|^\s*spa\s*,?\s*day\b|^\s*sauna\b|^\s*massage\b|^\s*wellness\b|^\s*tagesgast\s*spa\b/i.test(String(nameRaw||''));
+}
 
 // ── Panorama "reservations_by_arrival" parser ─────────────────
 // Sheet: DynamicListReport_*  |  Row 7 = headers
@@ -2478,6 +2484,7 @@ function parsePanoramaArrival(wb){
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
     // Pseudozimmer (Day Spa & Co.) sind keine Tischgäste → überspringen
     if(colKat>=0&&istPseudozimmer(row[colKat])) continue;
+    if(istPseudoGastname(nameRaw)) continue; // Anreise-Datei hat keine Kat.-Spalte → Namensfilter (Day Spa, Zi 100)
 
     const naechte=parseInt(row[5])||1;
     const pax=parseInt(colPers>=0?row[colPers]:row[7])||1;
@@ -2571,7 +2578,7 @@ function parsePanoramaDeparture(wb){
     if(!zimmerRaw&&!nameRaw) continue;
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
     // Pseudozimmer (Day Spa & Co., Kat.-Spalte K=Index 10) sind keine Tischgäste → überspringen
-    if(istPseudozimmer(row[10])) continue;
+    if(istPseudozimmer(row[10])||istPseudoGastname(nameRaw)) continue;
 
     const anreiseRaw=String(row[5]||'').trim();
     const abreiseRaw=String(row[7]||'').trim();
@@ -3709,6 +3716,40 @@ function findKombiTables(ts,pax,checkIn,checkOut,cal){
     ||((b.clean?1:0)-(a.clean?1:0)));   // gleich groß → Abreise-sauberes Paar zuerst
   return cands[0];
 }
+// ── AD-HOC-BLOCK für Großgruppen (Hotelier-Muster 12.07.: Jaspers, 10 Pers. → „622" mit
+// 623/624/625 als „zu 622") ── Findet einen ZUSAMMENHÄNGENDEN Lauf freier Nachbartische
+// innerhalb derselben Tisch-Reihe (gleiche Zehnergruppe, fortlaufende Nummern), dessen
+// Gesamtkapazität die Gruppe fasst — auch wenn diese Kombination NICHT im Kombinations-Blatt
+// steht. Bevorzugt: wenige Tische; bei Gleichstand die einfachere Reihe (höhere Kategorie),
+// damit Premium-Einzeltische für Einzel-Parteien frei bleiben.
+function findAdjacentBlock(ts,pax,checkIn,checkOut,cal){
+  const frei=t=>t&&t.aktiv&&!t.blocked_for&&!t.notfall&&!t.kombiMit&&(t.belegtPax||0)===0
+    &&!/^80\d/.test(String(t.tisch_id))
+    &&!(cal&&checkIn&&checkOut&&!tableOverrides.has(t.tisch_id)&&!isTableFreeForStay(cal,t.tisch_id,checkIn,checkOut));
+  const nums=ts.filter(t=>/^\d+$/.test(String(t.tisch_id)))
+    .sort((a,b)=>parseInt(a.tisch_id)-parseInt(b.tisch_id));
+  let best=null,bestKat=-1;
+  for(let i=0;i<nums.length;i++){
+    if(!frei(nums[i])) continue;
+    const reihe=Math.floor(parseInt(nums[i].tisch_id)/10);
+    let cap=0;const block=[];
+    for(let j=i;j<nums.length;j++){
+      const t=nums[j];
+      if(j>i&&(parseInt(t.tisch_id)!==parseInt(nums[j-1].tisch_id)+1
+        ||Math.floor(parseInt(t.tisch_id)/10)!==reihe)) break;
+      if(!frei(t)) break;
+      block.push(t); cap+=t.kapazitaet||2;
+      if(cap>=pax){
+        const avgKat=block.reduce((s,x)=>s+(x.kategorie||9),0)/block.length;
+        if(!best||block.length<best.length||(block.length===best.length&&avgKat>bestKat)){
+          best=block.slice(); bestKat=avgKat;
+        }
+        break;
+      }
+    }
+  }
+  return best?{tables:best,kombi:{max:best.reduce((s,t)=>s+(t.kapazitaet||2),0)},adhoc:true}:null;
+}
 // Kombination nach HOTELIER-Konvention führen: alle Gäste einer Gruppe stehen am HAUPTTISCH
 // der Kombination (beide Zimmer, z.B. Weber 116+117 → 732), der/die Partnertische (733) sind
 // als Kombi-Partner vermerkt. So führt es der Hotelier in seiner Tischmappe (Ground-Truth 09.07.:
@@ -4363,6 +4404,22 @@ function runCalc(){
         groupsPlaced++; linkOk++;
         warns.push({level:'green',msg:`Verlinkung Zi.${gs.map(g=>g.zimmer).join('+')} (${totalPax} PAX) → Kombination ${label} — laut Tische & Kombinationen`});
         return;
+      }
+      // AD-HOC-BLOCK für Großgruppen (7+): zusammenhängende freie Nachbartische einer Reihe
+      // verbinden — Hotelier-Muster 12.07. (Jaspers 10 Pers. → 622 + „zu 622" auf 623–625),
+      // statt die Gruppe über das Haus zu verstreuen.
+      if(totalPax>=7){
+        // Erst kalendertreu suchen; sonst „Heute schlägt Morgen": die heutige Großgruppe geht
+        // vor Vorausschau-Reservierungen (die betroffene Zukunfts-Anreise wird neu geplant).
+        const block=findAdjacentBlock(ts,totalPax,ci,co,tableCalendar)
+                 ||findAdjacentBlock(ts,totalPax,null,null,null);
+        if(block){
+          const label=assignKombi(gs,block,tableCalendar,ci,co);
+          gs.forEach(g=>{groupAssigned.add(g.id);assigned++;});
+          groupsPlaced++; linkOk++;
+          warns.push({level:'green',msg:`Verlinkung Zi.${gs.map(g=>g.zimmer).join('+')} (${totalPax} PAX) → Nachbartisch-Block ${label} gebildet (Hotelier-Muster: Großgruppe zusammenhängend, Partner „zu ${block.tables[0].tisch_id}")`});
+          return;
+        }
       }
     }
     if(!groupTable){

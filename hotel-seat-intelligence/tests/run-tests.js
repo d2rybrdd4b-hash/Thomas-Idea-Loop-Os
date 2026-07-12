@@ -308,6 +308,16 @@ async function exportInvariants(page){
      // Ground-Truth-identisch) — Regel C gilt für Einzel-Studios, nicht für verlinkte Paare.
      anHeuteMin:10,anHeuteMax:25, tinyPremiumTol:3,
      groundTruth:{heute:'ground-truth-sa.json',vortag:'ground-truth-fr.json',label:'11.07. (Sa)',minQuote:0.75,minTreue:0.75,minLogik:0.88}},
+    // S9: 12.07. (SONNTAG, KOMPLETT-WECHSELTAG — 50 Zimmer raus, 49 rein; nur 6 echte Bleiber).
+    // Der härteste Tag: fast das ganze Haus wird neu verteilt → exakte Deckung mit dem Hotelier
+    // ist strukturell niedrig (sein Tages-Bauchgefühl steht in keiner Datei). Vortag ist ein aus
+    // Ground-Truth-11.07. + Abreiseliste REKONSTRUIERTER Plan (echter 11.07.-Plan lag nicht mehr
+    // vor); Schwellen entsprechend konservativ. Prüft v.a.: Wechseltag-Datenlagen (Zimmer-
+    // Autorität, insg.-Vermerke, Großgruppen-Block 622-Muster, Day-Spa-über-Anreisedatei).
+    {name:'S9 Backtest 12.07. (fünfter+ echter Tag — SONNTAG, Komplett-Wechseltag)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-sa-anon.xlsx',ankuenfte:'arr12-anon.xlsx',abreisen:'dep12-anon.xlsx',refDate:'2026-07-12',vorausschau:true,
+     anHeuteMin:35,anHeuteMax:60, tinyPremiumTol:3,
+     groundTruth:{heute:'ground-truth-so.json',vortag:'ground-truth-sa.json',label:'12.07. (So)',minQuote:0.20,minTreue:0.10,minLogik:0.65}},
   ];
 
   for(const sz of SZENARIEN){
