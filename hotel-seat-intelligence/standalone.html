@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cg</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ch</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cg · 08.07.2026</span>
+          <span class="set-version">v.25.06-ch · 08.07.2026</span>
         </div>
       </div>
 
@@ -3652,6 +3652,12 @@ function findBestTable(ts, prefZone, pax, nights, checkIn, checkOut, cal, gast, 
   // Demo-/Zonen-Modus (nur wirksam, wenn Tische diese Zone wirklich haben)
   const inZone=pool.filter(t=>t.zone===prefZone);
   if(inZone.length>0) pool=inZone;
+  // EIGENER TISCH vor geteiltem Tisch (Fund 13.07., Tisch 641): Fremde Parteien teilen sich im
+  // Restaurant keinen Tisch. Solange irgendein LEERER passender Tisch frei ist, wird der bevorzugt
+  // — ein bereits belegter Tisch kommt nur infrage, wenn KEIN leerer mehr passt (dann meldet der
+  // Aufrufer die Zusammenlegung). Kombi-Partnertische sind über passesBasics ohnehin ausgeschlossen.
+  const leer=pool.filter(t=>(t.belegtPax||0)===0);
+  if(leer.length>0) pool=leer;
   const maxKat=getMaxKatForNights(nights);
   const roomQ=gast?(gast.zimmer_qualitaet||null):null;
   // (Die 80x-Studio-Reserve ist bereits über die Stufen-Platzierung oben ausgeschlossen,
@@ -4810,6 +4816,26 @@ function runCalc(){
   } else {
     qa.fails.forEach(i=>warns.push({level:'red',msg:`Quellen-Abgleich: ${i.label} stimmt nicht (${i.ist} ≠ ${i.soll}) — bitte prüfen`}));
     if(qa.dups.length) warns.push({level:'red',msg:`Quellen-Abgleich: ${qa.dups.length} Gast/Gäste doppelt verbucht (${qa.dups.join(', ')}) — bitte prüfen`});
+  }
+
+  // ── FREMD-ZUSAMMENLEGUNG melden (Fund 13.07., Tisch 641): sitzen an einem Tisch mehrere
+  // NICHT verlinkte Parteien (verschiedene Nachnamen, kein „zu #"-Bezug), ist das im Restaurant
+  // unerwünscht — der Hotelier trennt Fremde. Passiert nur noch als letzte Rettung, wenn kein
+  // leerer Tisch mehr passte; hier sichtbar als gelber Hinweis (kein harter Fehler).
+  {
+    const norm=s=>String(s||'').toLowerCase().replace(/fr\.|hr\.|herr|frau|fam\.|familie/g,'').replace(/[^a-zäöüß]/g,'');
+    const byTable={};
+    (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{(byTable[String(g.zugewiesener_tisch)]=byTable[String(g.zugewiesener_tisch)]||[]).push(g);});
+    Object.entries(byTable).forEach(([tid,gs])=>{
+      if(gs.length<2) return;
+      // verlinkte Gruppe? (gemeinsame Referenz/Verlinkung) → keine Fremd-Zusammenlegung
+      const refs=new Set(gs.flatMap(g=>[...(g.verlinkteRefs||[]),String(g.id||'')]));
+      const linked=gs.every(g=>(g.verlinkteRefs||[]).some(r=>refs.has(String(r)))|| gs.some(o=>o!==g&&norm(o.nachname)&&norm(o.nachname)===norm(g.nachname)));
+      const surnames=[...new Set(gs.map(g=>norm(g.nachname)).filter(Boolean))];
+      if(surnames.length>=2&&!linked){
+        warns.push({level:'yellow',msg:`Tisch ${tid}: fremde Parteien zusammengelegt (${gs.map(g=>g.nachname+' Zi'+g.zimmer).join(', ')}) — kein leerer Tisch mehr frei; bitte prüfen, ob getrennt platzierbar`});
+      }
+    });
   }
   warnings=warns;
 
