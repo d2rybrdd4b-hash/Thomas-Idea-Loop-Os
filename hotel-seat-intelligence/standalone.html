@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cj</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ck</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cj · 08.07.2026</span>
+          <span class="set-version">v.25.06-ck · 12.07.2026</span>
         </div>
       </div>
 
@@ -2472,27 +2472,35 @@ function parsePanoramaArrival(wb){
   // Personen-Spalte variiert zwischen Tages- (Spalte 7) und 7-Tage-Export (Spalte 6)
   const colPers=findCol(['personen','pers.','anzahl personen','pax','erwachsene']);
   const colKat=findCol(['kat.','kat','kategorie','zimmerkat','zimmer-kat','zimmerkategorie','room type','category']);
+  // Auch die restlichen Pflichtfelder per Kopfzeilen-NAMEN finden (Robustheit gegen geändertes
+  // Spaltenlayout, Freigabe 13.07.). Die bisherigen festen Positionen bleiben nur als Fallback,
+  // falls eine Spalte nicht per Name gefunden wird (colX>=0 ? row[colX] : festerIndex).
+  const colZimmer=findCol(['zimmer','zimmernummer','zimmer-nr.','zimmer nr.','zimmernr','zi.','zi','room','room no','room-no']);
+  const colName=findCol(['gastname','gastname(n)','gastnamen','gastnamen(n)','name','gast','guest','guest name']);
+  const colNaechte=findCol(['nächte','naechte','nächte gesamt','nights','übernachtungen','uebernachtungen','nt','anz. nächte','anz nächte']);
+  const colStatus=findCol(['res.-status','res.status','res-status','res. status','reservierungsstatus','buchungsstatus','status']);
+  const cell=(row,col,fallbackIdx)=>String(row[col>=0?col:fallbackIdx]||'').trim();
 
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
   for(let i=7;i<aoa.length;i++){
     const row=aoa[i]||[];
-    const zimmerRaw=String(row[1]||'').trim();
-    const nameRaw=String(row[2]||'').trim();
+    const zimmerRaw=cell(row,colZimmer,1);
+    const nameRaw=cell(row,colName,2);
     if(!zimmerRaw&&!nameRaw) continue;
     // Stop at totals row
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
     // Pseudozimmer (Day Spa & Co.) sind keine Tischgäste → überspringen
     if(colKat>=0&&istPseudozimmer(row[colKat])) continue;
-    if(istPseudoGastname(nameRaw)) continue; // Anreise-Datei hat keine Kat.-Spalte → Namensfilter (Day Spa, Zi 100)
+    if(istPseudoGastname(nameRaw)) continue; // Namensfilter (Day Spa, Zi 100)
 
-    const naechte=parseInt(row[5])||1;
+    const naechte=parseInt(cell(row,colNaechte,5))||1;
     const pax=parseInt(colPers>=0?row[colPers]:row[7])||1;
     // Beide Bemerkungsspalten zusammenführen (Bemerk. + Bemerk. (Zi.))
     const bemHaupt=colBemHaupt>=0?String(row[colBemHaupt]||'').trim():String(row[8]||'').trim();
     const bemZi=colBemZi>=0?String(row[colBemZi]||'').trim():'';
     const bemerkung=[bemHaupt,bemZi].filter(Boolean).join(' / ');
-    const resStatus=String(row[14]||'').trim();
+    const resStatus=cell(row,colStatus,14);
     // Reservierungsnummer aus der dynamisch gefundenen Spalte lesen
     const resNrRaw=colResNr>=0?String(row[colResNr]||'').trim():'';
     const gastId=/^\d{3,8}$/.test(resNrRaw)?resNrRaw:'';
@@ -2569,24 +2577,42 @@ function parsePanoramaDeparture(wb){
   const hasZimmer=hdr.some(c=>c&&String(c).trim()==='Zimmer');
   if(!hasZimmer) return null;
 
+  // Spalten dynamisch aus der Überschriftenzeile ermitteln (siehe Anreise-Parser):
+  // robuster als feste Positionen, da PMS-Exporte je nach Version/Konfiguration leicht
+  // unterschiedliche Spaltenlayouts haben. Feste Indizes bleiben nur als Notfall-Fallback.
+  const findCol=labels=>hdr.findIndex(c=>c&&labels.some(l=>String(c).trim().toLowerCase()===l.toLowerCase()));
+  const colZimmer=findCol(['zimmer','zimmernummer','zimmer-nr.','zimmer nr.','zimmernr','zi.','zi','room','room no','room-no']);
+  const colName=findCol(['gastname','gastname(n)','gastnamen','gastnamen(n)','name','gast','guest','guest name']);
+  const colAnreise=findCol(['anreise','anreisedatum','arrival','ankunft']);
+  const colAbreise=findCol(['abreise','abreisedatum','departure','abfahrt','abreise am']);
+  const colKat=findCol(['kat.','kat','kategorie','zimmerkat','zimmer-kat','zimmerkategorie','room type','category']);
+  const colPers=findCol(['personen','pers.','anzahl personen','pax','erwachsene']);
+  const colStatus=findCol(['res.-status','res.status','res-status','res. status','reservierungsstatus','buchungsstatus','status']);
+  const colResNr=findCol(['res.-nr.','res.nr.','res-nr','res-nr.','res. nr.','reservierungsnr','buchungsnr.','buchungsnummer','conf.nr.','bestätigungsnummer','res.-nr','resnr','resnr.','reservierungsnummer','buchungs-nr.','buchungs-nr','conf. nr.','konfirmationsnr.','konfirmationsnr','res_nr','buchungs_nr','res.nr','reserv.-nr.','reserv.nr.']);
+  const colBemHaupt=findCol(['bemerk.','bemerkung','bemerkungen','anmerkung','anmerkungen','remarks','remark','notiz','hinweis']);
+  const colBemZi=findCol(['bemerk. (zi.)','bemerk.(zi.)','bemerk (zi.)','bemerk.zi.','bemerkung (zimmer)','bemerk. zi.']);
+  const cell=(row,col,fallbackIdx)=>String(row[col>=0?col:fallbackIdx]||'').trim();
+
   const STOP_WORDS=['summe','gesamt','total'];
   const rows=[];
   for(let i=7;i<aoa.length;i++){
     const row=aoa[i]||[];
-    const zimmerRaw=String(row[1]||'').trim();
-    const nameRaw=String(row[2]||'').trim();
+    const zimmerRaw=cell(row,colZimmer,1);
+    const nameRaw=cell(row,colName,2);
     if(!zimmerRaw&&!nameRaw) continue;
     if(STOP_WORDS.some(sw=>(zimmerRaw||nameRaw).toLowerCase().startsWith(sw))) break;
     // Pseudozimmer (Day Spa & Co., Kat.-Spalte K=Index 10) sind keine Tischgäste → überspringen
-    if(istPseudozimmer(row[10])||istPseudoGastname(nameRaw)) continue;
+    if(istPseudozimmer(colKat>=0?row[colKat]:row[10])||istPseudoGastname(nameRaw)) continue;
 
-    const anreiseRaw=String(row[5]||'').trim();
-    const abreiseRaw=String(row[7]||'').trim();
-    const pax=parseInt(row[11])||1;
-    const resStatus=String(row[13]||'').trim();
-    const resNrDep=String(row[14]||'').trim();
+    const anreiseRaw=cell(row,colAnreise,5);
+    const abreiseRaw=cell(row,colAbreise,7);
+    const pax=parseInt(colPers>=0?row[colPers]:row[11])||1;
+    const resStatus=cell(row,colStatus,13);
+    const resNrDep=cell(row,colResNr,14);
     const gastIdDep=/^\d{3,8}$/.test(resNrDep)?resNrDep:'';
-    const bemerkung=[String(row[17]||'').trim(),String(row[18]||'').trim()].filter(Boolean).join(' / ');
+    const bemHaupt=colBemHaupt>=0?String(row[colBemHaupt]||'').trim():String(row[17]||'').trim();
+    const bemZi=colBemZi>=0?String(row[colBemZi]||'').trim():String(row[18]||'').trim();
+    const bemerkung=[bemHaupt,bemZi].filter(Boolean).join(' / ');
 
     // Name format: "Nachname Vorname, Nachname2 Vorname2" → first person
     const firstPerson=(nameRaw.split(',')[0]||'').trim();
@@ -2596,8 +2622,8 @@ function parsePanoramaDeparture(wb){
 
     // Rohwerte an parseDate (nicht die String-Fassung): versteht so auch Excel-Datumszahlen/
     // Date-Objekte, falls die Datei mit Excel neu gespeichert wurde (siehe Anreise-Parser).
-    const checkIn=parseDate(row[5])||parseDate(anreiseRaw)||'';
-    const checkOut=parseDate(row[7])||parseDate(abreiseRaw)||departureDate||'';
+    const checkIn=parseDate(colAnreise>=0?row[colAnreise]:row[5])||parseDate(anreiseRaw)||'';
+    const checkOut=parseDate(colAbreise>=0?row[colAbreise]:row[7])||parseDate(abreiseRaw)||departureDate||'';
 
     rows.push({
       ...(gastIdDep?{GastID:gastIdDep}:{}),

@@ -449,6 +449,64 @@ async function exportInvariants(page){
     await page.close();
   }
 
+  // ══ Pflichtspalten per NAME gefunden (Robustheit gegen geändertes Spaltenlayout) ══
+  // Freigabe 13.07.: Beide Panorama-Parser lesen alle Spalten über die Kopfzeilen-NAMEN,
+  // nicht über feste Positionen. Beweis: ein Blatt, in dem die Spalten ABSICHTLICH an
+  // anderen Positionen stehen als die alten festen Indizes (Zimmer NICHT an 1, Name NICHT
+  // an 2, Personen NICHT an 7 …) und zusätzlich eine Extra-Spalte vorne trägt. Fällt der
+  // Parser auf feste Indizes zurück, liest er falsche Werte — der Test schlägt dann fehl.
+  {
+    results.push('▶ Sx Spaltenerkennung per Kopfzeilen-Name (verschobenes Layout)');
+    const page=await browser.newPage();
+    const pageErrors=[];
+    page.on('pageerror',e=>pageErrors.push(e.message));
+    await page.goto(APP,{waitUntil:'networkidle'});
+    await page.waitForTimeout(1200);
+    const shift=await page.evaluate(()=>{
+      const X=window.XLSX;
+      // Header-Reihenfolge bewusst ANDERS als die festen Fallback-Indizes:
+      // idx0=Lauf-Nr.(extra), 1=Anreise, 2=Kat., 3=Zimmer, 4=Gastname(n), 5=Nächte,
+      // 6=Personen, 7=Bemerk., 8=Res.-Status, 9=Res.-Nr., 10=Abreise
+      const H=['Lauf-Nr.','Anreise','Kat.','Zimmer','Gastname(n)','Nächte','Personen','Bemerk.','Res.-Status','Res.-Nr.','Abreise'];
+      const mkArr=()=>{
+        // Zeile 0 mit Titel verankern, sonst setzt aoa_to_sheet den Bereich erst bei der
+        // ersten belegten Zeile an und verschiebt beim Rücklesen alle Indizes.
+        const aoa=[['Anreiseliste'],[],[],['Vom: 12.07.2026'],[],[],H,
+          ['1','12.07.26','DZ','641','Muster Max','3','2','Kuchen','angereist','700123','']];
+        return {SheetNames:['DynamicListReport_1'],Sheets:{'DynamicListReport_1':X.utils.aoa_to_sheet(aoa)}};
+      };
+      const mkDep=()=>{
+        const aoa=[['Abreiseliste'],[],[],['Vom: 12.07.2026'],[],[],H,
+          ['1','10.07.26','DZ','742','Probe Petra','2','3','Fenster','abgereist','700456','12.07.26']];
+        return {SheetNames:['DynamicListReport_1'],Sheets:{'DynamicListReport_1':X.utils.aoa_to_sheet(aoa)}};
+      };
+      const a=parsePanoramaArrival(mkArr());
+      const d=parsePanoramaDeparture(mkDep());
+      return{
+        aOk:!!a&&a.rows.length===1,
+        aZimmer:a&&a.rows[0]?a.rows[0].Zimmernummer:null,
+        aName:a&&a.rows[0]?a.rows[0].Nachname:null,
+        aPax:a&&a.rows[0]?a.rows[0].AnzahlPersonen:null,
+        aRes:a&&a.rows[0]?a.rows[0].GastID:null,
+        dOk:!!d&&d.rows.length===1,
+        dZimmer:d&&d.rows[0]?d.rows[0].Zimmernummer:null,
+        dName:d&&d.rows[0]?d.rows[0].Nachname:null,
+        dPax:d&&d.rows[0]?d.rows[0].AnzahlPersonen:null,
+        dCheckOut:d&&d.rows[0]?d.rows[0].CheckOut:null
+      };
+    });
+    check('Keine JS-Laufzeitfehler (Spaltenerkennung)',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
+    check('Anreise: Zimmer per Name gelesen (641, nicht feste Position)',shift.aZimmer==='641','gelesen: '+shift.aZimmer);
+    check('Anreise: Gastname per Name gelesen (Muster)',shift.aName==='Muster','gelesen: '+shift.aName);
+    check('Anreise: Personen per Name gelesen (2)',shift.aPax==='2','gelesen: '+shift.aPax);
+    check('Anreise: Res.-Nr. per Name gelesen (700123)',shift.aRes==='700123','gelesen: '+shift.aRes);
+    check('Abreise: Zimmer per Name gelesen (742, nicht feste Position)',shift.dZimmer==='742','gelesen: '+shift.dZimmer);
+    check('Abreise: Gastname per Name gelesen (Probe)',shift.dName==='Probe','gelesen: '+shift.dName);
+    check('Abreise: Personen per Name gelesen (3)',shift.dPax==='3','gelesen: '+shift.dPax);
+    check('Abreise: Abreisedatum per Name gelesen (2026-07-12)',shift.dCheckOut==='2026-07-12','gelesen: '+shift.dCheckOut);
+    await page.close();
+  }
+
   await browser.close();
   console.log('\n'+results.join('\n'));
   console.log('\n'+(failures===0?'✅ ALLE TESTS BESTANDEN':'❌ '+failures+' TEST(S) FEHLGESCHLAGEN — NICHT PUSHEN!'));
