@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-ck</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cl</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-ck · 12.07.2026</span>
+          <span class="set-version">v.25.06-cl · 14.07.2026</span>
         </div>
       </div>
 
@@ -6241,6 +6241,26 @@ function buildPruefberichtSheet(wb){
   return ws;
 }
 
+// Split-/Zusatztische (z.B. „632_1"/„632_2") auf ihren Stammtisch („632") falten, wenn die
+// Vorlage nur den Stammtisch als Zeile kennt. Der Hotelier teilt einen Tisch in zwei kleine
+// Parteien (632_1 Potschka / 632_2 Büllmann); unsere Blanco-Vorlage hat aber nur die Zeile
+// „632". Ohne Faltung fänden diese `_N`-Tische keine Zeile → der Export-Selbsttest meldete sie
+// als „fehlend" und blockierte den Download hart (Fund 15.07.). Hier werden beide Parteien in
+// die vorhandene Basiszeile zusammengeführt (Mehr-Parteien-Pfad des Exports) — kein Gast geht
+// verloren, kein harter Stopp. Rein: {tischId:[gäste]}, mapKeys: Set/Objekt der Vorlagen-Tische.
+// Raus: neues Objekt mit gefalteten Schlüsseln (Eingabe bleibt unverändert).
+function foldSplitTables(guestsByTable,templateMap){
+  const has=tid=>templateMap&&(templateMap instanceof Set?templateMap.has(tid):Object.prototype.hasOwnProperty.call(templateMap,tid));
+  const out={};
+  Object.keys(guestsByTable||{}).forEach(tid=>{
+    const base=String(tid).split('_')[0];
+    // Nur falten, wenn: es ist ein Splittisch (632_1≠632), die Vorlage kennt ihn NICHT selbst,
+    // kennt aber den Stammtisch. Sonst 1:1 übernehmen.
+    const target=(tid!==base&&!has(tid)&&has(base))?base:tid;
+    (out[target]=out[target]||[]).push(...guestsByTable[tid]);
+  });
+  return out;
+}
 async function buildFilledTischplanSheet(){
   if(!calcDone||(lastTables||[]).length===0) return null;
   // Frisches Workbook — kein Template-Laden, keine ExcelJS/SheetJS-Inkompatibilität.
@@ -6259,7 +6279,7 @@ async function buildFilledTischplanSheet(){
   ws.getColumn(7).width=30; // Extras
   // Gast-Lookup: tisch_id → [alle Gäste] — inkl. verlinkter Mehrfach-Buchungen (zu #...)
   // Direkt aus assignedGuests, nicht aus lastTables.gast_id (das speichert nur gs[0])
-  const guestsByTable={};
+  let guestsByTable={};
   (assignedGuests||[]).forEach(g=>{
     if(g.zugewiesener_tisch){
       const tid=String(g.zugewiesener_tisch);
@@ -6276,6 +6296,9 @@ async function buildFilledTischplanSheet(){
   // Struktur (führende Spalte, graue Abschnitts-Überschriften, Notiz-Sektionen, Info-Zeile)
   // wird übernommen; nur die Gastdaten je Tisch werden eingefüllt — KEINE Kategorie-Farben.
   if(tischplanTemplate&&Object.keys(tischplanMap||{}).length>0){
+    // Splittische (632_1/632_2) auf ihre Vorlagen-Basiszeile (632) falten, bevor gefüllt und
+    // geprüft wird — sonst blockiert die „fehlende Tische"-Sperre den Export (Fund 15.07.).
+    guestsByTable=foldSplitTables(guestsByTable,tischplanMap);
     fillTischplanFromTemplate(ws,guestsByTable);
     // ── Selbstprüfung gegen stillen Gästeverlust (Lehre aus dem Panorama-Vorfall
     // 01.07.2026): JEDER platzierte Gast muss im Tischplan-Blatt auftauchen. Wenn

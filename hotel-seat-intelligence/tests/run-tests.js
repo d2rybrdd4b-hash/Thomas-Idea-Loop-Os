@@ -507,6 +507,48 @@ async function exportInvariants(page){
     await page.close();
   }
 
+  // ══ Splittische auf Vorlagen-Basiszeile falten (Export-Sperre 15.07.) ══
+  // Der Hotelier teilt einen Tisch in zwei Parteien (632_1 / 632_2); die Vorlage kennt aber
+  // nur die Zeile „632". foldSplitTables muss beide Parteien in „632" zusammenführen, damit
+  // der Export-Selbsttest sie nicht als „fehlend" meldet und den Download hart blockiert.
+  {
+    results.push('▶ Sy Splittische auf Basiszeile falten (632_1/632_2 → 632)');
+    const page=await browser.newPage();
+    const pageErrors=[];
+    page.on('pageerror',e=>pageErrors.push(e.message));
+    await page.goto(APP,{waitUntil:'networkidle'});
+    await page.waitForTimeout(1200);
+    const fold=await page.evaluate(()=>{
+      // Vorlage kennt nur „632" (nicht 632_1/632_2), zusätzlich reguläre Tische 611/641.
+      const tmap={'611':{r:3},'632':{r:6},'641':{r:9}};
+      const gbt={
+        '611':[{nachname:'Knoll'}],
+        '632_1':[{nachname:'Potschka'}],
+        '632_2':[{nachname:'Büllmann'}],
+        '641':[{nachname:'König'}]
+      };
+      const out=foldSplitTables(gbt,tmap);
+      // Gegenprobe: existiert der Splittisch selbst in der Vorlage, NICHT falten.
+      const tmap2={'632':{r:6},'632_1':{r:7},'632_2':{r:8}};
+      const out2=foldSplitTables({'632_1':[{nachname:'A'}],'632_2':[{nachname:'B'}]},tmap2);
+      return {
+        has632:!!out['632'], n632:(out['632']||[]).length,
+        names632:(out['632']||[]).map(g=>g.nachname).join('+'),
+        no1:!('632_1'in out), no2:!('632_2'in out),
+        reg611:(out['611']||[]).length===1&&out['611'][0].nachname==='Knoll',
+        reg641:(out['641']||[]).length===1,
+        keepSplit:('632_1'in out2)&&('632_2'in out2)&&!('632'in out2)
+      };
+    });
+    check('Keine JS-Laufzeitfehler (Faltung)',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
+    check('632_1 & 632_2 in Basiszeile 632 gefaltet',fold.has632&&fold.n632===2,'632 hat '+fold.n632+' Parteien');
+    check('Beide Parteien erhalten (Potschka + Büllmann)',fold.names632==='Potschka+Büllmann','Namen: '+fold.names632);
+    check('Kein _N-Schlüssel bleibt übrig',fold.no1&&fold.no2,'632_1 weg: '+fold.no1+', 632_2 weg: '+fold.no2);
+    check('Reguläre Tische unberührt (611, 641)',fold.reg611&&fold.reg641);
+    check('Splittisch MIT eigener Vorlagenzeile wird NICHT gefaltet',fold.keepSplit);
+    await page.close();
+  }
+
   await browser.close();
   console.log('\n'+results.join('\n'));
   console.log('\n'+(failures===0?'✅ ALLE TESTS BESTANDEN':'❌ '+failures+' TEST(S) FEHLGESCHLAGEN — NICHT PUSHEN!'));
