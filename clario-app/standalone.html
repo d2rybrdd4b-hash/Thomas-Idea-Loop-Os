@@ -9393,6 +9393,7 @@ function App() {
   const [pubData, setPubData] = useState(null);
   const [pubLoading, setPubLoading] = useState(!!urlSalon);
   const [pubError, setPubError] = useState(null); // 'notfound' | 'network'
+  const [pubErrDetail, setPubErrDetail] = useState("");
   const [pubPage, setPubPage] = useState("booking");
   const [authChecked, setAuthChecked] = useState(!!urlSalon || cachedOnboarded);
   const [syncBanner, setSyncBanner] = useState(false); // zeigt "Verbindung erneuern"-Banner
@@ -9427,6 +9428,7 @@ function App() {
         } = await sb.from('salons').select('*').eq('slug', urlSalon).single();
         if (salonErr && salonErr.code !== 'PGRST116') {
           setPubError('network');
+          setPubErrDetail([salonErr.code, salonErr.message].filter(Boolean).join(' — '));
           setPubLoading(false);
           return;
         }
@@ -9516,6 +9518,7 @@ function App() {
       } catch (e) {
         console.error('Public booking load error:', e);
         setPubError('network');
+        setPubErrDetail(String(e?.message || e));
       } finally {
         setPubLoading(false);
       }
@@ -9884,13 +9887,31 @@ function App() {
       style: {
         color: "var(--muted)",
         fontSize: 14,
-        marginBottom: 18
+        marginBottom: 6
       }
-    }, "Bitte Internetverbindung prüfen und erneut versuchen."), /*#__PURE__*/React.createElement("button", {
+    }, "Bitte Internetverbindung prüfen und erneut versuchen."), /Failed to fetch|NetworkError|Load failed/i.test(pubErrDetail) && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--warn)",
+        fontSize: 12,
+        marginBottom: 6,
+        fontWeight: 600
+      }
+    }, "Der Server antwortet nicht — möglicherweise ist die Datenbank pausiert."), pubErrDetail && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "var(--muted2)",
+        fontSize: 11,
+        marginBottom: 18,
+        wordBreak: "break-word",
+        maxWidth: 320,
+        marginLeft: "auto",
+        marginRight: "auto"
+      }
+    }, "Technische Ursache: ", pubErrDetail), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-accent",
       style: {
         padding: "13px 24px",
-        fontSize: 14
+        fontSize: 14,
+        marginTop: pubErrDetail ? 0 : 12
       },
       onClick: () => window.location.reload()
     }, "Erneut versuchen")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h2", {
