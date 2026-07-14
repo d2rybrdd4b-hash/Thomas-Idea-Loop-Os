@@ -4392,7 +4392,7 @@ function WaSetupSheet({
     type: "tel",
     value: num,
     onChange: e => setNum(e.target.value),
-    placeholder: "z.B. 01717593277",
+    placeholder: "z.B. 0171 2345678",
     autoFocus: true
   }), /*#__PURE__*/React.createElement("p", {
     style: {
@@ -6887,7 +6887,7 @@ function Settings({
     type: "tel",
     value: waNum,
     onChange: e => setWaNum(e.target.value),
-    placeholder: "z.B. 01717593277"
+    placeholder: "z.B. 0171 2345678"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
@@ -7116,7 +7116,7 @@ function BookingPage({
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
 
-  const activeStaff = state.staff.filter(s => !s.sick);
+  const activeStaff = state.staff.filter(s => !s.sick && s.active !== false);
   const svcStaff = selSvc ? activeStaff.filter(s => !selSvc.staffIds || selSvc.staffIds.length === 0 || selSvc.staffIds.includes(s.id)) : activeStaff;
   const isBlockedDate = selStaff && ((state.availability || {})[selStaff.id]?.blocked || []).includes(selDate);
   const slots = (() => {
@@ -7136,12 +7136,34 @@ function BookingPage({
     const [eh, em] = avail.end.split(":").map(Number);
     let cur = sh * 60 + sm;
     const end = eh * 60 + em;
+    const toMin = t => {
+      const [h, m] = String(t).split(":").map(Number);
+      return h * 60 + m;
+    };
+    const svcById = Object.fromEntries((state.services || []).map(v => [v.id, v]));
+    // Belegte Intervalle dieser Mitarbeiterin an diesem Tag (Dauer + Puffer der jeweiligen Buchung)
+    const busy = state.bookings.filter(b => b.staffId === selStaff.id && b.date === selDate && b.status !== "cancelled" && b.startTime).map(b => {
+      const bSvc = svcById[b.serviceId] || {};
+      const bDur = (b.serviceDuration || bSvc.duration || 30) + (bSvc.buffer || 0);
+      const bStart = toMin(b.startTime);
+      return [bStart, bStart + bDur];
+    });
+    const isToday = selDate === today();
+    const nowMin = (() => {
+      const n = new Date();
+      return n.getHours() * 60 + n.getMinutes();
+    })();
     const result = [];
     while (cur + dur <= end) {
+      if (isToday && cur < nowMin) {
+        cur += dur + buf;
+        continue;
+      } // vergangene Zeiten heute ausblenden
       const hh = String(Math.floor(cur / 60)).padStart(2, "0");
       const mm = String(cur % 60).padStart(2, "0");
       const label = `${hh}:${mm}`;
-      const conflict = state.bookings.some(b => b.staffId === selStaff.id && b.date === selDate && b.startTime === label && b.status !== "cancelled");
+      const slotEnd = cur + dur + buf;
+      const conflict = busy.some(([bs, be]) => bs < slotEnd && cur < be);
       result.push({
         label,
         booked: conflict
@@ -7168,9 +7190,9 @@ function BookingPage({
       }
       // Doppelbuchungs-Prüfung
       const {
-        data: conflict
-      } = await sb.from('bookings').select('id').eq('salon_id', salonId).eq('staff_id', selStaff.id).eq('date', selDate).eq('start_time', selTime).neq('status', 'cancelled').maybeSingle();
-      if (conflict) {
+        data: conflictRows
+      } = await sb.from('bookings').select('id').eq('salon_id', salonId).eq('staff_id', selStaff.id).eq('date', selDate).eq('start_time', selTime).neq('status', 'cancelled').limit(1);
+      if (conflictRows && conflictRows.length > 0) {
         setSubmitting(false);
         setErr("Dieser Termin wurde soeben vergeben. Bitte wähle eine andere Zeit.");
         setStep(4);
@@ -9421,7 +9443,7 @@ function App() {
           data: availRows
         }, {
           data: bkRows
-        }] = await Promise.all([sb.from('staff').select('*').eq('salon_id', salon.id).eq('active', true), sb.from('services').select('*').eq('salon_id', salon.id), sb.from('availability').select('*').eq('salon_id', salon.id), sb.from('bookings').select('id,staff_id,date,start_time,status').eq('salon_id', salon.id).neq('status', 'cancelled')]);
+        }] = await Promise.all([sb.from('staff').select('*').eq('salon_id', salon.id).eq('active', true), sb.from('services').select('*').eq('salon_id', salon.id), sb.from('availability').select('*').eq('salon_id', salon.id), sb.from('bookings').select('id,staff_id,service_id,date,start_time,status').eq('salon_id', salon.id).neq('status', 'cancelled')]);
         let finalSvcs = svcRows || [];
         let finalStaff = staffRows || [];
         if ((svcErr || finalSvcs.length === 0) && salon.services_json) {
@@ -9460,6 +9482,7 @@ function App() {
         const bookings = (bkRows || []).map(b => ({
           id: b.id,
           staffId: b.staff_id,
+          serviceId: b.service_id,
           date: b.date,
           startTime: b.start_time,
           status: b.status
@@ -9581,11 +9604,11 @@ function App() {
               supabaseId: salon.id,
               whatsapp: salon.whatsapp_number || ""
             },
-            staff: staffRows?.length ? staffRows.map(m => ({
+            staff: staffRows?.length ? staffRows.filter(m => m.active !== false).map(m => ({
               id: m.id,
               name: m.name,
               color: m.color || '#4FD1C5',
-              active: m.active !== false,
+              active: true,
               sick: m.sick || false
             })) : s.staff,
             services: svcRows?.length ? svcRows.map(sv => ({
