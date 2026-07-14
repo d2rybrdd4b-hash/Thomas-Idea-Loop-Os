@@ -28,12 +28,14 @@
 <body>
   <div id="err"></div>
   <div id="splash">
-    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="72" height="72" rx="18" fill="rgba(194,81,46,.12)"/>
-      <path d="M22 22h28a4 4 0 014 4v12a4 4 0 01-4 4H22a4 4 0 01-4-4V26a4 4 0 014-4z" fill="#C2512E"/>
-      <circle cx="36" cy="50" r="5" fill="rgba(194,81,46,.7)"/>
-      <circle cx="24" cy="50" r="3.5" fill="rgba(194,81,46,.4)"/>
-      <circle cx="48" cy="50" r="3.5" fill="rgba(194,81,46,.4)"/>
+    <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="splash-g" x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#E0764E"/><stop offset=".52" stop-color="#C2512E"/><stop offset="1" stop-color="#8F3315"/>
+        </linearGradient>
+      </defs>
+      <rect width="72" height="72" rx="17" fill="url(#splash-g)"/>
+      <text x="35" y="37.5" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="47" font-style="italic" font-weight="600" fill="#FDF6EE">S</text>
     </svg>
     <p>Slotly wird geladen…</p>
   </div>
