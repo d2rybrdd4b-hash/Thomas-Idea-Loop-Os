@@ -1071,7 +1071,7 @@ function Landing({
     }
   }, "Kunden buchen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       ...lpAccentText()
     }
   }, "Du arbeitest.")), /*#__PURE__*/React.createElement("p", {
@@ -1274,7 +1274,7 @@ function Landing({
     }
   }, "In 3 Schritten", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       ...lpAccentText()
     }
   }, "online buchbar."))), /*#__PURE__*/React.createElement("div", {
@@ -1395,7 +1395,7 @@ function Landing({
     }
   }, "Alles, was dein Betrieb", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       ...lpAccentText()
     }
   }, "wirklich braucht."))), /*#__PURE__*/React.createElement("div", {
@@ -1507,7 +1507,7 @@ function Landing({
       lineHeight: 1.5,
       color: "rgba(26,38,32,.9)",
       marginBottom: 30,
-      fontStyle: "italic",
+      fontStyle: "normal",
       letterSpacing: "-.015em"
     }
   }, "Seit Slotly verwende ich kaum noch Zeit auf Terminabsprachen. Kunden buchen selbst — ich muss nur noch arbeiten."), /*#__PURE__*/React.createElement("div", {
@@ -1604,7 +1604,7 @@ function Landing({
     }
   }, "Krank? ", /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       color: "#17914E"
     }
   }, "Drei Taps.")), /*#__PURE__*/React.createElement("p", {
@@ -1725,7 +1725,7 @@ function Landing({
     }
   }, "Ehrlich, einfach,", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       ...lpAccentText()
     }
   }, "ohne Überraschungen.")), /*#__PURE__*/React.createElement("p", {
@@ -1914,7 +1914,7 @@ function Landing({
     }
   }, "Kunden buchen ab morgen selbst.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("em", {
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       ...lpAccentText()
     }
   }, "Probier's gratis aus.")), /*#__PURE__*/React.createElement("p", {
@@ -3992,7 +3992,7 @@ function SickModeWizard({
   }, "Geschafft! ", /*#__PURE__*/React.createElement("em", {
     className: "grad-text",
     style: {
-      fontStyle: "italic"
+      fontStyle: "normal"
     }
   }, "Alles erledigt.")), /*#__PURE__*/React.createElement("p", {
     style: {
@@ -5687,7 +5687,7 @@ function Dashboard({
   }, "Hallo ", /*#__PURE__*/React.createElement("em", {
     className: "grad-text",
     style: {
-      fontStyle: "italic",
+      fontStyle: "normal",
       fontWeight: 600
     }
   }, (salon.ownerName || "Inhaber").split(" ")[0]))), pendingCount > 0 && /*#__PURE__*/React.createElement("div", {
@@ -7338,15 +7338,41 @@ function Dashboard({
   }), sheet === "newBooking" && /*#__PURE__*/React.createElement(NewBooking, {
     state: state,
     onClose: () => setSheet(null),
-    onSave: b => {
+    onSave: async b => {
+      // In Supabase speichern — sonst geht der Termin beim Logout/Gerätewechsel verloren
+      let bookingId = "b_" + uid();
+      if (salon.supabaseId) {
+        try {
+          const {
+            data: ins
+          } = await sb.from('bookings').insert({
+            salon_id: salon.supabaseId,
+            staff_id: b.staffId || null,
+            service_id: b.serviceId || null,
+            customer_name: b.customerName || "",
+            customer_phone: b.customerPhone || "",
+            date: b.date,
+            start_time: b.startTime,
+            status: 'confirmed'
+          }).select('id').single();
+          if (ins?.id) bookingId = ins.id;
+        } catch (e) {}
+      }
+      const svc = state.services.find(s => s.id === b.serviceId);
+      const mbr = state.staff.find(m => m.id === b.staffId);
       update(st => ({
         ...st,
         bookings: [...st.bookings, {
           ...b,
-          id: "b_" + uid()
+          id: bookingId,
+          serviceName: svc?.name,
+          serviceDuration: svc?.duration,
+          servicePrice: svc?.price,
+          staffName: mbr?.name,
+          via: "manuell"
         }]
       }));
-      showToast("Termin angelegt");
+      showToast(bookingId.startsWith("b_") ? "Termin angelegt — nur auf diesem Gerät (offline)" : "Termin angelegt");
       setSheet(null);
     }
   }), sheet?.type === "booking" && /*#__PURE__*/React.createElement(BookingDetail, {
@@ -9147,7 +9173,7 @@ function BookingPage({
       style: {
         fontSize: 11,
         color: "var(--muted)",
-        fontStyle: "italic"
+        fontStyle: "normal"
       }
     }, "Clear bookings. Calm days."))), /*#__PURE__*/React.createElement("p", {
       style: {
