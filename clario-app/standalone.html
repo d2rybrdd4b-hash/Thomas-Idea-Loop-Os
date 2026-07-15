@@ -2738,6 +2738,184 @@ function Recovery({
 }
 
 // ─── SHEET BASE ───────────────────────────────────────────────
+// ─── WARTELISTE (Owner): Lücke füllen + Übersicht ────────────
+function WlRow({
+  c,
+  waHref,
+  onRemove
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "row",
+    style: {
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, c.customer_name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)"
+    }
+  }, c.service_name || "Beliebiger Service", " · ", fmtShort(c.date_from), " – ", fmtShort(c.date_to), c.time_from ? ` · ${c.time_from.slice(0, 5)}–${(c.time_to || "").slice(0, 5)} Uhr` : "")), /*#__PURE__*/React.createElement("a", {
+    className: "btn btn-wa",
+    style: {
+      padding: "9px 12px",
+      fontSize: 12,
+      flexShrink: 0
+    },
+    href: waHref,
+    target: "_blank",
+    rel: "noopener noreferrer"
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 14
+  }), "Anbieten"), /*#__PURE__*/React.createElement("button", {
+    onClick: onRemove,
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      cursor: "pointer",
+      padding: 6,
+      flexShrink: 0
+    },
+    title: "Von Warteliste entfernen"
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "x",
+    s: 14
+  })));
+}
+function GapFillSheet({
+  data,
+  salon,
+  onClose,
+  showToast
+}) {
+  const {
+    booking,
+    candidates
+  } = data;
+  const [list, setList] = useState(candidates);
+  const remove = async id => {
+    try {
+      await sb.from('waitlist').delete().eq('id', id);
+    } catch (e) {}
+    setList(l => l.filter(x => x.id !== id));
+    showToast("Von Warteliste entfernt");
+  };
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Lücke füllen"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: "12px 14px",
+      marginBottom: 14,
+      fontSize: 13
+    }
+  }, "Frei geworden: ", /*#__PURE__*/React.createElement("strong", null, fmtLong(booking.date), " · ", booking.startTime, " Uhr"), booking.serviceName ? ` · ${booking.serviceName}` : ""), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "var(--muted)",
+      marginBottom: 14
+    }
+  }, list.length === 1 ? "Diese Kundin wartet" : "Diese Kundinnen warten", " auf einen Termin in dem Zeitraum — tippe ", /*#__PURE__*/React.createElement("strong", null, "Anbieten"), ", WhatsApp öffnet sich mit fertiger Nachricht:"), list.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      textAlign: "center",
+      fontSize: 13,
+      color: "var(--muted)",
+      marginBottom: 12
+    }
+  }, "Keine passenden Einträge mehr."), list.map(c => {
+    const phone = (c.customer_phone || "").replace(/\D/g, "").replace(/^0/, "49");
+    const msg = encodeURIComponent(`Hallo ${c.customer_name} 👋,\n\n` + `bei ${salon.name} ist kurzfristig ein Termin frei geworden:\n\n` + (booking.serviceName ? `✂️ ${booking.serviceName}\n` : "") + `📅 ${fmtLong(booking.date)}\n⏰ ${booking.startTime} Uhr\n\n` + `Hier direkt buchen — wer zuerst bucht, bekommt den Platz:\n${BOOKING_BASE}${salon.slug}\n\n– ${salon.name}`);
+    return /*#__PURE__*/React.createElement(WlRow, {
+      key: c.id,
+      c: c,
+      waHref: `https://wa.me/${phone}?text=${msg}`,
+      onRemove: () => remove(c.id)
+    });
+  }));
+}
+function WaitlistSheet({
+  salon,
+  onClose,
+  showToast
+}) {
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const {
+          data
+        } = await sb.from('waitlist').select('*').eq('salon_id', salon.supabaseId).gte('date_to', today()).order('created_at', {
+          ascending: true
+        });
+        setList(data || []);
+      } catch (e) {
+        setList([]);
+      }
+    })();
+  }, []);
+  const remove = async id => {
+    try {
+      await sb.from('waitlist').delete().eq('id', id);
+    } catch (e) {}
+    setList(l => l.filter(x => x.id !== id));
+    showToast("Entfernt");
+  };
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Warteliste"
+  }, list === null ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "var(--muted)",
+      fontSize: 13,
+      padding: "8px 0 20px"
+    }
+  }, "Wird geladen…") : list.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 20,
+      textAlign: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: "var(--muted)",
+      marginBottom: 6
+    }
+  }, "Noch niemand auf der Warteliste."), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted2)"
+    }
+  }, "Kundinnen können sich auf deiner Buchungsseite eintragen, wenn kein passender Termin frei ist.")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, list.map(c => {
+    const phone = (c.customer_phone || "").replace(/\D/g, "").replace(/^0/, "49");
+    const msg = encodeURIComponent(`Hallo ${c.customer_name} 👋,\n\n` + `gute Nachricht von ${salon.name}: Es sind wieder Termine frei!\n\n` + `Hier direkt buchen:\n${BOOKING_BASE}${salon.slug}\n\n– ${salon.name}`);
+    return /*#__PURE__*/React.createElement(WlRow, {
+      key: c.id,
+      c: c,
+      waHref: `https://wa.me/${phone}?text=${msg}`,
+      onRemove: () => remove(c.id)
+    });
+  })));
+}
 function Sheet({
   children,
   onClose,
@@ -6148,7 +6326,31 @@ function Dashboard({
         marginTop: 4,
         letterSpacing: "-.02em"
       }
-    }, "Termine")), /*#__PURE__*/React.createElement("button", {
+    }, "Termine")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 14,
+        alignItems: "center",
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setSheet("waitlist"),
+      style: {
+        background: "none",
+        border: "none",
+        color: "var(--accent)",
+        fontSize: 13,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        fontWeight: 600,
+        padding: "4px 0"
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "users",
+      s: 14
+    }), "Warteliste"), /*#__PURE__*/React.createElement("button", {
       onClick: refreshBookings,
       disabled: refreshing,
       style: {
@@ -6161,8 +6363,7 @@ function Dashboard({
         alignItems: "center",
         gap: 4,
         fontWeight: 600,
-        padding: "4px 0",
-        marginBottom: 6
+        padding: "4px 0"
       }
     }, /*#__PURE__*/React.createElement("svg", {
       width: "16",
@@ -6180,7 +6381,7 @@ function Dashboard({
       points: "23 4 23 10 17 10"
     }), /*#__PURE__*/React.createElement("path", {
       d: "M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
-    })), refreshing ? "…" : "Sync")), /*#__PURE__*/React.createElement("div", {
+    })), refreshing ? "…" : "Sync"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 6,
@@ -6749,6 +6950,25 @@ function Dashboard({
       }));
       setSheet(null);
       showToast("Abgesagt");
+      // Warteliste prüfen: wartet jemand auf genau diese Lücke?
+      try {
+        if (salon.supabaseId) {
+          const {
+            data: wlRows
+          } = await sb.from('waitlist').select('*').eq('salon_id', salon.supabaseId).lte('date_from', b.date).gte('date_to', b.date);
+          const cand = (wlRows || []).filter(w => (!w.time_from || b.startTime >= w.time_from.slice(0, 5)) && (!w.time_to || b.startTime <= w.time_to.slice(0, 5)));
+          if (cand.length > 0) setSheet({
+            type: "gapfill",
+            data: {
+              booking: {
+                ...b,
+                serviceName: b.serviceName || svc?.name
+              },
+              candidates: cand
+            }
+          });
+        }
+      } catch (e) {}
       // WhatsApp-Absage an Kunden
       if (b.customerPhone) {
         const waPhone = b.customerPhone.replace(/\D/g, "").replace(/^0/, "49");
@@ -6773,6 +6993,15 @@ function Dashboard({
       showToast("Bestätigt");
       setSheet(null);
     }
+  }), sheet?.type === "gapfill" && /*#__PURE__*/React.createElement(GapFillSheet, {
+    data: sheet.data,
+    salon: salon,
+    onClose: () => setSheet(null),
+    showToast: showToast
+  }), sheet === "waitlist" && /*#__PURE__*/React.createElement(WaitlistSheet, {
+    salon: salon,
+    onClose: () => setSheet(null),
+    showToast: showToast
   }), sheet === "avail" && /*#__PURE__*/React.createElement(AvailSheet, {
     state: state,
     update: update,
@@ -7277,7 +7506,13 @@ function BookingPage({
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
-
+  const [wl, setWl] = useState({
+    open: false,
+    range: "7",
+    time: "any",
+    saving: false,
+    done: false
+  });
   const activeStaff = state.staff.filter(s => !s.sick && s.active !== false);
   const svcStaff = selSvc ? activeStaff.filter(s => !selSvc.staffIds || selSvc.staffIds.length === 0 || selSvc.staffIds.includes(s.id)) : activeStaff;
   const isBlockedDate = selStaff && ((state.availability || {})[selStaff.id]?.blocked || []).includes(selDate);
@@ -7444,6 +7679,42 @@ function BookingPage({
       setSubmitting(false);
     }
     setStep(5);
+  };
+  const joinWaitlist = async () => {
+    if (!isPublic) return;
+    if (salonId === 'demo') {
+      setWl(w => ({
+        ...w,
+        done: true
+      }));
+      return;
+    }
+    setWl(w => ({
+      ...w,
+      saving: true
+    }));
+    const d = new Date();
+    d.setDate(d.getDate() + (wl.range === "14" ? 14 : 7));
+    const {
+      error
+    } = await sb.from('waitlist').insert({
+      salon_id: salonId,
+      customer_name: form.name.trim(),
+      customer_phone: form.phone.trim(),
+      service_id: selSvc ? String(selSvc.id) : null,
+      service_name: selSvc?.name || null,
+      staff_name: selStaff?.name || null,
+      date_from: today(),
+      date_to: localDateStr(d),
+      time_from: wl.time === "am" ? "08:00" : wl.time === "pm" ? "12:00" : null,
+      time_to: wl.time === "am" ? "12:00" : wl.time === "pm" ? "21:00" : null
+    });
+    setWl(w => ({
+      ...w,
+      saving: false,
+      done: !error
+    }));
+    if (error) setErr("Warteliste gerade nicht verfügbar. (" + (error.message || "") + ")");
   };
   const steps = ["Kontakt", "Service", "Mitarbeiter", "Termin"];
   return /*#__PURE__*/React.createElement("div", {
@@ -7935,7 +8206,125 @@ function BookingPage({
   }, "Jetzt buchen ", /*#__PURE__*/React.createElement(I, {
     n: "check",
     s: 17
-  }))))), step === 5 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
+  })))), isPublic && (wl.done ? /*#__PURE__*/React.createElement("div", {
+    className: "card-wa",
+    style: {
+      padding: 16,
+      textAlign: "center",
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      marginBottom: 4,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "check",
+    s: 15
+  }), "Du stehst auf der Warteliste"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, "Der Salon meldet sich per WhatsApp, sobald kurzfristig etwas frei wird.")) : wl.open ? /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginBottom: 4
+    }
+  }, "Auf die Warteliste"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      marginBottom: 12
+    }
+  }, "Wird kurzfristig ein Termin frei, meldet sich der Salon bei dir per WhatsApp."), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Zeitraum"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, [["7", "Nächste 7 Tage"], ["14", "Nächste 14 Tage"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setWl(w => ({
+      ...w,
+      range: v
+    })),
+    className: "btn",
+    style: {
+      flex: 1,
+      padding: "10px 6px",
+      fontSize: 12,
+      fontWeight: 600,
+      background: wl.range === v ? "var(--accent)" : "#fff",
+      color: wl.range === v ? "#fff" : "var(--ink)",
+      border: wl.range === v ? "none" : "1.5px solid var(--border2)",
+      borderRadius: 10
+    }
+  }, l))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Uhrzeit"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 14
+    }
+  }, [["any", "Egal"], ["am", "Vormittags"], ["pm", "Nachmittags"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setWl(w => ({
+      ...w,
+      time: v
+    })),
+    className: "btn",
+    style: {
+      flex: 1,
+      padding: "10px 4px",
+      fontSize: 12,
+      fontWeight: 600,
+      background: wl.time === v ? "var(--accent)" : "#fff",
+      color: wl.time === v ? "#fff" : "var(--ink)",
+      border: wl.time === v ? "none" : "1.5px solid var(--border2)",
+      borderRadius: 10
+    }
+  }, l))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      width: "100%",
+      padding: 14
+    },
+    disabled: wl.saving,
+    onClick: joinWaitlist
+  }, wl.saving ? "Wird eingetragen…" : "Eintragen")) : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-skip",
+    style: {
+      width: "100%",
+      marginTop: 18,
+      padding: 14
+    },
+    onClick: () => setWl(w => ({
+      ...w,
+      open: true
+    }))
+  }, "Kein passender Termin? → Auf die Warteliste"))), step === 5 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
     className: "fade",
     style: {
       paddingBottom: 40
