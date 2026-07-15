@@ -113,6 +113,8 @@ body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); m
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes waPulse{0%,100%{box-shadow:0 0 0 0 rgba(29,168,81,.4)}70%{box-shadow:0 0 0 14px transparent}}
 @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel{background:linear-gradient(90deg,var(--bg3) 25%,#fff 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:10px}
 
 .a1{animation:fadeUp .6s ease both}.a2{animation:fadeUp .6s .1s ease both}
 .a3{animation:fadeUp .6s .2s ease both}.a4{animation:fadeUp .6s .3s ease both}
@@ -2770,6 +2772,22 @@ const PRINT_THEMES = [{
   dark: "#0F1F52",
   text: "#172B66"
 }];
+function hexA(hex, a) {
+  const h = hex.replace('#', '');
+  return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`;
+}
+
+// Markenfarbe des Salons als CSS-Override für die öffentliche Buchungsseite
+function brandCss(themeId) {
+  const t = PRINT_THEMES.find(x => x.id === themeId);
+  if (!t || t.id === "green") return "";
+  return `:root{--accent:${t.main};--accent2:${t.dark};--accent3:${t.light};--accent-soft:${hexA(t.main, .07)};--accent-soft2:${hexA(t.main, .15)};--accent-glow:${hexA(t.main, .2)};--accent-deep:${t.dark};}
+.btn-accent{background:linear-gradient(135deg,${t.main},${t.light})}
+.slot.act,.dchip.act{background:linear-gradient(135deg,${t.main},${t.light})}
+.step-circle{background:linear-gradient(135deg,${t.main},${t.light})}
+.pfill{background:linear-gradient(90deg,${t.main},${t.light})}
+.grad-text{background:linear-gradient(135deg,${t.main},${t.light});-webkit-background-clip:text;background-clip:text}`;
+}
 function drawQrOn(ctx, x, y, size, text, color) {
   try {
     const qr = window.qrcode(0, 'M');
@@ -3292,13 +3310,24 @@ function WaitlistSheet({
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
     title: "Warteliste"
-  }, list === null ? /*#__PURE__*/React.createElement("p", {
+  }, list === null ? /*#__PURE__*/React.createElement("div", {
     style: {
-      color: "var(--muted)",
-      fontSize: 13,
-      padding: "8px 0 20px"
+      marginBottom: 16
     }
-  }, "Wird geladen…") : list.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 62,
+      borderRadius: 14,
+      marginBottom: 8
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 62,
+      borderRadius: 14
+    }
+  })) : list.length === 0 ? /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 20,
@@ -7661,6 +7690,80 @@ function Settings({
       marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 4
+    }
+  }, "Buchungsseite — Markenfarbe"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      marginBottom: 12
+    }
+  }, "Deine Kundinnen sehen die Buchungsseite in dieser Farbe."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: 6
+    }
+  }, PRINT_THEMES.map(t => {
+    const act = (state.salon.brand || "green") === t.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: t.id,
+      onClick: async () => {
+        update(s => ({
+          ...s,
+          salon: {
+            ...s.salon,
+            brand: t.id
+          }
+        }));
+        if (state.salon.supabaseId) {
+          try {
+            const {
+              error
+            } = await sb.from('salons').update({
+              brand_color: t.id
+            }).eq('id', state.salon.supabaseId);
+            showToast(error ? "Nicht gespeichert: " + (error.message || "Fehler") : "Farbe gespeichert", error ? "err" : "ok");
+          } catch (e) {
+            showToast("Offline — Farbe nur lokal", "err");
+          }
+        } else showToast("Farbe gespeichert");
+      },
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        padding: "10px 4px",
+        borderRadius: 12,
+        cursor: "pointer",
+        background: act ? "var(--accent-soft)" : "#fff",
+        border: act ? "2px solid var(--accent)" : "1.5px solid var(--border2)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        background: t.main,
+        border: "1px solid rgba(0,0,0,.15)"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "var(--ink)"
+      }
+    }, t.name));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 18,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -10502,7 +10605,8 @@ function App() {
           salon: {
             name: salon.name,
             slug: salon.slug,
-            whatsapp: salon.whatsapp_number
+            whatsapp: salon.whatsapp_number,
+            brand: salon.brand_color || null
           },
           staff: finalStaff.map(s => ({
             id: s.id,
@@ -10613,7 +10717,8 @@ function App() {
               ownerName: salon.owner_name,
               email: salon.email,
               supabaseId: salon.id,
-              whatsapp: salon.whatsapp_number || ""
+              whatsapp: salon.whatsapp_number || "",
+              brand: salon.brand_color || null
             },
             staff: staffRows?.length ? staffRows.filter(m => m.active !== false).map(m => ({
               id: m.id,
@@ -10819,31 +10924,81 @@ function App() {
   if (!authChecked) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100dvh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
       background: "var(--bg)"
     }
   }, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center"
+      padding: "28px 18px 0",
+      maxWidth: 540,
+      margin: "0 auto"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "skel",
     style: {
-      width: 36,
-      height: 36,
-      border: "3px solid var(--accent-soft)",
-      borderTopColor: "var(--accent)",
-      borderRadius: "50%",
-      animation: "spin 0.8s linear infinite",
-      margin: "0 auto 14px"
+      width: 110,
+      height: 11,
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      width: "55%",
+      height: 28,
+      marginBottom: 24
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 88,
+      borderRadius: 16,
+      marginBottom: 16
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      width: "32%",
+      height: 20,
+      marginBottom: 12
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 64,
+      borderRadius: 14,
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 64,
+      borderRadius: 14,
+      marginBottom: 22
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14,
-      color: "var(--muted)"
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8
     }
-  }, "Wird geladen…")));
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 76,
+      borderRadius: 16
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 76,
+      borderRadius: 16
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 76,
+      borderRadius: 16
+    }
+  }))));
   // Offline-first: onboarded user sieht sofort Dashboard, auch ohne aktive Session
 
   // Public-Modus: Kunde kommt via QR-Code ?salon=slug
@@ -10851,18 +11006,80 @@ function App() {
     if (pubLoading) return /*#__PURE__*/React.createElement("div", {
       style: {
         minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         background: "var(--bg)"
       }
     }, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement("div", {
       style: {
-        textAlign: "center",
-        color: "var(--muted)",
-        fontSize: 16
+        background: "#fff",
+        borderBottom: "1px solid var(--border)",
+        padding: "16px 20px"
       }
-    }, "Salon wird geladen…"));
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: 150,
+        height: 18,
+        marginBottom: 8
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: 95,
+        height: 11
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "26px 18px",
+        maxWidth: 540,
+        margin: "0 auto"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: "58%",
+        height: 24,
+        marginBottom: 10
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: "84%",
+        height: 13,
+        marginBottom: 26
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: "30%",
+        height: 12,
+        marginBottom: 8
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        height: 52,
+        marginBottom: 18
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        width: "40%",
+        height: 12,
+        marginBottom: 8
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        height: 52,
+        marginBottom: 26
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "skel",
+      style: {
+        height: 54,
+        borderRadius: 12
+      }
+    })));
     if (!pubData) return /*#__PURE__*/React.createElement("div", {
       style: {
         minHeight: "100dvh",
@@ -10935,15 +11152,16 @@ function App() {
       setPubPage(dest);
       window.scrollTo(0, 0);
     };
-    if (pubPage === "impressum") return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement(ImpressumPage, {
+    const pubBrand = brandCss(pubData.salon.brand);
+    if (pubPage === "impressum") return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), pubBrand && /*#__PURE__*/React.createElement("style", null, pubBrand), /*#__PURE__*/React.createElement(ImpressumPage, {
       salon: pubData.salon,
       go: () => setPubPage("booking")
     }));
-    if (pubPage === "datenschutz") return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement(DatenschutzPage, {
+    if (pubPage === "datenschutz") return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), pubBrand && /*#__PURE__*/React.createElement("style", null, pubBrand), /*#__PURE__*/React.createElement(DatenschutzPage, {
       salon: pubData.salon,
       go: () => setPubPage("booking")
     }));
-    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement(BookingPage, {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, CSS), pubBrand && /*#__PURE__*/React.createElement("style", null, pubBrand), /*#__PURE__*/React.createElement(BookingPage, {
       state: pubData,
       setState: () => {},
       slug: urlSalon,
