@@ -2738,6 +2738,250 @@ function Recovery({
 }
 
 // ─── SHEET BASE ───────────────────────────────────────────────
+// ─── DRUCKVORLAGEN (Visitenkarte + Aufkleber, 300 dpi) ───────
+const MM300 = 11.811; // Pixel pro Millimeter bei 300 dpi
+
+function drawQrOn(ctx, x, y, size, text, color) {
+  try {
+    const qr = window.qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount();
+    const cell = size / n;
+    ctx.fillStyle = color || "#0F3D22";
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function fitText(ctx, text, maxWidth, weight, startMm, family) {
+  let px = Math.round(startMm * MM300);
+  do {
+    ctx.font = weight + " " + px + "px " + (family || "Inter, sans-serif");
+    px -= 4;
+  } while (ctx.measureText(text).width > maxWidth && px > 20);
+}
+function roundedPath(ctx, x, y, w, h, r) {
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+  }
+}
+function PrintSheet({
+  salon,
+  onClose
+}) {
+  const url = `${BOOKING_BASE}${salon.slug}`;
+  const [line1, setLine1] = useState(salon.name || "");
+  const [line2, setLine2] = useState("Termine einfach online buchen");
+  const [phone, setPhone] = useState(salon.whatsapp || "");
+  const cardRef = useRef(null),
+    stickRef = useRef(null);
+
+  // Visitenkarte 85×55 mm + 2 mm Beschnitt rundum = 89×59 mm
+  useEffect(() => {
+    const c = cardRef.current;
+    if (!c) return;
+    const W = Math.round(89 * MM300),
+      H = Math.round(59 * MM300);
+    c.width = W;
+    c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = "#FFFFFF";
+    x.fillRect(0, 0, W, H);
+    x.fillStyle = "#166534";
+    x.fillRect(0, 0, Math.round(4 * MM300), H);
+    const left = Math.round(10 * MM300);
+    const qs = Math.round(30 * MM300);
+    const qx = W - qs - Math.round(8 * MM300);
+    const textMax = qx - left - Math.round(6 * MM300);
+    x.fillStyle = "#123B24";
+    fitText(x, line1 || " ", textMax, "700", 6.4);
+    x.fillText(line1 || " ", left, Math.round(19 * MM300));
+    x.fillStyle = "#5A6B62";
+    fitText(x, line2 || " ", textMax, "400", 3.4);
+    x.fillText(line2 || " ", left, Math.round(26 * MM300));
+    if (phone) {
+      x.fillStyle = "#3D4C45";
+      fitText(x, "Tel. " + phone, textMax, "500", 3.4);
+      x.fillText("Tel. " + phone, left, Math.round(38 * MM300));
+    }
+    x.fillStyle = "#166534";
+    fitText(x, "Scannen & Termin buchen →", textMax, "600", 3.3);
+    x.fillText("Scannen & Termin buchen →", left, Math.round(47 * MM300));
+    drawQrOn(x, qx, Math.round((H - qs) / 2), qs, url);
+  }, [line1, line2, phone]);
+
+  // Aufkleber rund Ø 95 mm + 2 mm Beschnitt = 99 mm (quadratische Datei)
+  useEffect(() => {
+    const c = stickRef.current;
+    if (!c) return;
+    const D = Math.round(99 * MM300);
+    c.width = D;
+    c.height = D;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, D, D);
+    g.addColorStop(0, "#1F7A42");
+    g.addColorStop(1, "#0A3319");
+    x.fillStyle = g;
+    x.fillRect(0, 0, D, D);
+    x.textAlign = "center";
+    x.fillStyle = "#FFFFFF";
+    fitText(x, "TERMINE ONLINE BUCHEN", D - Math.round(20 * MM300), "700", 5.6);
+    x.fillText("TERMINE ONLINE BUCHEN", D / 2, Math.round(17 * MM300));
+    const qs = Math.round(44 * MM300),
+      qx2 = (D - qs) / 2,
+      qy = Math.round(23 * MM300);
+    const pad = Math.round(4 * MM300);
+    x.fillStyle = "#FFFFFF";
+    roundedPath(x, qx2 - pad, qy - pad, qs + 2 * pad, qs + 2 * pad, Math.round(4 * MM300));
+    x.fill();
+    drawQrOn(x, qx2, qy, qs, url);
+    x.fillStyle = "#FFFFFF";
+    fitText(x, line1 || salon.name || "", D - Math.round(24 * MM300), "700", 5.2);
+    x.fillText(line1 || salon.name || "", D / 2, Math.round(84 * MM300));
+    fitText(x, "Einfach scannen — ohne App, ohne Anruf", D - Math.round(20 * MM300), "400", 3.1);
+    x.fillText("Einfach scannen — ohne App, ohne Anruf", D / 2, Math.round(90.5 * MM300));
+    x.textAlign = "left";
+  }, [line1]);
+  const dl = (ref, name) => {
+    try {
+      const a = document.createElement('a');
+      a.download = name;
+      a.href = ref.current.toDataURL('image/png');
+      a.click();
+    } catch (e) {}
+  };
+  const shops = [["Flyeralarm", "https://www.flyeralarm.com/de/"], ["WirmachenDruck", "https://www.wir-machen-druck.de/"], ["Vistaprint", "https://www.vistaprint.de/"]];
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Druckvorlagen"
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "var(--muted)",
+      marginBottom: 14
+    }
+  }, "Visitenkarte und Aufkleber mit deinem QR-Code — Datei herunterladen, bei einer Druckerei hochladen, fertig."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    value: line1,
+    onChange: e => setLine1(e.target.value),
+    placeholder: "Zeile 1 — Salonname"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    value: line2,
+    onChange: e => setLine2(e.target.value),
+    placeholder: "Zeile 2 — Untertitel"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    type: "tel",
+    value: phone,
+    onChange: e => setPhone(e.target.value),
+    placeholder: "Telefon (optional, nur Visitenkarte)"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Visitenkarte · 85×55 mm (+2 mm Beschnitt)"), /*#__PURE__*/React.createElement("canvas", {
+    ref: cardRef,
+    style: {
+      width: "100%",
+      borderRadius: 12,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
+      display: "block"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      width: "100%",
+      padding: 13,
+      marginTop: 10,
+      marginBottom: 20
+    },
+    onClick: () => dl(cardRef, "slotly-visitenkarte-85x55.png")
+  }, "Visitenkarte herunterladen (PNG, 300 dpi)"), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Aufkleber rund · Ø 95 mm (+2 mm Beschnitt)"), /*#__PURE__*/React.createElement("canvas", {
+    ref: stickRef,
+    style: {
+      width: "70%",
+      margin: "0 auto",
+      borderRadius: "50%",
+      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
+      display: "block"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      width: "100%",
+      padding: 13,
+      marginTop: 10,
+      marginBottom: 20
+    },
+    onClick: () => dl(stickRef, "slotly-aufkleber-95mm.png")
+  }, "Aufkleber herunterladen (PNG, 300 dpi)"), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      marginBottom: 8
+    }
+  }, "So bestellst du:"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--ink2)",
+      lineHeight: 1.7,
+      paddingLeft: 18,
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Datei oben herunterladen"), /*#__PURE__*/React.createElement("li", null, "Druckerei öffnen → „Visitenkarten\" bzw. „Aufkleber rund\" wählen"), /*#__PURE__*/React.createElement("li", null, "Eigenes Design hochladen (Maß wie angegeben, „mit Beschnitt\")"), /*#__PURE__*/React.createElement("li", null, "Vorher den QR-Code am Bildschirm mit dem Handy testen!"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, shops.map(([n, u]) => /*#__PURE__*/React.createElement("a", {
+    key: n,
+    className: "btn btn-g",
+    style: {
+      padding: "11px 6px",
+      fontSize: 12
+    },
+    href: u,
+    target: "_blank",
+    rel: "noopener noreferrer"
+  }, n))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted2)",
+      marginBottom: 16
+    }
+  }, "Preise je nach Anbieter und Auflage — bitte direkt vergleichen. Slotly erhält keine Provision."));
+}
+
 // ─── WARTELISTE (Owner): Lücke füllen + Übersicht ────────────
 function WlRow({
   c,
@@ -5963,7 +6207,8 @@ function Dashboard({
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: 8
+      gap: 8,
+      marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn btn-soft",
@@ -5987,7 +6232,15 @@ function Dashboard({
   }, /*#__PURE__*/React.createElement(I, {
     n: "eye",
     s: 14
-  }), "Vorschau"))), /*#__PURE__*/React.createElement("div", {
+  }), "Vorschau")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-g",
+    onClick: () => setSheet("print"),
+    style: {
+      width: "100%",
+      padding: 11,
+      fontSize: 13
+    }
+  }, "🖨️ Visitenkarten & Aufkleber drucken")), /*#__PURE__*/React.createElement("div", {
     className: "cap",
     style: {
       marginBottom: 10
@@ -6870,15 +7123,12 @@ function Dashboard({
     s: 14
   }), "Link kopieren"), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-p",
-    onClick: () => {
-      showToast("Drucken gestartet");
-      setSheet(null);
-    },
+    onClick: () => setSheet("print"),
     style: {
       width: "100%",
       padding: 13
     }
-  }, "QR-Code drucken")), sheet === "newService" && /*#__PURE__*/React.createElement(NewService, {
+  }, "Visitenkarten & Aufkleber erstellen")), sheet === "newService" && /*#__PURE__*/React.createElement(NewService, {
     onClose: () => setSheet(null),
     onSave: svc => {
       update(st => ({
@@ -6993,6 +7243,9 @@ function Dashboard({
       showToast("Bestätigt");
       setSheet(null);
     }
+  }), sheet === "print" && /*#__PURE__*/React.createElement(PrintSheet, {
+    salon: salon,
+    onClose: () => setSheet(null)
   }), sheet?.type === "gapfill" && /*#__PURE__*/React.createElement(GapFillSheet, {
     data: sheet.data,
     salon: salon,
