@@ -5054,6 +5054,20 @@ function Dashboard({
     const svc = services.find(s => s.id === b.serviceId);
     return sum + (Number(svc?.price) || 0);
   }, 0);
+  const nowHM = (() => {
+    const n = new Date();
+    return String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
+  })();
+  const upcomingToday = todayB.filter(b => b.startTime >= nowHM && b.status !== "cancelled");
+  const nextB = upcomingToday[0] || null;
+  const nextShown = nextB || tomorrowB[0] || null;
+  const nextIsTomorrow = !nextB && !!tomorrowB[0];
+  const pendingCount = bookings.filter(b => b.status === "pending").length;
+  const minutesUntil = t => {
+    const [nh, nm] = nowHM.split(":").map(Number);
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m - (nh * 60 + nm);
+  };
   return /*#__PURE__*/React.createElement("div", null, toast && /*#__PURE__*/React.createElement("div", {
     className: `toast ${toast.type === "wa" ? "toast-wa" : ""}`
   }, /*#__PURE__*/React.createElement(I, {
@@ -5083,7 +5097,61 @@ function Dashboard({
       fontStyle: "italic",
       fontWeight: 600
     }
-  }, (salon.ownerName || "Inhaber").split(" ")[0]))), todaySick.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, (salon.ownerName || "Inhaber").split(" ")[0]))), pendingCount > 0 && /*#__PURE__*/React.createElement("div", {
+    onClick: () => {
+      setTab("bookings");
+      setBkFilter("open");
+    },
+    style: {
+      background: "linear-gradient(135deg,var(--warn),#a86420)",
+      borderRadius: 16,
+      padding: "14px 16px",
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      cursor: "pointer",
+      boxShadow: "0 6px 20px rgba(181,116,36,.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,.2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      flexShrink: 0,
+      fontWeight: 800,
+      fontSize: 16
+    }
+  }, pendingCount), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      color: "#fff"
+    }
+  }, pendingCount === 1 ? "Neue Terminanfrage" : "Neue Terminanfragen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "rgba(255,255,255,.75)"
+    }
+  }, "Antippen zum Bestätigen oder Absagen")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#fff",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 16
+  }))), todaySick.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "sick-banner"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5113,219 +5181,91 @@ function Dashboard({
       color: "var(--ink3)",
       marginTop: 2
     }
-  }, todaySick.map(s => staff.find(m => m.id === s.staffId)?.name).filter(Boolean).join(", "))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8,
-      marginBottom: 18
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "stat"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "sn",
-    style: {
-      color: "var(--accent)"
-    }
-  }, todayB.length), /*#__PURE__*/React.createElement("div", {
-    className: "sl"
-  }, "Heute")), /*#__PURE__*/React.createElement("div", {
-    className: "stat"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "sn",
-    style: {
-      color: "var(--success)",
-      fontSize: 18
-    }
-  }, todayRevenue > 0 ? `${todayRevenue}€` : "–"), /*#__PURE__*/React.createElement("div", {
-    className: "sl"
-  }, "Umsatz")), /*#__PURE__*/React.createElement("div", {
-    className: "stat"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "sn",
-    style: {
-      color: "var(--ink3)"
-    }
-  }, bookings.filter(b => b.status !== "cancelled").length), /*#__PURE__*/React.createElement("div", {
-    className: "sl"
-  }, "Gesamt"))), /*#__PURE__*/React.createElement("div", {
-    className: "card-a",
-    style: {
-      padding: 18,
-      marginBottom: 24
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
-    style: {
-      marginBottom: 6
-    }
-  }, "Dein Buchungslink"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--muted)",
-      marginBottom: 14,
-      wordBreak: "break-all"
-    }
-  }, BOOKING_BASE, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--accent)",
-      fontWeight: 600
-    }
-  }, salon.slug)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-soft",
-    onClick: () => setSheet("qr"),
-    style: {
-      padding: 11,
-      fontSize: 13
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "qr",
-    s: 14
-  }), "QR-Code"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-p",
-    onClick: () => go("book", {
-      slug: salon.slug
-    }),
-    style: {
-      padding: 11,
-      fontSize: 13
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "eye",
-    s: 14
-  }), "Vorschau"))), /*#__PURE__*/React.createElement("div", {
-    className: "cap",
-    style: {
-      marginBottom: 10
-    }
-  }, "Schnellaktionen"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10,
-      marginBottom: 24
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSheet("sick"),
-    className: "card lift",
-    style: {
-      padding: 16,
-      textAlign: "left",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      background: "var(--error-soft)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--error)",
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "sick",
-    s: 18
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 14,
-      marginBottom: 2
-    }
-  }, "Krank-Modus"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--muted)"
-    }
-  }, "Kunden informieren")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setSheet("newBooking"),
-    className: "card lift",
-    style: {
-      padding: 16,
-      textAlign: "left",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      background: "var(--accent-soft)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--accent)",
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "plus",
-    s: 18
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 14,
-      marginBottom: 2
-    }
-  }, "Termin anlegen"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--muted)"
-    }
-  }, "Manuell hinzufügen"))), !salon.whatsapp && /*#__PURE__*/React.createElement("div", {
-    className: "card-warn",
-    onClick: () => setSheet("waSetup"),
-    style: {
-      padding: "12px 16px",
-      marginBottom: 16,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      cursor: "pointer",
-      borderRadius: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      background: "var(--warn-soft)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "var(--warn)",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: "wa",
-    s: 18
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 13,
-      marginBottom: 1
-    }
-  }, "WhatsApp-Nummer einrichten"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--muted)"
-    }
-  }, "Für Kunden-WA & Krank-Modus nötig")), /*#__PURE__*/React.createElement(I, {
-    n: "right",
-    s: 14
-  })), /*#__PURE__*/React.createElement("div", {
+  }, todaySick.map(s => staff.find(m => m.id === s.staffId)?.name).filter(Boolean).join(", "))))), nextShown && (() => {
+    const svc = services.find(s => s.id === nextShown.serviceId);
+    const mbr = staff.find(m => m.id === nextShown.staffId);
+    const mins = nextIsTomorrow ? null : minutesUntil(nextShown.startTime);
+    return /*#__PURE__*/React.createElement("div", {
+      onClick: () => setSheet({
+        type: "booking",
+        data: nextShown
+      }),
+      className: "card-elevated",
+      style: {
+        padding: "18px 18px 16px",
+        marginBottom: 20,
+        cursor: "pointer",
+        position: "relative",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: 5,
+        background: mbr?.color || "var(--accent)"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "cap"
+    }, nextIsTomorrow ? "Als Nächstes · morgen" : "Als Nächstes"), mins != null && mins <= 180 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        background: "var(--accent-soft)",
+        color: "var(--accent)",
+        borderRadius: 8,
+        padding: "3px 9px"
+      }
+    }, mins <= 0 ? "jetzt" : `in ${mins} Min.`)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 14
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "serif",
+      style: {
+        fontSize: 40,
+        fontWeight: 600,
+        color: "var(--accent)",
+        lineHeight: 1,
+        letterSpacing: "-.02em"
+      }
+    }, nextShown.startTime), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        fontSize: 16,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, nextShown.customerName), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--muted)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, svc?.name, mbr?.name ? ` · ${mbr.name}` : "")), /*#__PURE__*/React.createElement(I, {
+      n: "right",
+      s: 16
+    })));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -5777,7 +5717,225 @@ function Dashboard({
       n: "wa",
       s: 14
     }), "Erinnerung senden"))));
-  }))), /*#__PURE__*/React.createElement(AnalyticsSection, {
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 10,
+      marginTop: 4
+    }
+  }, "Dein Salon"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      color: "var(--accent)"
+    }
+  }, todayB.length), /*#__PURE__*/React.createElement("div", {
+    className: "sl"
+  }, "Heute")), /*#__PURE__*/React.createElement("div", {
+    className: "stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      color: "var(--success)",
+      fontSize: 18
+    }
+  }, todayRevenue > 0 ? `${todayRevenue}€` : "–"), /*#__PURE__*/React.createElement("div", {
+    className: "sl"
+  }, "Umsatz")), /*#__PURE__*/React.createElement("div", {
+    className: "stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sn",
+    style: {
+      color: "var(--ink3)"
+    }
+  }, bookings.filter(b => b.status !== "cancelled").length), /*#__PURE__*/React.createElement("div", {
+    className: "sl"
+  }, "Gesamt"))), /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: 18,
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Dein Buchungslink"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      marginBottom: 14,
+      wordBreak: "break-all"
+    }
+  }, BOOKING_BASE, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--accent)",
+      fontWeight: 600
+    }
+  }, salon.slug)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: () => setSheet("qr"),
+    style: {
+      padding: 11,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "qr",
+    s: 14
+  }), "QR-Code"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-p",
+    onClick: () => go("book", {
+      slug: salon.slug
+    }),
+    style: {
+      padding: 11,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "eye",
+    s: 14
+  }), "Vorschau"))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 10
+    }
+  }, "Schnellaktionen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10,
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSheet("sick"),
+    className: "card lift",
+    style: {
+      padding: 16,
+      textAlign: "left",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: "var(--error-soft)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--error)",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "sick",
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      marginBottom: 2
+    }
+  }, "Krank-Modus"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)"
+    }
+  }, "Kunden informieren")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSheet("newBooking"),
+    className: "card lift",
+    style: {
+      padding: 16,
+      textAlign: "left",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: "var(--accent-soft)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--accent)",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "plus",
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14,
+      marginBottom: 2
+    }
+  }, "Termin anlegen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)"
+    }
+  }, "Manuell hinzufügen"))), !salon.whatsapp && /*#__PURE__*/React.createElement("div", {
+    className: "card-warn",
+    onClick: () => setSheet("waSetup"),
+    style: {
+      padding: "12px 16px",
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      cursor: "pointer",
+      borderRadius: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: "var(--warn-soft)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--warn)",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      marginBottom: 1
+    }
+  }, "WhatsApp-Nummer einrichten"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)"
+    }
+  }, "Für Kunden-WA & Krank-Modus nötig")), /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 14
+  })), /*#__PURE__*/React.createElement(AnalyticsSection, {
     bookings: bookings,
     services: services,
     staff: staff
@@ -6447,7 +6605,7 @@ function Dashboard({
   }, {
     id: "services",
     icon: "cut",
-    label: "Leistung"
+    label: "Services"
   }, {
     id: "team",
     icon: "users",
