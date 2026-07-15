@@ -1,4 +1,4 @@
-const CACHE = 'slotly-v4';
+const CACHE = 'slotly-v5';
 const SHELL = [
   './standalone.html',
   './manifest.json',
