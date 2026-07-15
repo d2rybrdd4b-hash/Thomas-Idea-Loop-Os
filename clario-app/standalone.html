@@ -9935,7 +9935,14 @@ function App() {
       return false;
     }
   })();
-  const [page, setPage] = useState(cachedOnboarded ? "dashboard" : "home");
+  const isRecoveryUrl = (() => {
+    try {
+      return /type=recovery/.test(window.location.hash);
+    } catch {
+      return false;
+    }
+  })();
+  const [page, setPage] = useState(isRecoveryUrl ? "recovery" : cachedOnboarded ? "dashboard" : "home");
   const [pageProps, setPageProps] = useState({});
   const [state, setState] = useState(load);
   const [toast, setToast] = useState(null);
@@ -10177,13 +10184,13 @@ function App() {
           };
         });
         setSyncBanner(false);
-        setPage(isOnboarded ? 'dashboard' : 'onboarding');
+        setPage(p => p === 'recovery' ? p : isOnboarded ? 'dashboard' : 'onboarding');
         setPageProps({});
       } catch (e) {
         console.error('Session-Load Fehler:', e);
         // Netzwerkfehler → gecachte Daten behalten, Banner anzeigen
         setSyncBanner(true);
-        setPage('dashboard');
+        setPage(p => p === 'recovery' ? p : 'dashboard');
         setPageProps({});
       } finally {
         setAuthChecked(true);
