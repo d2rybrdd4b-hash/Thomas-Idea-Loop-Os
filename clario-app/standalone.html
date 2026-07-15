@@ -2093,7 +2093,9 @@ function Auth({
     setLoading(true);
     const {
       error
-    } = await sb.auth.resetPasswordForEmail(resetEmail.trim());
+    } = await sb.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: window.location.origin + window.location.pathname
+    });
     setLoading(false);
     if (error) {
       setErr("Fehler: " + error.message);
