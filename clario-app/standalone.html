@@ -1745,25 +1745,7 @@ function Landing({
       maxWidth: 920,
       margin: "0 auto"
     }
-  }, [{
-    n: "Solo",
-    p: 15,
-    d: "Für Einzelpersonen",
-    f: ["1 buchbare Person", "Eigene Buchungsseite", "QR-Code", "Krank-Modus"],
-    hi: false
-  }, {
-    n: "Team",
-    p: 25,
-    d: "Für Teams bis 3 Personen",
-    f: ["Bis 3 buchbare Personen", "Mitarbeiterwahl", "Team-Kalender", "WhatsApp-Batch"],
-    hi: true
-  }, {
-    n: "Studio",
-    p: 39,
-    d: "Für Studios bis 6 Personen",
-    f: ["Bis 6 buchbare Personen", "Studio-Übersicht", "QR-Druckvorlagen", "Priorität-Features"],
-    hi: false
-  }].map(p => /*#__PURE__*/React.createElement("div", {
+  }, PLANS.map(p => /*#__PURE__*/React.createElement("div", {
     key: p.n,
     style: {
       background: p.hi ? `linear-gradient(135deg,${LP_ACCENT_BG},rgba(34,133,74,.07))` : LP_INK04,
@@ -1997,6 +1979,37 @@ function Landing({
 
 // ─── AUTH ─────────────────────────────────────────────────────
 const EMAIL_KEY = "slotly_last_email";
+
+// ─── PLÄNE & ABRECHNUNG ──────────────────────────────────────
+const PLANS = [{
+  id: "solo",
+  n: "Solo",
+  p: 25,
+  d: "Für Einzelpersonen",
+  f: ["1 buchbare Person", "Eigene Buchungsseite", "QR-Code & Druckvorlagen", "Krank-Modus", "Warteliste"],
+  hi: false
+}, {
+  id: "team",
+  n: "Team",
+  p: 35,
+  d: "Für Teams von 2–4 Personen",
+  f: ["Bis 4 buchbare Personen", "Mitarbeiterwahl", "Team-Kalender", "WhatsApp-Batch", "Warteliste"],
+  hi: true
+}, {
+  id: "studio",
+  n: "Studio",
+  p: 45,
+  d: "Für Studios ab 5 Personen",
+  f: ["Ab 5 buchbare Personen", "Studio-Übersicht", "Markenfarbe & Druckvorlagen", "Priorität-Support"],
+  hi: false
+}];
+// Stripe Payment Links hier eintragen, sobald das Stripe-Konto steht —
+// dann bucht der Upgrade-Button direkt das Abo (Stripe übernimmt SEPA/Karte):
+const STRIPE_LINKS = {
+  solo: "",
+  team: "",
+  studio: ""
+};
 
 // ─── DEMO-SALON (Landing-Page-Demo, ohne Datenbank) ──────────
 const DEMO_PUB = {
@@ -2740,6 +2753,211 @@ function Recovery({
 }
 
 // ─── SHEET BASE ───────────────────────────────────────────────
+// ─── PLAN & ABRECHNUNG ───────────────────────────────────────
+function PlanSheet({
+  salon,
+  onClose,
+  showToast
+}) {
+  const currentId = salon.plan || "team";
+  const current = PLANS.find(p => p.id === currentId) || PLANS[1];
+  const upgrade = p => {
+    const link = STRIPE_LINKS[p.id];
+    if (link) {
+      window.open(link, "_blank");
+      return;
+    }
+    showToast("Abo-Buchung startet nach der Pilotphase — bis dahin ist alles kostenlos.");
+  };
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Plan & Abrechnung"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: "14px 16px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      marginBottom: 4,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "zap",
+    s: 15
+  }), " Pilotphase — kostenlos"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--ink2)",
+      lineHeight: 1.55
+    }
+  }, "Aktuell zahlst du nichts. Die Abbuchung startet erst, wenn du nach der Pilotphase aktiv einen Plan buchst — keine automatische Umstellung, keine versteckten Kosten.")), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 10
+    }
+  }, "Pläne — monatlich kündbar"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      marginBottom: 20
+    }
+  }, PLANS.map(p => {
+    const isCurrent = p.id === currentId;
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      className: "card",
+      style: {
+        padding: 16,
+        border: isCurrent ? "2px solid var(--accent)" : undefined,
+        position: "relative"
+      }
+    }, isCurrent && /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        top: -9,
+        right: 14,
+        background: "var(--accent)",
+        color: "#fff",
+        fontSize: 10,
+        fontWeight: 800,
+        borderRadius: 8,
+        padding: "3px 10px",
+        letterSpacing: ".06em"
+      }
+    }, "DEIN PLAN"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        marginBottom: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 800,
+        fontSize: 17
+      }
+    }, p.n), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 800,
+        fontSize: 17,
+        color: "var(--accent)"
+      }
+    }, p.p, " €", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--muted)",
+        fontWeight: 500
+      }
+    }, "/Monat"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--muted)",
+        marginBottom: 10
+      }
+    }, p.d), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        color: "var(--ink2)",
+        lineHeight: 1.7,
+        marginBottom: isCurrent ? 0 : 12
+      }
+    }, p.f.join(" · ")), !isCurrent && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-soft",
+      style: {
+        width: "100%",
+        padding: 11,
+        fontSize: 13
+      },
+      onClick: () => upgrade(p)
+    }, "Zu ", p.n, " wechseln"));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 10
+    }
+  }, "Zahlung"), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      background: "var(--bg3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--muted)",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "shield",
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13.5
+    }
+  }, "Zahlungsmethode"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, "Noch keine hinterlegt — wird mit dem Abo-Start eingerichtet"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--muted2)",
+      marginTop: 10,
+      lineHeight: 1.55
+    }
+  }, "Die Bezahlung läuft später sicher über Stripe (SEPA-Lastschrift oder Kreditkarte). Deine Zahlungsdaten werden nie bei Slotly gespeichert.")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 16,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13.5,
+      marginBottom: 2
+    }
+  }, "Rechnungen"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, "Noch keine Rechnungen vorhanden.")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted2)",
+      marginBottom: 16,
+      textAlign: "center"
+    }
+  }, "Monatlich kündbar · keine Mindestlaufzeit · Preise zzgl. USt."));
+}
+
 // ─── DRUCKVORLAGEN (Visitenkarte + Aufkleber, 300 dpi) ───────
 const MM300 = 11.811; // Pixel pro Millimeter bei 300 dpi
 
@@ -7472,6 +7690,10 @@ function Dashboard({
   }), sheet === "print" && /*#__PURE__*/React.createElement(PrintSheet, {
     salon: salon,
     onClose: () => setSheet(null)
+  }), sheet === "plan" && /*#__PURE__*/React.createElement(PlanSheet, {
+    salon: salon,
+    onClose: () => setSheet(null),
+    showToast: showToast
   }), sheet?.type === "gapfill" && /*#__PURE__*/React.createElement(GapFillSheet, {
     data: sheet.data,
     salon: salon,
@@ -7684,6 +7906,54 @@ function Settings({
       padding: 12
     }
   }, "Speichern"))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 18,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 4
+    }
+  }, "Plan & Abrechnung"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, (PLANS.find(p => p.id === (state.salon.plan || "team")) || PLANS[1]).n, /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 8,
+      fontSize: 10,
+      fontWeight: 800,
+      background: "var(--accent-soft)",
+      color: "var(--accent)",
+      borderRadius: 8,
+      padding: "3px 8px",
+      verticalAlign: "middle",
+      letterSpacing: ".04em"
+    }
+  }, "PILOTPHASE — KOSTENLOS"))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: () => setSheet("plan"),
+    style: {
+      padding: "10px 14px",
+      fontSize: 13,
+      flexShrink: 0
+    }
+  }, "Upgrade"))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 18,
@@ -10718,7 +10988,8 @@ function App() {
               email: salon.email,
               supabaseId: salon.id,
               whatsapp: salon.whatsapp_number || "",
-              brand: salon.brand_color || null
+              brand: salon.brand_color || null,
+              plan: salon.plan || "team"
             },
             staff: staffRows?.length ? staffRows.filter(m => m.active !== false).map(m => ({
               id: m.id,
