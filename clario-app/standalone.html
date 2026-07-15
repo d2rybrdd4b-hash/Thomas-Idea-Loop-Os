@@ -2741,6 +2741,35 @@ function Recovery({
 // ─── DRUCKVORLAGEN (Visitenkarte + Aufkleber, 300 dpi) ───────
 const MM300 = 11.811; // Pixel pro Millimeter bei 300 dpi
 
+const PRINT_THEMES = [{
+  id: "green",
+  name: "Tannengrün",
+  main: "#166534",
+  light: "#1F7A42",
+  dark: "#0A3319",
+  text: "#123B24"
+}, {
+  id: "black",
+  name: "Anthrazit",
+  main: "#1F2937",
+  light: "#374151",
+  dark: "#0B1220",
+  text: "#111827"
+}, {
+  id: "wine",
+  name: "Bordeaux",
+  main: "#7C2D3E",
+  light: "#96455A",
+  dark: "#4A1622",
+  text: "#5C1F2E"
+}, {
+  id: "blue",
+  name: "Königsblau",
+  main: "#1E3A8A",
+  light: "#2B4BB8",
+  dark: "#0F1F52",
+  text: "#172B66"
+}];
 function drawQrOn(ctx, x, y, size, text, color) {
   try {
     const qr = window.qrcode(0, 'M');
@@ -2748,19 +2777,20 @@ function drawQrOn(ctx, x, y, size, text, color) {
     qr.make();
     const n = qr.getModuleCount();
     const cell = size / n;
-    ctx.fillStyle = color || "#0F3D22";
+    ctx.fillStyle = color || "#111";
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
     return true;
   } catch (e) {
     return false;
   }
 }
-function fitText(ctx, text, maxWidth, weight, startMm, family) {
+function fitFont(ctx, text, maxWidth, weight, startMm) {
   let px = Math.round(startMm * MM300);
   do {
-    ctx.font = weight + " " + px + "px " + (family || "Inter, sans-serif");
+    ctx.font = weight + " " + px + "px Inter, sans-serif";
     px -= 4;
   } while (ctx.measureText(text).width > maxWidth && px > 20);
+  return px;
 }
 function roundedPath(ctx, x, y, w, h, r) {
   if (ctx.roundRect) {
@@ -2771,18 +2801,54 @@ function roundedPath(ctx, x, y, w, h, r) {
     ctx.rect(x, y, w, h);
   }
 }
+
+// Text entlang eines Kreisbogens (top=true: oben, Schrift außen lesbar)
+function arcText(ctx, text, cx, cy, r, fontPx, top) {
+  ctx.font = "700 " + fontPx + "px Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const chars = [...text];
+  const widths = chars.map(ch => ctx.measureText(ch).width);
+  const gaps = fontPx * 0.06;
+  const total = widths.reduce((a, b) => a + b, 0) + gaps * (chars.length - 1);
+  const dir = top ? 1 : -1;
+  let angle = (top ? -Math.PI / 2 : Math.PI / 2) - dir * (total / 2) / r;
+  for (let i = 0; i < chars.length; i++) {
+    const half = dir * (widths[i] / 2) / r;
+    angle += half;
+    ctx.save();
+    ctx.translate(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+    ctx.rotate(angle + (top ? Math.PI / 2 : -Math.PI / 2));
+    ctx.fillText(chars[i], 0, 0);
+    ctx.restore();
+    angle += half + dir * gaps / r;
+  }
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+}
 function PrintSheet({
   salon,
   onClose
 }) {
   const url = `${BOOKING_BASE}${salon.slug}`;
-  const [line1, setLine1] = useState(salon.name || "");
-  const [line2, setLine2] = useState("Termine einfach online buchen");
-  const [phone, setPhone] = useState(salon.whatsapp || "");
+  const [f, setF] = useState({
+    name: salon.name || "",
+    sub: "Termine einfach online buchen",
+    phone: salon.whatsapp || "",
+    address: "",
+    insta: "",
+    theme: "green",
+    style: "hell"
+  });
+  const T = PRINT_THEMES.find(t => t.id === f.theme) || PRINT_THEMES[0];
   const cardRef = useRef(null),
     stickRef = useRef(null);
+  const set = (k, v) => setF(x => ({
+    ...x,
+    [k]: v
+  }));
 
-  // Visitenkarte 85×55 mm + 2 mm Beschnitt rundum = 89×59 mm
+  // ── Visitenkarte 85×55 mm + 2 mm Beschnitt = 89×59 mm ──
   useEffect(() => {
     const c = cardRef.current;
     if (!c) return;
@@ -2791,32 +2857,64 @@ function PrintSheet({
     c.width = W;
     c.height = H;
     const x = c.getContext('2d');
-    x.fillStyle = "#FFFFFF";
-    x.fillRect(0, 0, W, H);
-    x.fillStyle = "#166534";
-    x.fillRect(0, 0, Math.round(4 * MM300), H);
-    const left = Math.round(10 * MM300);
-    const qs = Math.round(30 * MM300);
-    const qx = W - qs - Math.round(8 * MM300);
-    const textMax = qx - left - Math.round(6 * MM300);
-    x.fillStyle = "#123B24";
-    fitText(x, line1 || " ", textMax, "700", 6.4);
-    x.fillText(line1 || " ", left, Math.round(19 * MM300));
-    x.fillStyle = "#5A6B62";
-    fitText(x, line2 || " ", textMax, "400", 3.4);
-    x.fillText(line2 || " ", left, Math.round(26 * MM300));
-    if (phone) {
-      x.fillStyle = "#3D4C45";
-      fitText(x, "Tel. " + phone, textMax, "500", 3.4);
-      x.fillText("Tel. " + phone, left, Math.round(38 * MM300));
+    const dark = f.style === "dunkel";
+    if (dark) {
+      const g = x.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, T.light);
+      g.addColorStop(.55, T.main);
+      g.addColorStop(1, T.dark);
+      x.fillStyle = g;
+      x.fillRect(0, 0, W, H);
+    } else {
+      x.fillStyle = "#FFFFFF";
+      x.fillRect(0, 0, W, H);
+      x.fillStyle = T.main;
+      x.fillRect(0, 0, Math.round(4 * MM300), H);
     }
-    x.fillStyle = "#166534";
-    fitText(x, "Scannen & Termin buchen →", textMax, "600", 3.3);
-    x.fillText("Scannen & Termin buchen →", left, Math.round(47 * MM300));
-    drawQrOn(x, qx, Math.round((H - qs) / 2), qs, url);
-  }, [line1, line2, phone]);
+    const left = Math.round(10 * MM300);
+    const qs = Math.round(26 * MM300);
+    const qPad = Math.round(2.5 * MM300);
+    const qPanelX = W - qs - 2 * qPad - Math.round(7 * MM300);
+    const textMax = qPanelX - left - Math.round(5 * MM300);
+    // Name + Untertitel
+    x.fillStyle = dark ? "#FFFFFF" : T.text;
+    fitFont(x, f.name || " ", textMax, "700", 6.2);
+    x.fillText(f.name || " ", left, Math.round(16.5 * MM300));
+    x.fillStyle = dark ? "rgba(255,255,255,.8)" : "#6B7A72";
+    fitFont(x, f.sub || " ", textMax, "400", 3.3);
+    x.fillText(f.sub || " ", left, Math.round(23 * MM300));
+    // Kontaktblock unten links
+    const rows = [];
+    if (f.phone) rows.push(["Tel.", f.phone]);
+    if (f.address) rows.push(["", f.address]);
+    if (f.insta) rows.push(["", (f.insta.startsWith("@") ? "" : "@") + f.insta]);
+    let ry = Math.round(38 * MM300);
+    const rowGap = Math.round(5.2 * MM300);
+    rows.forEach(([pre, val]) => {
+      x.fillStyle = dark ? "rgba(255,255,255,.92)" : "#3D4C45";
+      fitFont(x, (pre ? pre + " " : "") + val, textMax, "500", 3.2);
+      x.fillText((pre ? pre + " " : "") + val, left, ry);
+      ry += rowGap;
+    });
+    // QR-Panel rechts
+    const qy = Math.round((H - qs - 2 * qPad - 6 * MM300) / 2);
+    x.fillStyle = "#FFFFFF";
+    roundedPath(x, qPanelX, qy, qs + 2 * qPad, qs + 2 * qPad, Math.round(2.5 * MM300));
+    if (!dark) {
+      x.strokeStyle = "rgba(0,0,0,.10)";
+      x.lineWidth = 2;
+      x.fill();
+      x.stroke();
+    } else x.fill();
+    drawQrOn(x, qPanelX + qPad, qy + qPad, qs, url, T.dark);
+    x.fillStyle = dark ? "#FFFFFF" : T.main;
+    x.textAlign = "center";
+    fitFont(x, "Scannen & Termin buchen", qs + 2 * qPad, "600", 2.8);
+    x.fillText("Scannen & Termin buchen", qPanelX + qPad + qs / 2, qy + qs + 2 * qPad + Math.round(4.4 * MM300));
+    x.textAlign = "left";
+  }, [f]);
 
-  // Aufkleber rund Ø 95 mm + 2 mm Beschnitt = 99 mm (quadratische Datei)
+  // ── Aufkleber rund Ø 95 mm + 2 mm Beschnitt = 99 mm — alles im sicheren Kreis ──
   useEffect(() => {
     const c = stickRef.current;
     if (!c) return;
@@ -2824,30 +2922,33 @@ function PrintSheet({
     c.width = D;
     c.height = D;
     const x = c.getContext('2d');
+    const cx = D / 2,
+      cy = D / 2;
     const g = x.createLinearGradient(0, 0, D, D);
-    g.addColorStop(0, "#1F7A42");
-    g.addColorStop(1, "#0A3319");
+    g.addColorStop(0, T.light);
+    g.addColorStop(.55, T.main);
+    g.addColorStop(1, T.dark);
     x.fillStyle = g;
     x.fillRect(0, 0, D, D);
-    x.textAlign = "center";
+    // dezenter innerer Ring
+    x.strokeStyle = "rgba(255,255,255,.35)";
+    x.lineWidth = Math.round(0.5 * MM300);
+    x.beginPath();
+    x.arc(cx, cy, Math.round(44 * MM300), 0, Math.PI * 2);
+    x.stroke();
+    // gebogener Text oben + unten (Radius 40 mm — sicher im Kreis)
     x.fillStyle = "#FFFFFF";
-    fitText(x, "TERMINE ONLINE BUCHEN", D - Math.round(20 * MM300), "700", 5.6);
-    x.fillText("TERMINE ONLINE BUCHEN", D / 2, Math.round(17 * MM300));
-    const qs = Math.round(44 * MM300),
-      qx2 = (D - qs) / 2,
-      qy = Math.round(23 * MM300);
-    const pad = Math.round(4 * MM300);
+    arcText(x, "TERMINE ONLINE BUCHEN", cx, cy, Math.round(39.5 * MM300), Math.round(4.6 * MM300), true);
+    const nameUp = (f.name || salon.name || "").toUpperCase();
+    arcText(x, nameUp, cx, cy, Math.round(39.5 * MM300), Math.round(4.6 * MM300), false);
+    // QR mittig auf weißem Panel
+    const qs = Math.round(40 * MM300),
+      qPad = Math.round(3.5 * MM300);
     x.fillStyle = "#FFFFFF";
-    roundedPath(x, qx2 - pad, qy - pad, qs + 2 * pad, qs + 2 * pad, Math.round(4 * MM300));
+    roundedPath(x, cx - qs / 2 - qPad, cy - qs / 2 - qPad, qs + 2 * qPad, qs + 2 * qPad, Math.round(3.5 * MM300));
     x.fill();
-    drawQrOn(x, qx2, qy, qs, url);
-    x.fillStyle = "#FFFFFF";
-    fitText(x, line1 || salon.name || "", D - Math.round(24 * MM300), "700", 5.2);
-    x.fillText(line1 || salon.name || "", D / 2, Math.round(84 * MM300));
-    fitText(x, "Einfach scannen — ohne App, ohne Anruf", D - Math.round(20 * MM300), "400", 3.1);
-    x.fillText("Einfach scannen — ohne App, ohne Anruf", D / 2, Math.round(90.5 * MM300));
-    x.textAlign = "left";
-  }, [line1]);
+    drawQrOn(x, cx - qs / 2, cy - qs / 2, qs, url, T.dark);
+  }, [f.name, f.theme]);
   const dl = (ref, name) => {
     try {
       const a = document.createElement('a');
@@ -2856,6 +2957,16 @@ function PrintSheet({
       a.click();
     } catch (e) {}
   };
+  const chip = act => ({
+    padding: "9px 6px",
+    fontSize: 12,
+    fontWeight: 600,
+    borderRadius: 10,
+    cursor: "pointer",
+    background: act ? "var(--accent)" : "#fff",
+    color: act ? "#fff" : "var(--ink)",
+    border: act ? "1.5px solid transparent" : "1.5px solid var(--border2)"
+  });
   const shops = [["Flyeralarm", "https://www.flyeralarm.com/de/"], ["WirmachenDruck", "https://www.wir-machen-druck.de/"], ["Vistaprint", "https://www.vistaprint.de/"]];
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
@@ -2866,29 +2977,89 @@ function PrintSheet({
       color: "var(--muted)",
       marginBottom: 14
     }
-  }, "Visitenkarte und Aufkleber mit deinem QR-Code — Datei herunterladen, bei einer Druckerei hochladen, fertig."), /*#__PURE__*/React.createElement("div", {
+  }, "Gestalte Visitenkarte und Aufkleber mit deinem QR-Code — Datei herunterladen, bei einer Druckerei hochladen, fertig."), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Farbe"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr 1fr",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, PRINT_THEMES.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => set("theme", t.id),
+    style: {
+      ...chip(f.theme === t.id),
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+      padding: "9px 4px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 12,
+      height: 12,
+      borderRadius: "50%",
+      background: t.main,
+      border: "1px solid rgba(0,0,0,.15)",
+      flexShrink: 0
+    }
+  }), t.name))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Stil (Visitenkarte)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => set("style", "hell"),
+    style: chip(f.style === "hell")
+  }, "Hell — weiß mit Farbakzent"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => set("style", "dunkel"),
+    style: chip(f.style === "dunkel")
+  }, "Dunkel — Farbe satt")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 8,
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("input", {
     className: "inp",
-    value: line1,
-    onChange: e => setLine1(e.target.value),
-    placeholder: "Zeile 1 — Salonname"
+    value: f.name,
+    onChange: e => set("name", e.target.value),
+    placeholder: "Salonname"
   }), /*#__PURE__*/React.createElement("input", {
     className: "inp",
-    value: line2,
-    onChange: e => setLine2(e.target.value),
-    placeholder: "Zeile 2 — Untertitel"
+    value: f.sub,
+    onChange: e => set("sub", e.target.value),
+    placeholder: "Untertitel (z.B. Friseur & Styling)"
   }), /*#__PURE__*/React.createElement("input", {
     className: "inp",
     type: "tel",
-    value: phone,
-    onChange: e => setPhone(e.target.value),
-    placeholder: "Telefon (optional, nur Visitenkarte)"
+    value: f.phone,
+    onChange: e => set("phone", e.target.value),
+    placeholder: "Telefon (optional)"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    value: f.address,
+    onChange: e => set("address", e.target.value),
+    placeholder: "Adresse (optional, z.B. Hauptstr. 1, 86899 Landsberg)"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    value: f.insta,
+    onChange: e => set("insta", e.target.value),
+    placeholder: "Instagram (optional, z.B. @haarliebe)"
   })), /*#__PURE__*/React.createElement("div", {
     className: "cap",
     style: {
