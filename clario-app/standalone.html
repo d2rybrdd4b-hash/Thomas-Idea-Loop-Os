@@ -5881,9 +5881,12 @@ function NewBooking({
     serviceId: state.services[0]?.id || "",
     staffId: state.staff[0]?.id || "",
     date: today(),
-    startTime: "10:00",
+    startTime: null,
     status: "confirmed"
   });
+  const [custom, setCustom] = useState(false);
+  const svc = state.services.find(s => s.id === f.serviceId);
+  const slots = custom ? [] : freeSlotsFor(svc, f.staffId, f.date, state.availability, state.bookings, state.services, null);
   return /*#__PURE__*/React.createElement(Sheet, {
     onClose: onClose,
     title: "Neuer Termin"
@@ -5914,46 +5917,113 @@ function NewBooking({
     value: f.serviceId,
     onChange: e => setF(s => ({
       ...s,
-      serviceId: e.target.value
+      serviceId: e.target.value,
+      startTime: null
     }))
   }, state.services.map(s => /*#__PURE__*/React.createElement("option", {
     key: s.id,
     value: s.id
-  }, s.name, " · ", s.price, " €"))), /*#__PURE__*/React.createElement("select", {
+  }, s.name, " · ", s.duration, " Min. · ", s.price, " €"))), /*#__PURE__*/React.createElement("select", {
     className: "inp",
     value: f.staffId,
     onChange: e => setF(s => ({
       ...s,
-      staffId: e.target.value
+      staffId: e.target.value,
+      startTime: null
     }))
-  }, state.staff.map(m => /*#__PURE__*/React.createElement("option", {
+  }, state.staff.filter(m => m.active !== false).map(m => /*#__PURE__*/React.createElement("option", {
     key: m.id,
     value: m.id
-  }, m.name))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, m.name))), /*#__PURE__*/React.createElement("input", {
     className: "inp",
     type: "date",
     value: f.date,
+    min: today(),
     onChange: e => setF(s => ({
       ...s,
-      date: e.target.value
+      date: e.target.value,
+      startTime: null
     }))
-  }), /*#__PURE__*/React.createElement("input", {
+  }), !custom && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Freie Zeiten", svc ? ` · ${svc.duration} Min.` : ""), slots.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "var(--muted)",
+      marginBottom: 4
+    }
+  }, "Keine freien Zeiten an diesem Tag für diese Auswahl.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8
+    }
+  }, slots.map(sl => /*#__PURE__*/React.createElement("button", {
+    key: sl,
+    onClick: () => setF(s => ({
+      ...s,
+      startTime: sl
+    })),
+    className: `slot${f.startTime === sl ? " act" : ""}`
+  }, sl))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setCustom(true);
+      setF(s => ({
+        ...s,
+        startTime: "10:00"
+      }));
+    },
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      fontSize: 12,
+      cursor: "pointer",
+      textDecoration: "underline",
+      padding: "8px 0 0"
+    }
+  }, "Eigene Uhrzeit (dazwischenschieben)")), custom && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 8
+    }
+  }, "Eigene Uhrzeit"), /*#__PURE__*/React.createElement("input", {
     className: "inp",
     type: "time",
-    value: f.startTime,
+    value: f.startTime || "10:00",
     onChange: e => setF(s => ({
       ...s,
       startTime: e.target.value
     }))
-  })), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--warn)",
+      marginTop: 6
+    }
+  }, "Achtung: Ohne Frei-Prüfung — Überschneidungen sind möglich."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setCustom(false);
+      setF(s => ({
+        ...s,
+        startTime: null
+      }));
+    },
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      fontSize: 12,
+      cursor: "pointer",
+      textDecoration: "underline",
+      padding: "6px 0 0"
+    }
+  }, "Zurück zu freien Zeiten")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-p",
-    disabled: !f.customerName || !f.customerPhone,
+    disabled: !f.customerName || !f.customerPhone || !f.startTime,
     onClick: () => onSave(f),
     style: {
       padding: 14,
@@ -8269,7 +8339,7 @@ function Dashboard({
         overflowX: "auto",
         paddingBottom: 2
       }
-    }, [["all", "Alle"], ["today", "Heute"], ["open", "Ausstehend"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+    }, [["all", "Alle"], ["open", "Ausstehend"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
       key: v,
       onClick: () => {
         setBkFilter(v);
