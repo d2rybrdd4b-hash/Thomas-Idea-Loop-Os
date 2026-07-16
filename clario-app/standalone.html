@@ -2305,6 +2305,14 @@ function Auth({
           setErr(error.message === "User already registered" ? "E-Mail bereits registriert." : error.message);
           return;
         }
+        const refBy = (() => {
+          try {
+            const r = localStorage.getItem('slotly_ref');
+            return r && r !== slug ? r : null;
+          } catch {
+            return null;
+          }
+        })();
         const {
           data: newSalon,
           error: se
@@ -2314,7 +2322,8 @@ function Auth({
           slug,
           owner_name: f.name || f.salonName,
           email: f.email,
-          plan: 'team'
+          plan: 'team',
+          referred_by: refBy
         }).select().single();
         if (se || !newSalon) {
           setErr("Salon konnte nicht angelegt werden.");
@@ -8689,6 +8698,74 @@ function Settings({
     style: {
       margin: "18px 0 10px"
     }
+  }, "Weiterempfehlen"), /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: 18,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginBottom: 4
+    }
+  }, "Salon werben — Monat geschenkt 🎁"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--ink2)",
+      lineHeight: 1.55,
+      marginBottom: 12
+    }
+  }, "Empfiehl Slotly an Kolleginnen: Registriert sich ein Salon über deinen Link, bekommt ihr ", /*#__PURE__*/React.createElement("strong", null, "beide einen Gratis-Monat"), "."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      wordBreak: "break-all",
+      background: "#fff",
+      border: "1px solid var(--border)",
+      borderRadius: 10,
+      padding: "10px 12px",
+      marginBottom: 10
+    }
+  }, `${window.location.origin}${window.location.pathname}?ref=${state.salon.slug}`), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-g",
+    style: {
+      padding: 11,
+      fontSize: 13
+    },
+    onClick: () => {
+      try {
+        navigator.clipboard?.writeText(`${window.location.origin}${window.location.pathname}?ref=${state.salon.slug}`);
+      } catch {}
+      showToast("Empfehlungslink kopiert");
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "copy",
+    s: 14
+  }), "Kopieren"), /*#__PURE__*/React.createElement("a", {
+    className: "btn btn-wa",
+    style: {
+      padding: 11,
+      fontSize: 13
+    },
+    target: "_blank",
+    rel: "noopener noreferrer",
+    href: `https://wa.me/?text=${encodeURIComponent(`Ich organisiere meine Salon-Termine mit Slotly — Kundinnen buchen selbst online, und bei Absagen füllt die Warteliste die Lücke automatisch. Schau's dir an, der erste Monat ist gratis: ${window.location.origin}${window.location.pathname}?ref=${state.salon.slug}`)}`
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 14
+  }), "Teilen"))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      margin: "18px 0 10px"
+    }
   }, "Konto & Daten"), /*#__PURE__*/React.createElement("button", {
     onClick: manualSync,
     disabled: syncing,
@@ -10214,9 +10291,25 @@ function BookingPage({
     style: {
       fontSize: 11,
       color: "var(--muted)",
+      marginBottom: 4
+    }
+  }, salon.name, " · Powered by ", /*#__PURE__*/React.createElement("a", {
+    href: `${window.location.origin}${window.location.pathname}?ref=${salon.slug || ""}`,
+    style: {
+      color: "var(--accent)",
+      fontWeight: 700,
+      textDecoration: "none"
+    }
+  }, "Slotly")), isPublic && /*#__PURE__*/React.createElement("a", {
+    href: `${window.location.origin}${window.location.pathname}?ref=${salon.slug || ""}`,
+    style: {
+      fontSize: 10.5,
+      color: "var(--muted2)",
+      textDecoration: "underline",
+      display: "block",
       marginBottom: 6
     }
-  }, salon.name, " · Powered by Slotly"), /*#__PURE__*/React.createElement("div", {
+  }, "Slotly für deinen Salon — 1. Monat gratis"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 16,
@@ -11273,6 +11366,13 @@ function OnboardingWizard({
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
 function App() {
   const urlSalon = new URLSearchParams(window.location.search).get('salon');
+  // Empfehlungs-Tracking: ?ref=<salon-slug> merken bis zur Registrierung
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) localStorage.setItem('slotly_ref', ref.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+    } catch (e) {}
+  }, []);
   // Offline-first: wenn schon onboarded → Dashboard sofort zeigen, Auth im Hintergrund
   const cachedOnboarded = (() => {
     try {
