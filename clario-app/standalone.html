@@ -2753,6 +2753,296 @@ function Recovery({
 }
 
 // ─── SHEET BASE ───────────────────────────────────────────────
+// ─── WOCHENANSICHT (Termine-Tab) ─────────────────────────────
+function WeekView({
+  bookings,
+  services,
+  staff,
+  availability,
+  weekOff,
+  setWeekOff,
+  onOpen
+}) {
+  const monday = (() => {
+    const d = new Date();
+    const day = d.getDay();
+    d.setDate(d.getDate() - day + (day === 0 ? -6 : 1) + weekOff * 7);
+    return d;
+  })();
+  const days = Array.from({
+    length: 7
+  }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return localDateStr(d);
+  });
+  let minH = 9,
+    maxH = 18;
+  Object.values(availability || {}).forEach(a => {
+    if (a.start) {
+      minH = Math.min(minH, parseInt(a.start, 10) || 9);
+    }
+    if (a.end) {
+      const eh = parseInt(a.end, 10) || 18;
+      maxH = Math.max(maxH, a.end.slice(3, 5) > "00" ? eh + 1 : eh);
+    }
+  });
+  const PXH = 44,
+    H = (maxH - minH) * PXH;
+  const todayStr = today();
+  const toMin = t => {
+    const [a, b] = String(t).split(":").map(Number);
+    return a * 60 + b;
+  };
+  const svcById = Object.fromEntries((services || []).map(s => [s.id, s]));
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setWeekOff(w => w - 1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "left",
+    s: 14
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, fmtShort(days[0]), " – ", fmtShort(days[6]), weekOff === 0 ? " · diese Woche" : ""), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setWeekOff(w => w + 1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 14
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      overflowX: "auto",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 44,
+      flexShrink: 0,
+      borderRight: "1px solid var(--border)",
+      paddingTop: 34
+    }
+  }, Array.from({
+    length: maxH - minH
+  }, (_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      height: PXH,
+      fontSize: 10,
+      color: "var(--muted2)",
+      textAlign: "right",
+      paddingRight: 6
+    }
+  }, String(minH + i).padStart(2, "0")))), days.map(ds => {
+    const isToday = ds === todayStr;
+    const dayB = bookings.filter(b => b.date === ds && b.status !== "cancelled" && b.startTime);
+    return /*#__PURE__*/React.createElement("div", {
+      key: ds,
+      style: {
+        minWidth: 92,
+        flex: 1,
+        borderRight: "1px solid var(--border)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 34,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 11,
+        fontWeight: isToday ? 800 : 600,
+        color: isToday ? "var(--accent)" : "var(--muted)",
+        borderBottom: "1px solid var(--border)",
+        background: isToday ? "var(--accent-soft)" : "var(--bg2)"
+      }
+    }, fmtShort(ds)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        height: H
+      }
+    }, Array.from({
+      length: maxH - minH
+    }, (_, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        position: "absolute",
+        top: i * PXH,
+        left: 0,
+        right: 0,
+        borderTop: "1px dashed rgba(26,38,32,.07)"
+      }
+    })), dayB.map(b => {
+      const svc = svcById[b.serviceId] || {};
+      const mbr = (staff || []).find(m => m.id === b.staffId);
+      const dur = b.serviceDuration || svc.duration || 30;
+      const top = (toMin(b.startTime) - minH * 60) / 60 * PXH;
+      const h = Math.max(dur / 60 * PXH, 26);
+      return /*#__PURE__*/React.createElement("div", {
+        key: b.id,
+        onClick: () => onOpen(b),
+        style: {
+          position: "absolute",
+          top,
+          left: 3,
+          right: 3,
+          height: h,
+          background: mbr?.color || "var(--accent)",
+          borderRadius: 8,
+          padding: "3px 6px",
+          color: "#fff",
+          cursor: "pointer",
+          overflow: "hidden",
+          opacity: b.status === "pending" ? .8 : 1,
+          outline: b.status === "pending" ? "2px dashed rgba(255,255,255,.75)" : "none",
+          outlineOffset: -3
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          fontWeight: 800,
+          lineHeight: 1.2
+        }
+      }, b.startTime), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          fontWeight: 600,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }
+      }, (b.customerName || "").split(" ")[0]));
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      marginTop: 10,
+      fontSize: 11,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Farbe = Mitarbeiter:in"), /*#__PURE__*/React.createElement("span", null, "gestrichelt = noch unbestätigt")));
+}
+
+// ─── WILLKOMMENS-TOUR (einmalig beim ersten Login) ───────────
+function WelcomeTour({
+  onDone
+}) {
+  const [i, setI] = useState(0);
+  const steps = [{
+    icon: "home",
+    t: "Dein Tagesplan",
+    d: "Auf dem Start-Tab siehst du sofort, wer als Nächstes kommt und was heute ansteht — das Wichtigste immer zuerst."
+  }, {
+    icon: "link",
+    t: "Buchungslink teilen",
+    d: "Unter „Dein Salon\u201c findest du deinen persönlichen Link und QR-Code. Teile ihn — deine Kundinnen buchen dann selbst."
+  }, {
+    icon: "check",
+    t: "Anfragen bestätigen",
+    d: "Neue Buchungen erscheinen oben als oranges Banner und mit NEU-Markierung. Ein Tipp auf ✓ bestätigt, ✕ sagt ab."
+  }];
+  const s = steps[i];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "shbg",
+    style: {
+      alignItems: "center",
+      padding: 24
+    },
+    onClick: onDone
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#fff",
+      borderRadius: 22,
+      padding: "28px 24px",
+      maxWidth: 360,
+      width: "100%",
+      textAlign: "center",
+      boxShadow: "var(--shadow-xl)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 58,
+      height: 58,
+      borderRadius: 16,
+      background: "var(--accent-soft)",
+      color: "var(--accent)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 16px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: s.icon,
+    s: 26
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 18,
+      marginBottom: 8
+    }
+  }, s.t), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--ink2)",
+      lineHeight: 1.6,
+      marginBottom: 20
+    }
+  }, s.d), /*#__PURE__*/React.createElement("div", {
+    className: "progress-dots",
+    style: {
+      marginBottom: 18
+    }
+  }, steps.map((_, x) => /*#__PURE__*/React.createElement("span", {
+    key: x,
+    className: `dot${x === i ? " active" : ""}${x < i ? " done" : ""}`
+  }))), i < steps.length - 1 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-skip",
+    style: {
+      flex: 1,
+      padding: 12
+    },
+    onClick: onDone
+  }, "Überspringen"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      flex: 2,
+      padding: 12
+    },
+    onClick: () => setI(i + 1)
+  }, "Weiter")) : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      width: "100%",
+      padding: 13
+    },
+    onClick: onDone
+  }, "Los geht's!")));
+}
+
 // ─── PLAN & ABRECHNUNG ───────────────────────────────────────
 function PlanSheet({
   salon,
@@ -5782,6 +6072,15 @@ function Dashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [bkFilter, setBkFilter] = useState("all");
   const [showPast, setShowPast] = useState(false);
+  const [bkView, setBkView] = useState("list");
+  const [weekOff, setWeekOff] = useState(0);
+  const [tourOpen, setTourOpen] = useState(() => {
+    try {
+      return !localStorage.getItem('slotly_tour_v1');
+    } catch {
+      return false;
+    }
+  });
   const {
     salon,
     services,
@@ -5887,6 +6186,63 @@ function Dashboard({
     }
     setRefreshing(false);
   };
+  const confirmBooking = async b => {
+    if (salon.supabaseId && b.id && !b.id.startsWith("b_")) {
+      await sb.from('bookings').update({
+        status: 'confirmed'
+      }).eq('id', b.id);
+    }
+    update(s => ({
+      ...s,
+      bookings: s.bookings.map(x => x.id === b.id ? {
+        ...x,
+        status: "confirmed"
+      } : x)
+    }));
+    showToast("Bestätigt");
+  };
+  const cancelBooking = async b => {
+    const svc = services.find(s => s.id === b.serviceId);
+    if (salon.supabaseId && b.id && !b.id.startsWith("b_")) {
+      await sb.from('bookings').update({
+        status: 'cancelled'
+      }).eq('id', b.id);
+    }
+    update(s => ({
+      ...s,
+      bookings: s.bookings.map(x => x.id === b.id ? {
+        ...x,
+        status: "cancelled"
+      } : x)
+    }));
+    setSheet(null);
+    showToast("Abgesagt");
+    // Warteliste prüfen: wartet jemand auf genau diese Lücke?
+    try {
+      if (salon.supabaseId) {
+        const {
+          data: wlRows
+        } = await sb.from('waitlist').select('*').eq('salon_id', salon.supabaseId).lte('date_from', b.date).gte('date_to', b.date);
+        const cand = (wlRows || []).filter(w => (!w.time_from || b.startTime >= w.time_from.slice(0, 5)) && (!w.time_to || b.startTime <= w.time_to.slice(0, 5)));
+        if (cand.length > 0) setSheet({
+          type: "gapfill",
+          data: {
+            booking: {
+              ...b,
+              serviceName: b.serviceName || svc?.name
+            },
+            candidates: cand
+          }
+        });
+      }
+    } catch (e) {}
+    // WhatsApp-Absage an Kunden
+    if (b.customerPhone) {
+      const waPhone = b.customerPhone.replace(/\D/g, "").replace(/^0/, "49");
+      const waMsg = encodeURIComponent(`Hallo ${b.customerName} 👋,\n\n` + `leider müssen wir deinen Termin absagen:\n\n` + `✂️ ${svc?.name || b.serviceName || "Termin"}\n` + `📅 ${fmtShort(b.date)}\n` + `⏰ ${b.startTime} Uhr\n\n` + `Bitte melde dich bei uns, um einen neuen Termin zu vereinbaren.\n– ${salon.name}`);
+      window.open(`https://wa.me/${waPhone}?text=${waMsg}`, "_blank");
+    }
+  };
   const todayB = bookings.filter(b => b.date === today() && b.status !== "cancelled").sort((a, b) => a.startTime.localeCompare(b.startTime));
   const tomorrowB = bookings.filter(b => b.date === tomorrow() && b.status !== "cancelled").sort((a, b) => a.startTime.localeCompare(b.startTime));
   const todaySick = (state.sickStaff || []).filter(s => s.date === today());
@@ -5913,7 +6269,14 @@ function Dashboard({
   }, /*#__PURE__*/React.createElement(I, {
     n: toast.type === "wa" ? "wa" : "check",
     s: 14
-  }), toast.msg), tab === "home" && /*#__PURE__*/React.createElement("div", {
+  }), toast.msg), tourOpen && state.onboarded && /*#__PURE__*/React.createElement(WelcomeTour, {
+    onDone: () => {
+      try {
+        localStorage.setItem('slotly_tour_v1', '1');
+      } catch {}
+      setTourOpen(false);
+    }
+  }), tab === "home" && /*#__PURE__*/React.createElement("div", {
     className: "page fade"
   }, /*#__PURE__*/React.createElement("header", {
     style: {
@@ -6386,7 +6749,51 @@ function Dashboard({
         gap: 6,
         flexShrink: 0
       }
-    }, b.customerPhone && /*#__PURE__*/React.createElement("a", {
+    }, b.status === "pending" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        confirmBooking(b);
+      },
+      title: "Bestätigen",
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        background: "var(--accent)",
+        color: "#fff",
+        border: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "check",
+      s: 17
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        if (window.confirm("Termin absagen?")) cancelBooking(b);
+      },
+      title: "Absagen",
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        background: "var(--error-soft)",
+        color: "var(--error)",
+        border: "1px solid rgba(198,73,63,.2)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "x",
+      s: 15
+    }))) : b.customerPhone && /*#__PURE__*/React.createElement("a", {
       href: `https://wa.me/${b.customerPhone.replace(/\D/g, "")}?text=${waMsg}`,
       target: "_blank",
       rel: "noopener noreferrer",
@@ -6954,7 +7361,55 @@ function Dashboard({
           color: "var(--ink3)",
           fontWeight: 500
         }
-      }, mbr.name)) : /*#__PURE__*/React.createElement("div", null), b.customerPhone && b.status !== "cancelled" && /*#__PURE__*/React.createElement("a", {
+      }, mbr.name)) : /*#__PURE__*/React.createElement("div", null), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          flexShrink: 0
+        }
+      }, b.status === "pending" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+        onClick: e => {
+          e.stopPropagation();
+          confirmBooking(b);
+        },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "5px 11px",
+          borderRadius: 8,
+          background: "var(--accent)",
+          color: "#fff",
+          border: "none",
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement(I, {
+        n: "check",
+        s: 11
+      }), "Bestätigen"), /*#__PURE__*/React.createElement("button", {
+        onClick: e => {
+          e.stopPropagation();
+          if (window.confirm("Termin absagen?")) cancelBooking(b);
+        },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          padding: "5px 9px",
+          borderRadius: 8,
+          background: "var(--error-soft)",
+          color: "var(--error)",
+          border: "1px solid rgba(198,73,63,.2)",
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: "pointer"
+        }
+      }, /*#__PURE__*/React.createElement(I, {
+        n: "x",
+        s: 11
+      }))), b.customerPhone && b.status !== "cancelled" && /*#__PURE__*/React.createElement("a", {
         href: `https://wa.me/${b.customerPhone.replace(/\D/g, "")}?text=${waMsg}`,
         target: "_blank",
         rel: "noopener noreferrer",
@@ -6975,7 +7430,7 @@ function Dashboard({
       }, /*#__PURE__*/React.createElement(I, {
         n: "wa",
         s: 11
-      }), "WA"))));
+      }), "WA")))));
     };
     return /*#__PURE__*/React.createElement("div", {
       className: "page fade"
@@ -7062,7 +7517,10 @@ function Dashboard({
       }
     }, [["all", "Alle"], ["today", "Heute"], ["open", "Ausstehend"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
       key: v,
-      onClick: () => setBkFilter(v),
+      onClick: () => {
+        setBkFilter(v);
+        setBkView("list");
+      },
       style: {
         padding: "6px 16px",
         borderRadius: 20,
@@ -7073,10 +7531,42 @@ function Dashboard({
         whiteSpace: "nowrap",
         flexShrink: 0,
         transition: "all .18s",
-        background: bkFilter === v ? "var(--ink)" : "var(--bg2)",
-        color: bkFilter === v ? "#fff" : "var(--muted)"
+        background: bkView === "list" && bkFilter === v ? "var(--ink)" : "var(--bg2)",
+        color: bkView === "list" && bkFilter === v ? "#fff" : "var(--muted)"
       }
-    }, l, v === "all" && allActive.length > 0 ? ` (${allActive.length})` : ""))), bookings.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    }, l, v === "all" && allActive.length > 0 ? ` (${allActive.length})` : "")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setBkView(v => v === "week" ? "list" : "week"),
+      style: {
+        marginLeft: "auto",
+        padding: "6px 14px",
+        borderRadius: 20,
+        border: "none",
+        cursor: "pointer",
+        fontSize: 13,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        background: bkView === "week" ? "var(--accent)" : "var(--accent-soft)",
+        color: bkView === "week" ? "#fff" : "var(--accent)"
+      }
+    }, /*#__PURE__*/React.createElement(I, {
+      n: "cal",
+      s: 13
+    }), "Woche")), bkView === "week" ? /*#__PURE__*/React.createElement(WeekView, {
+      bookings: bookings,
+      services: services,
+      staff: staff,
+      availability: state.availability,
+      weekOff: weekOff,
+      setWeekOff: setWeekOff,
+      onOpen: b => setSheet({
+        type: "booking",
+        data: b
+      })
+    }) : bookings.length === 0 ? /*#__PURE__*/React.createElement("div", {
       className: "card",
       style: {
         padding: 36,
@@ -7627,64 +8117,11 @@ function Dashboard({
     state: state,
     onClose: () => setSheet(null),
     onCancel: async () => {
-      const b = sheet.data;
-      const svc = state.services.find(s => s.id === b.serviceId);
-      // Supabase update (nur für echte UUIDs, nicht lokale b_ IDs)
-      if (salon.supabaseId && b.id && !b.id.startsWith("b_")) {
-        await sb.from('bookings').update({
-          status: 'cancelled'
-        }).eq('id', b.id);
-      }
-      update(s => ({
-        ...s,
-        bookings: s.bookings.map(x => x.id === b.id ? {
-          ...x,
-          status: "cancelled"
-        } : x)
-      }));
-      setSheet(null);
-      showToast("Abgesagt");
-      // Warteliste prüfen: wartet jemand auf genau diese Lücke?
-      try {
-        if (salon.supabaseId) {
-          const {
-            data: wlRows
-          } = await sb.from('waitlist').select('*').eq('salon_id', salon.supabaseId).lte('date_from', b.date).gte('date_to', b.date);
-          const cand = (wlRows || []).filter(w => (!w.time_from || b.startTime >= w.time_from.slice(0, 5)) && (!w.time_to || b.startTime <= w.time_to.slice(0, 5)));
-          if (cand.length > 0) setSheet({
-            type: "gapfill",
-            data: {
-              booking: {
-                ...b,
-                serviceName: b.serviceName || svc?.name
-              },
-              candidates: cand
-            }
-          });
-        }
-      } catch (e) {}
-      // WhatsApp-Absage an Kunden
-      if (b.customerPhone) {
-        const waPhone = b.customerPhone.replace(/\D/g, "").replace(/^0/, "49");
-        const waMsg = encodeURIComponent(`Hallo ${b.customerName} 👋,\n\n` + `leider müssen wir deinen Termin absagen:\n\n` + `✂️ ${svc?.name || "Termin"}\n` + `📅 ${fmtShort(b.date)}\n` + `⏰ ${b.startTime} Uhr\n\n` + `Bitte melde dich bei uns, um einen neuen Termin zu vereinbaren.\n– ${salon.name}`);
-        window.open(`https://wa.me/${waPhone}?text=${waMsg}`, "_blank");
-      }
+      if (window.confirm) {}
+      await cancelBooking(sheet.data);
     },
     onConfirm: async () => {
-      const b = sheet.data;
-      if (salon.supabaseId && b.id && !b.id.startsWith("b_")) {
-        await sb.from('bookings').update({
-          status: 'confirmed'
-        }).eq('id', b.id);
-      }
-      update(s => ({
-        ...s,
-        bookings: s.bookings.map(x => x.id === b.id ? {
-          ...x,
-          status: "confirmed"
-        } : x)
-      }));
-      showToast("Bestätigt");
+      await confirmBooking(sheet.data);
       setSheet(null);
     }
   }), sheet === "print" && /*#__PURE__*/React.createElement(PrintSheet, {
@@ -7759,6 +8196,52 @@ function Settings({
   const [waNum, setWaNum] = useState(state.salon.whatsapp || "");
   const [syncing, setSyncing] = useState(false);
   const waCount = (state.smsLog || []).length;
+  const renderRow = item => /*#__PURE__*/React.createElement("div", {
+    key: item.title,
+    className: "card p",
+    onClick: item.onClick,
+    style: {
+      padding: 16,
+      marginBottom: 10,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      background: item.sick ? "var(--error-soft)" : item.wa ? "var(--wa-soft)" : "var(--accent-soft)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: item.sick ? "var(--error)" : item.wa ? "var(--wa-dark)" : "var(--accent)",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: item.icon,
+    s: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 14
+    }
+  }, item.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      marginTop: 2
+    }
+  }, item.desc)), /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 16
+  }));
   const manualSync = async () => {
     if (syncing) return;
     if (!state.salon.supabaseId) {
@@ -7814,6 +8297,11 @@ function Settings({
       letterSpacing: "-.02em"
     }
   }, "Einstellungen")), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      margin: "6px 0 10px"
+    }
+  }, "Dein Salon"), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 18,
@@ -7835,7 +8323,7 @@ function Settings({
     style: {
       marginBottom: 4
     }
-  }, "Salon"), !editing && /*#__PURE__*/React.createElement("div", {
+  }, "Name & Buchungslink"), !editing && /*#__PURE__*/React.createElement("div", {
     style: {
       fontWeight: 600,
       fontSize: 15
@@ -7905,55 +8393,23 @@ function Settings({
     style: {
       padding: 12
     }
-  }, "Speichern"))), /*#__PURE__*/React.createElement("div", {
-    className: "card",
-    style: {
-      padding: 18,
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, "Speichern"))), [{
+    icon: "clock",
+    title: "Verfügbarkeiten",
+    desc: "Wann jeder arbeitet",
+    onClick: () => setSheet("avail")
+  }, {
+    icon: "sick",
+    title: "Krank-Modus",
+    desc: "Kunden informieren",
+    onClick: () => setSheet("sick"),
+    sick: true
+  }].map(renderRow), /*#__PURE__*/React.createElement("div", {
     className: "cap",
     style: {
-      marginBottom: 4
+      margin: "18px 0 10px"
     }
-  }, "Plan & Abrechnung"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 700,
-      fontSize: 15
-    }
-  }, (PLANS.find(p => p.id === (state.salon.plan || "team")) || PLANS[1]).n, /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginLeft: 8,
-      fontSize: 10,
-      fontWeight: 800,
-      background: "var(--accent-soft)",
-      color: "var(--accent)",
-      borderRadius: 8,
-      padding: "3px 8px",
-      verticalAlign: "middle",
-      letterSpacing: ".04em"
-    }
-  }, "PILOTPHASE — KOSTENLOS"))), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-soft",
-    onClick: () => setSheet("plan"),
-    style: {
-      padding: "10px 14px",
-      fontSize: 13,
-      flexShrink: 0
-    }
-  }, "Upgrade"))), /*#__PURE__*/React.createElement("div", {
+  }, "Buchungsseite"), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 18,
@@ -8027,7 +8483,29 @@ function Settings({
         color: "var(--ink)"
       }
     }, t.name));
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), [{
+    icon: "link",
+    title: "Buchungsseite öffnen",
+    desc: "So sehen es deine Kunden",
+    onClick: () => go("book", {
+      slug: state.salon.slug
+    })
+  }, {
+    icon: "qr",
+    title: "QR-Code",
+    desc: "Zum Aushängen",
+    onClick: () => setSheet("qr")
+  }, {
+    icon: "copy",
+    title: "Druckvorlagen",
+    desc: "Visitenkarten & Aufkleber",
+    onClick: () => setSheet("print")
+  }].map(renderRow), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      margin: "18px 0 10px"
+    }
+  }, "WhatsApp"), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       padding: 18,
@@ -8133,38 +8611,7 @@ function Settings({
     style: {
       padding: 12
     }
-  }, "Speichern"))), /*#__PURE__*/React.createElement("div", {
-    className: "card-a",
-    style: {
-      padding: 18,
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "cap",
-    style: {
-      marginBottom: 6
-    }
-  }, "Plan"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "tag tag-a"
-  }, (state.salon.plan || "team").toUpperCase()), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-p",
-    style: {
-      padding: "9px 16px",
-      fontSize: 13
-    }
-  }, "Upgrade"))), [{
-    icon: "sick",
-    title: "Krank-Modus",
-    desc: "Kunden informieren",
-    onClick: () => setSheet("sick"),
-    sick: true
-  }, {
+  }, "Speichern"))), [{
     icon: "msg",
     title: "WA-Vorlage",
     desc: "Nachrichtentext anpassen",
@@ -8176,69 +8623,65 @@ function Settings({
     desc: `${waCount} versendete Nachrichten`,
     onClick: () => setSheet("walog"),
     wa: true
-  }, {
-    icon: "clock",
-    title: "Verfügbarkeiten",
-    desc: "Wann jeder arbeitet",
-    onClick: () => setSheet("avail")
-  }, {
-    icon: "link",
-    title: "Buchungsseite öffnen",
-    desc: "So sehen es deine Kunden",
-    onClick: () => go("book", {
-      slug: state.salon.slug
-    })
-  }, {
-    icon: "qr",
-    title: "QR-Code",
-    desc: "Zum Aushängen",
-    onClick: () => setSheet("qr")
-  }].map(item => /*#__PURE__*/React.createElement("div", {
-    key: item.title,
-    className: "card p",
-    onClick: item.onClick,
+  }].map(renderRow), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
     style: {
-      padding: 16,
-      marginBottom: 10,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: 14
+      margin: "18px 0 10px"
+    }
+  }, "Abrechnung"), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      padding: 18,
+      marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: 10,
-      background: item.sick ? "var(--error-soft)" : item.wa ? "var(--wa-soft)" : "var(--accent-soft)",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      color: item.sick ? "var(--error)" : item.wa ? "var(--wa-dark)" : "var(--accent)",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 4
+    }
+  }, "Plan & Abrechnung"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, (PLANS.find(p => p.id === (state.salon.plan || "team")) || PLANS[1]).n, /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 8,
+      fontSize: 10,
+      fontWeight: 800,
+      background: "var(--accent-soft)",
+      color: "var(--accent)",
+      borderRadius: 8,
+      padding: "3px 8px",
+      verticalAlign: "middle",
+      letterSpacing: ".04em"
+    }
+  }, "PILOTPHASE — KOSTENLOS"))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: () => setSheet("plan"),
+    style: {
+      padding: "10px 14px",
+      fontSize: 13,
       flexShrink: 0
     }
-  }, /*#__PURE__*/React.createElement(I, {
-    n: item.icon,
-    s: 18
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "Upgrade"))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
     style: {
-      flex: 1
+      margin: "18px 0 10px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 14
-    }
-  }, item.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--muted)",
-      marginTop: 2
-    }
-  }, item.desc)), /*#__PURE__*/React.createElement(I, {
-    n: "right",
-    s: 16
-  }))), /*#__PURE__*/React.createElement("button", {
+  }, "Konto & Daten"), /*#__PURE__*/React.createElement("button", {
     onClick: manualSync,
     disabled: syncing,
     style: {
@@ -8392,15 +8835,11 @@ function BookingPage({
     }
     return result;
   })();
-  const goContact = () => {
-    setErr("");
-    if (!form.name.trim()) return setErr("Bitte deinen Namen eingeben.");
-    if (!form.phone.trim() || form.phone.replace(/\D/g, "").length < 7) return setErr("Bitte eine gültige Nummer eingeben.");
-    setStep(2);
-  };
   const submit = async () => {
     setErr("");
     if (!selTime) return setErr("Bitte eine Uhrzeit wählen.");
+    if (!form.name.trim()) return setErr("Bitte deinen Namen eingeben.");
+    if (!form.phone.trim() || form.phone.replace(/\D/g, "").length < 7) return setErr("Bitte eine gültige Nummer eingeben.");
     if (isPublic) {
       setSubmitting(true);
       if (salonId === 'demo') {
@@ -8415,7 +8854,7 @@ function BookingPage({
       if (conflictRows && conflictRows.length > 0) {
         setSubmitting(false);
         setErr("Dieser Termin wurde soeben vergeben. Bitte wähle eine andere Zeit.");
-        setStep(4);
+        setStep(3);
         return;
       }
       let {
@@ -8505,6 +8944,11 @@ function BookingPage({
   };
   const joinWaitlist = async () => {
     if (!isPublic) return;
+    if (!form.name.trim() || form.phone.replace(/\D/g, "").length < 7) {
+      setErr("Für die Warteliste bitte Name und Handynummer angeben.");
+      return;
+    }
+    setErr("");
     if (salonId === 'demo') {
       setWl(w => ({
         ...w,
@@ -8539,7 +8983,7 @@ function BookingPage({
     }));
     if (error) setErr("Warteliste gerade nicht verfügbar. (" + (error.message || "") + ")");
   };
-  const steps = ["Kontakt", "Service", "Mitarbeiter", "Termin"];
+  const steps = ["Service", "Mitarbeiter", "Termin", "Kontakt"];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100dvh",
@@ -8632,7 +9076,7 @@ function BookingPage({
       width: "100%",
       margin: "0 auto"
     }
-  }, step === 1 && /*#__PURE__*/React.createElement("div", {
+  }, step === 4 && selSvc && selStaff && selTime && /*#__PURE__*/React.createElement("div", {
     className: "fade"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -8640,13 +9084,47 @@ function BookingPage({
       fontWeight: 700,
       marginBottom: 4
     }
-  }, "Kurz vorstellen"), /*#__PURE__*/React.createElement("p", {
+  }, "Fast geschafft!"), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 13,
       color: "var(--muted)",
-      marginBottom: 20
+      marginBottom: 16
     }
-  }, "Damit der Salon deinen Termin bestätigen kann."), /*#__PURE__*/React.createElement("div", {
+  }, "An wen geht die Terminbestätigung?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--accent-soft)",
+      border: "1px solid var(--accent-soft2)",
+      borderRadius: 14,
+      padding: "14px 16px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginBottom: 3
+    }
+  }, selSvc.name, " · ", selSvc.price, " €"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--ink2)"
+    }
+  }, fmtLong(selDate), " · ", selTime, " Uhr · ", selSvc.duration, " Min. · bei ", selStaff.name), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setErr("");
+      setStep(3);
+    },
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--accent)",
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer",
+      padding: "6px 0 0",
+      textDecoration: "underline"
+    }
+  }, "Ändern")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 12
     }
@@ -8744,15 +9222,23 @@ function BookingPage({
       borderRadius: 8
     }
   }, err), /*#__PURE__*/React.createElement("button", {
-    onClick: goContact,
+    onClick: submit,
+    disabled: submitting,
     className: "btn btn-accent",
     style: {
       width: "100%"
     }
-  }, "Weiter ", /*#__PURE__*/React.createElement(I, {
-    n: "right",
-    s: 16
-  }))), step === 2 && /*#__PURE__*/React.createElement("div", {
+  }, submitting ? "Wird gebucht…" : /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      justifyContent: "center"
+    }
+  }, "Jetzt buchen ", /*#__PURE__*/React.createElement(I, {
+    n: "check",
+    s: 17
+  })))), step === 1 && /*#__PURE__*/React.createElement("div", {
     className: "fade"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -8764,7 +9250,7 @@ function BookingPage({
     key: svc.id,
     onClick: () => {
       setSelSvc(svc);
-      setStep(3);
+      setStep(2);
     },
     style: {
       background: "#fff",
@@ -8808,7 +9294,7 @@ function BookingPage({
       textAlign: "center",
       marginTop: 40
     }
-  }, "Keine Services verfügbar.")), step === 3 && selSvc && /*#__PURE__*/React.createElement("div", {
+  }, "Keine Services verfügbar.")), step === 2 && selSvc && /*#__PURE__*/React.createElement("div", {
     className: "fade"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -8825,7 +9311,7 @@ function BookingPage({
   }, "Alle verfügbaren Mitarbeiter"), svcStaff.length > 1 && /*#__PURE__*/React.createElement("div", {
     onClick: () => {
       setSelStaff(svcStaff[Math.floor(Math.random() * svcStaff.length)]);
-      setStep(4);
+      setStep(3);
     },
     style: {
       background: "var(--accent-soft)",
@@ -8867,7 +9353,7 @@ function BookingPage({
     key: st.id,
     onClick: () => {
       setSelStaff(st);
-      setStep(4);
+      setStep(3);
     },
     style: {
       background: "#fff",
@@ -8917,7 +9403,7 @@ function BookingPage({
       textAlign: "center",
       marginTop: 40
     }
-  }, "Heute kein Mitarbeiter verfügbar.")), step === 4 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
+  }, "Heute kein Mitarbeiter verfügbar.")), step === 3 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
     className: "fade"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -8929,107 +9415,89 @@ function BookingPage({
     style: {
       fontSize: 13,
       color: "var(--muted)",
-      marginBottom: 16
+      marginBottom: 14
     }
   }, selSvc.name, " bei ", selStaff.name), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 14
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      paddingBottom: 8,
+      marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 13,
-      color: "var(--muted)",
-      fontWeight: 500,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "Datum"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    className: "inp",
-    value: selDate,
-    min: today(),
-    onChange: e => {
-      setSelDate(e.target.value);
-      setSelTime(null);
-    }
-  })), /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 13,
-      color: "var(--muted)",
-      fontWeight: 500,
-      display: "block",
-      marginBottom: 8
-    }
-  }, "Uhrzeit wählen"), slots.length === 0 ? /*#__PURE__*/React.createElement("p", {
+  }, Array.from({
+    length: 14
+  }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const ds = localDateStr(d);
+    const lbl = i === 0 ? "Heute" : i === 1 ? "Morgen" : fmtShort(ds);
+    return /*#__PURE__*/React.createElement("button", {
+      key: ds,
+      className: `dchip${selDate === ds ? " act" : ""}`,
+      onClick: () => {
+        setSelDate(ds);
+        setSelTime(null);
+        setErr("");
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13
+      }
+    }, lbl));
+  })), slots.length === 0 ? /*#__PURE__*/React.createElement("p", {
     style: {
       color: "var(--muted)",
       fontSize: 13,
       marginBottom: 16
     }
-  }, isBlockedDate ? `${selStaff.name} hat an diesem Tag Urlaub / ist nicht verfügbar.` : "Keine freien Zeiten an diesem Tag.") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 10,
-      marginBottom: 20
-    }
-  }, slots.map(sl => /*#__PURE__*/React.createElement("button", {
-    key: sl.label,
-    disabled: sl.booked,
+  }, isBlockedDate ? `${selStaff.name} hat an diesem Tag Urlaub / ist nicht verfügbar.` : "Keine freien Zeiten an diesem Tag.") : [["Vormittags", s => s.label < "12:00"], ["Mittags", s => s.label >= "12:00" && s.label < "15:00"], ["Nachmittags", s => s.label >= "15:00"]].map(([g, fn]) => {
+    const gs = slots.filter(fn);
+    if (gs.length === 0) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: g
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "cap",
+      style: {
+        margin: "8px 0 8px"
+      }
+    }, g), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 10,
+        marginBottom: 8
+      }
+    }, gs.map(sl => /*#__PURE__*/React.createElement("button", {
+      key: sl.label,
+      disabled: sl.booked,
+      onClick: () => {
+        if (!sl.booked) {
+          setSelTime(sl.label);
+          setErr("");
+        }
+      },
+      className: `slot${selTime === sl.label ? " act" : ""}`,
+      style: {
+        opacity: sl.booked ? 0.35 : 1,
+        cursor: sl.booked ? "not-allowed" : "pointer"
+      }
+    }, sl.label))));
+  }), selTime && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      if (!sl.booked) setSelTime(sl.label);
+      setErr("");
+      setStep(4);
     },
-    className: `slot${selTime === sl.label ? " act" : ""}`,
-    style: {
-      opacity: sl.booked ? 0.35 : 1,
-      cursor: sl.booked ? "not-allowed" : "pointer"
-    }
-  }, sl.label))), selTime && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--accent-soft)",
-      borderRadius: 12,
-      padding: "12px 14px",
-      marginBottom: 14,
-      border: "1px solid var(--accent-soft2)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 600,
-      fontSize: 14,
-      marginBottom: 2
-    }
-  }, selSvc.name, " · ", selSvc.price, " €"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--muted)"
-    }
-  }, fmtLong(selDate), " · ", selTime, " Uhr · ", selSvc.duration, " Min.")), err && /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "var(--error)",
-      fontSize: 13,
-      marginBottom: 12,
-      padding: "8px 12px",
-      background: "var(--error-soft)",
-      borderRadius: 8
-    }
-  }, err), /*#__PURE__*/React.createElement("button", {
-    onClick: submit,
-    disabled: submitting,
     className: "btn btn-accent",
     style: {
-      width: "100%"
+      width: "100%",
+      marginTop: 12
     }
-  }, submitting ? "Wird gebucht…" : /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      justifyContent: "center"
-    }
-  }, "Jetzt buchen ", /*#__PURE__*/React.createElement(I, {
-    n: "check",
-    s: 17
-  })))), isPublic && (wl.done ? /*#__PURE__*/React.createElement("div", {
+  }, "Weiter — ", selTime, " Uhr ", /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 16
+  })), isPublic && (wl.done ? /*#__PURE__*/React.createElement("div", {
     className: "card-wa",
     style: {
       padding: 16,
@@ -9072,7 +9540,30 @@ function BookingPage({
       color: "var(--muted)",
       marginBottom: 12
     }
-  }, "Wird kurzfristig ein Termin frei, meldet sich der Salon bei dir per WhatsApp."), /*#__PURE__*/React.createElement("div", {
+  }, "Wird kurzfristig ein Termin frei, meldet sich der Salon bei dir per WhatsApp."), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    style: {
+      marginBottom: 8
+    },
+    value: form.name,
+    onChange: e => setForm(f => ({
+      ...f,
+      name: e.target.value
+    })),
+    placeholder: "Dein Name"
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    type: "tel",
+    style: {
+      marginBottom: 12
+    },
+    value: form.phone,
+    onChange: e => setForm(f => ({
+      ...f,
+      phone: e.target.value
+    })),
+    placeholder: "Handynummer"
+  }), /*#__PURE__*/React.createElement("div", {
     className: "cap",
     style: {
       marginBottom: 6
@@ -9128,7 +9619,16 @@ function BookingPage({
       border: wl.time === v ? "none" : "1.5px solid var(--border2)",
       borderRadius: 10
     }
-  }, l))), /*#__PURE__*/React.createElement("button", {
+  }, l))), err && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--error)",
+      fontSize: 12.5,
+      marginBottom: 10,
+      padding: "8px 12px",
+      background: "var(--error-soft)",
+      borderRadius: 8
+    }
+  }, err), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-accent",
     style: {
       width: "100%",
