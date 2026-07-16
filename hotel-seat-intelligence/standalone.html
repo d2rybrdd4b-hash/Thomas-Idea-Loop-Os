@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cl</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cm</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cl · 14.07.2026</span>
+          <span class="set-version">v.25.06-cm · 15.07.2026</span>
         </div>
       </div>
 
@@ -2294,7 +2294,47 @@ const VORTAG_FIELD_LABELS={
 // Datenquelle: verklebte Kombi-Zeilen („Kanal + Seehars + Gerngroß") wandern sonst als EIN
 // Pseudo-Bleibegast weiter (Fund 726, zweimal passiert) → deutliche Warnung + Prüf-Gate-Punkt.
 let vortagIstEigenerExport=false;
+// Liest das maschinenlesbare „Vortag-Daten"-Blatt eines EIGENEN App-Exports (eine Zeile je Gast,
+// rohe Pax-Zahl, Zimmerliste, Tisch). Gibt Zeilen im selben Format wie parseVortagPanorama zurück
+// ({Tisch,Zimmernummer,Status,Nachname,AnzahlPersonen,Extras}) — oder null, wenn kein solches Blatt
+// vorhanden ist. Vorteil gegenüber dem gedruckten Tischplan: aufgeteilte Familien behalten ihre
+// echte Personenzahl (Jaspers=10 statt 4), und getrennte Parteien bleiben getrennte Zeilen
+// (kein „A + B"-Verkleben → kein 726-Fehler).
+function parseVortagDatenSheet(wb){
+  const sn=(wb.SheetNames||[]).find(n=>/^vortag[- ]?daten$/i.test(String(n).trim()));
+  if(!sn||!wb.Sheets[sn]) return null;
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+  let hr=-1;
+  for(let r=0;r<Math.min(4,aoa.length);r++){
+    const low=(aoa[r]||[]).map(c=>String(c||'').trim().toLowerCase());
+    if(low.includes('tisch')&&(low.includes('zimmer')||low.includes('zimmernummer'))){hr=r;break;}
+  }
+  if(hr<0) return null;
+  const H=(aoa[hr]||[]).map(c=>String(c||'').trim().toLowerCase());
+  const col=(...names)=>H.findIndex(h=>names.includes(h));
+  const cT=col('tisch'),cZ=col('zimmer','zimmernummer'),cS=col('status'),cN=col('nachname','gastname'),
+        cP=col('pax','personen','anzahlpersonen'),cB=col('bemerkung','extras');
+  if(cT<0||cZ<0||cN<0) return null;
+  const val=(r,c)=>c>=0?String(r[c]==null?'':r[c]).trim():'';
+  const rows=[];
+  for(let i=hr+1;i<aoa.length;i++){
+    const r=aoa[i]||[];
+    const tisch=val(r,cT),zimmer=val(r,cZ),nach=val(r,cN);
+    if(!tisch&&!zimmer&&!nach) continue;
+    rows.push({Tisch:tisch,Zimmernummer:zimmer,Status:val(r,cS),Nachname:nach,
+      AnzahlPersonen:val(r,cP)||'2',Extras:val(r,cB)});
+  }
+  return rows.length?rows:null;
+}
 function parseVortagPanorama(wb){
+  // Bevorzugt das maschinenlesbare „Vortag-Daten"-Blatt (eigener App-Export). Nur wenn es fehlt,
+  // wird der gedruckte (menschliche) Tischplan interpretiert. So wird unser eigener Export ein
+  // sauberer Vortag: echte Pax bleibt erhalten, getrennte Parteien bleiben getrennt.
+  const datenRows=parseVortagDatenSheet(wb);
+  if(datenRows&&datenRows.length){
+    vortagIstEigenerExport=false; // sauberes Datenblatt → NICHT als „roher Eigenexport" ablehnen
+    return {headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows:datenRows,_source:'vortag_daten'};
+  }
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()));
   if(!sheetName) return null;
   const ws=wb.Sheets[sheetName];
@@ -6326,6 +6366,7 @@ async function buildFilledTischplanSheet(){
     buildTischeKombiSheet(wb);
     buildBegruendungSheet(wb);
     buildPruefberichtSheet(wb);
+    buildVortagDatenSheet(wb); // maschinenlesbarer Vortag (Jaspers=10, kein 726) für den Folgetag
     return{wb,ws,guestsByTable,exportMissing:missing};
   }
   // ── Fallback (keine Vorlage hochgeladen): frisches, eigenes Layout ──
@@ -6494,6 +6535,7 @@ async function buildFilledTischplanSheet(){
   buildTischeKombiSheet(wb);
   buildBegruendungSheet(wb);
   buildPruefberichtSheet(wb);
+  buildVortagDatenSheet(wb); // maschinenlesbarer Vortag (Jaspers=10, kein 726) für den Folgetag
   return{wb,ws,guestsByTable};
 }
 
@@ -7007,6 +7049,37 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
   });
   ws2.views=[{state:'frozen',xSplit:0,ySplit:3}];
   return ws2;
+}
+
+// Maschinenlesbares Vortags-Datenblatt: eine Zeile je Gast mit ROHEN Werten (Pax als reine Zahl,
+// Zimmer als Liste, zugewiesener Tisch). Zweck: unser eigener Export wird ein sauberer Vortag —
+// der Vortag-Parser liest dieses Blatt bevorzugt (parseVortagDatenSheet). Dadurch bleibt (a) die
+// echte Personenzahl erhalten (aufgeteilte Familien wie Jaspers = 10 statt 4 aus der Hotelier-
+// Kurzschrift) und (b) getrennte Parteien bleiben getrennte Zeilen (kein „A + B"-Verkleben → kein
+// 726-Fehler). Ausgeblendet (state:'hidden'), damit die gedruckte Hotelier-Optik unberührt bleibt.
+function buildVortagDatenSheet(wb){
+  if(wb.getWorksheet&&wb.getWorksheet('Vortag-Daten')) return;
+  const ws=wb.addWorksheet('Vortag-Daten',{state:'hidden'});
+  ws.addRow(['Tisch','Zimmer','Status','Nachname','Vorname','Pax','Kinder','CheckIn','CheckOut','GastID','Bemerkung']);
+  ws.getRow(1).font={bold:true,size:9};
+  const rawBem=g=>[g.allergie,g.bemerkung,g.extras].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(' | ');
+  const statusStr=g=>(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
+  (assignedGuests||[]).filter(g=>g.zugewiesener_tisch).forEach(g=>{
+    ws.addRow([
+      String(g.zugewiesener_tisch||''),
+      String(g.zimmer||''),
+      statusStr(g),
+      String(g.nachname||''),
+      String(g.vorname||''),
+      Number(g.pax||1),
+      Number(g.kinder||0),
+      String(g.check_in||''),
+      String(g.check_out||''),
+      String(g.gast_id||g.gastId||''),
+      rawBem(g)
+    ]);
+  });
+  return ws;
 }
 
 // Sucht ab der ersten Zeile eine Zelle mit dem Text "Tischkategorien" in Spalte A
