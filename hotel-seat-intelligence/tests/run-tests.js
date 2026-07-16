@@ -273,8 +273,23 @@ async function exportInvariants(page){
       globalThis.__diffPairs=diffPairs;
       var __dp=diffPairs;
     }
+    // Maschinenlesbares Vortags-Datenblatt: muss existieren, eine Zeile je platziertem Gast tragen
+    // und Pax als ROHE Zahl (nicht "10 (4 Ki)") — sonst geht die echte Personenzahl beim nächsten
+    // Vortag-Einlesen wieder verloren (Fund 15.07., Jaspers).
+    const vdWs=built.wb.getWorksheet&&built.wb.getWorksheet('Vortag-Daten');
+    let vdRows=0, vdPaxNumeric=true, vdHeaderOk=false;
+    if(vdWs){
+      vdWs.eachRow((row,rn)=>{
+        if(rn===1){ vdHeaderOk=String(row.getCell(1).value||'').toLowerCase()==='tisch'&&String(row.getCell(6).value||'').toLowerCase()==='pax'; return; }
+        vdRows++;
+        const p=row.getCell(6).value;
+        if(typeof p!=='number') vdPaxNumeric=false;
+      });
+    }
+    const placedGuests=(assignedGuests||[]).filter(g=>g.zugewiesener_tisch).length;
     return{built:true,exportMissing:(built.exportMissing||[]).length,t7Rows,t7Filled,wrongRow,missingGuest,noWrapLong,headDateOk,phantomRows,
       roomMismatch,occWithoutRoom,diffPairs:(typeof __dp!=='undefined'?__dp:[]),
+      vdExists:!!vdWs,vdRows,vdPaxNumeric,vdHeaderOk,placedGuests,
       // Ein 7xx-Tisch erscheint im Export mit Text, wenn er einen Gast trägt ODER Kombi-
       // Partner ist (dann steht "zu [Haupttisch]" im Namensfeld). Beide zählen — nur wirklich
       // leere Tische nicht.
@@ -436,6 +451,9 @@ async function exportInvariants(page){
       check('Export-Selbstprüfung: kein Gast verloren',ei.exportMissing===0,ei.exportMissing+' Tische fehlen');
       check('Lange Extras brechen um (kein Überlauf)',ei.noWrapLong===0,ei.noWrapLong+' Zellen ohne Umbruch');
       check('Kopfzeile trägt das Plandatum (nicht das der Vorlage)',ei.headDateOk===true);
+      check('Vortag-Daten-Blatt vorhanden (maschinenlesbarer Folgetag-Vortag)',ei.vdExists&&ei.vdHeaderOk,'exists='+ei.vdExists+' headerOk='+ei.vdHeaderOk);
+      check('Vortag-Daten: eine Zeile je platziertem Gast',ei.vdRows===ei.placedGuests,ei.vdRows+' Zeilen ≠ '+ei.placedGuests+' Gäste');
+      check('Vortag-Daten: Pax als rohe Zahl (kein "10 (4 Ki)")',ei.vdPaxNumeric===true);
       if(sz.expectTemplate){
         check('7xx-Tischzeilen im Export vorhanden (≥30)',ei.t7Rows>=30,'nur '+ei.t7Rows+' — rechter Block fehlt?');
         check('7xx-Belegung Export == Berechnung',ei.t7Filled===ei.calcT7,ei.t7Filled+' ≠ '+ei.calcT7);
@@ -546,6 +564,62 @@ async function exportInvariants(page){
     check('Kein _N-Schlüssel bleibt übrig',fold.no1&&fold.no2,'632_1 weg: '+fold.no1+', 632_2 weg: '+fold.no2);
     check('Reguläre Tische unberührt (611, 641)',fold.reg611&&fold.reg641);
     check('Splittisch MIT eigener Vorlagenzeile wird NICHT gefaltet',fold.keepSplit);
+    await page.close();
+  }
+
+  // ══ Maschinenlesbarer Vortag: „Vortag-Daten"-Blatt wird bevorzugt gelesen (Fund 15.07.) ══
+  // Der gedruckte Hotelier-Plan verliert bei aufgeteilten Familien Personen (Jaspers 10→4, die
+  // 6 Erwachsenen stehen anonym in einer zweiten Zeile). Das Datenblatt trägt die rohe Pax-Zahl
+  // je Gast und hält getrennte Parteien getrennt. parseVortagPanorama MUSS es bevorzugen und den
+  // eigenen Export dann NICHT ablehnen.
+  {
+    results.push('▶ Sz Maschinenlesbarer Vortag (Vortag-Daten-Blatt bevorzugt)');
+    const page=await browser.newPage();
+    const pageErrors=[];
+    page.on('pageerror',e=>pageErrors.push(e.message));
+    await page.goto(APP,{waitUntil:'networkidle'});
+    await page.waitForTimeout(1200);
+    const vt=await page.evaluate(()=>{
+      const X=window.XLSX;
+      // Eigener Export: gedruckter Tischplan (mit „APP"-Kürzel → würde sonst abgelehnt) UND
+      // das maschinenlesbare Datenblatt. Jaspers steht im DRUCK mit Pax 4, im DATENBLATT mit 10.
+      const tp=X.utils.aoa_to_sheet([
+        ['Hotel','','APP','09:00','15.07.'],[],
+        ['Tisch','Zimmer','Status','Gastname','Pax','Extras'],
+        ['622','205,502,503,504','','Jaspers','4','4 Kinder'],
+        ['632','301, 112','AB','Büllmann, Anja + Potschka','3','']
+      ]);
+      const vd=X.utils.aoa_to_sheet([
+        ['Tisch','Zimmer','Status','Nachname','Vorname','Pax','Kinder','CheckIn','CheckOut','GastID','Bemerkung'],
+        ['622','205,502,503,504','','Jaspers','Paul',10,4,'2026-07-12','2026-07-19','17203','davon 4 Kinder'],
+        ['632','301','AB','Büllmann','Anja',1,0,'','','700','x'],
+        ['632','112','','Potschka','',2,1,'','','701','y']
+      ]);
+      const wb={SheetNames:['Tischplan','Vortag-Daten'],Sheets:{'Tischplan':tp,'Vortag-Daten':vd}};
+      const parsed=parseVortagPanorama(wb);
+      const eigenexportFlagNachDaten=vortagIstEigenerExport; // JETZT erfassen (vor der Gegenprobe)
+      const rows=(parsed&&parsed.rows)||[];
+      const jas=rows.find(r=>/jaspers/i.test(r.Nachname||''));
+      const t632=rows.filter(r=>String(r.Tisch)==='632');
+      const inhaus=buildInhausFromVortag(rows);
+      const jasIn=inhaus.find(r=>/jaspers/i.test(r.Nachname||''));
+      // Gegenprobe: OHNE Datenblatt (nur Druck mit APP) → muss weiter als Eigenexport gelten.
+      const wb2={SheetNames:['Tischplan'],Sheets:{'Tischplan':tp}};
+      parseVortagPanorama(wb2);
+      const rejectOhneDaten=vortagIstEigenerExport;
+      return {
+        source:parsed&&parsed._source,
+        jasPax:jas&&jas.AnzahlPersonen, jasInPax:jasIn&&jasIn.AnzahlPersonen,
+        n632:t632.length, namen632:t632.map(r=>r.Nachname).join('+'),
+        eigenexportFlag:eigenexportFlagNachDaten, rejectOhneDaten
+      };
+    });
+    check('Keine JS-Laufzeitfehler (Vortag-Daten)',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
+    check('Datenblatt wird bevorzugt gelesen (_source=vortag_daten)',vt.source==='vortag_daten','source: '+vt.source);
+    check('Jaspers behält echte Pax 10 (nicht 4 aus dem Druck)',vt.jasPax==='10'&&vt.jasInPax==='10','Pax: '+vt.jasPax+'/'+vt.jasInPax);
+    check('632: zwei getrennte Parteien (kein 726-Verkleben)',vt.n632===2&&/büllmann/i.test(vt.namen632)&&/potschka/i.test(vt.namen632),vt.n632+': '+vt.namen632);
+    check('Eigener Export mit Datenblatt wird NICHT abgelehnt',vt.eigenexportFlag===false);
+    check('Eigener Export OHNE Datenblatt bleibt abgelehnt (Alt-Exporte)',vt.rejectOhneDaten===true);
     await page.close();
   }
 
