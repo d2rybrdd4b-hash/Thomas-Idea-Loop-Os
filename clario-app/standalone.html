@@ -115,6 +115,10 @@ body { background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); m
 @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .skel{background:linear-gradient(90deg,var(--bg3) 25%,#fff 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:10px}
+@keyframes stepIn{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.step-in{animation:stepIn .28s cubic-bezier(.3,.7,.4,1) both}
+@keyframes flashOk{0%{box-shadow:0 0 0 3px var(--success);background:var(--success-soft)}100%{box-shadow:none}}
+.flash-ok{animation:flashOk 1.1s ease}
 
 .a1{animation:fadeUp .6s ease both}.a2{animation:fadeUp .6s .1s ease both}
 .a3{animation:fadeUp .6s .2s ease both}.a4{animation:fadeUp .6s .3s ease both}
@@ -6081,6 +6085,7 @@ function Dashboard({
       return false;
     }
   });
+  const [flashId, setFlashId] = useState(null);
   const {
     salon,
     services,
@@ -6199,6 +6204,8 @@ function Dashboard({
         status: "confirmed"
       } : x)
     }));
+    setFlashId(b.id);
+    setTimeout(() => setFlashId(null), 1200);
     showToast("Bestätigt");
   };
   const cancelBooking = async b => {
@@ -6667,7 +6674,7 @@ function Dashboard({
     const waMsg = encodeURIComponent(`Hallo ${b.customerName}, zur Erinnerung: Dein Termin heute um ${b.startTime} Uhr für ${svc?.name || "deinen Termin"}. Wir freuen uns auf dich! – ${salon.name}`);
     return /*#__PURE__*/React.createElement("div", {
       key: b.id,
-      className: "card",
+      className: `card${flashId === b.id ? " flash-ok" : ""}`,
       style: {
         padding: 0,
         overflow: "hidden",
@@ -6880,7 +6887,7 @@ function Dashboard({
     const waPhone = b.customerPhone ? b.customerPhone.replace(/\D/g, "").replace(/^0/, "49") : "";
     return /*#__PURE__*/React.createElement("div", {
       key: b.id,
-      className: "card",
+      className: `card${flashId === b.id ? " flash-ok" : ""}`,
       style: {
         padding: 0,
         overflow: "hidden",
@@ -7232,6 +7239,7 @@ function Dashboard({
       const isNow = b.date === todayStr && diff >= -60 && diff <= 60;
       const waMsg = encodeURIComponent(`Hallo ${b.customerName}, zur Erinnerung: Dein Termin am ${fmtShort(b.date)} um ${b.startTime} Uhr für ${svc?.name || "deinen Termin"}. Wir freuen uns auf dich! – ${salon.name}`);
       return /*#__PURE__*/React.createElement("div", {
+        className: flashId === b.id ? "flash-ok" : "",
         style: {
           display: "flex",
           borderRadius: 16,
@@ -9030,6 +9038,21 @@ function BookingPage({
     s: 20
   })), /*#__PURE__*/React.createElement("div", {
     style: {
+      width: 38,
+      height: 38,
+      borderRadius: "50%",
+      background: "linear-gradient(135deg,var(--accent),var(--accent2))",
+      color: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 800,
+      fontSize: 15,
+      flexShrink: 0,
+      letterSpacing: ".02em"
+    }
+  }, (salon.name || "S").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
       flex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -9077,7 +9100,7 @@ function BookingPage({
       margin: "0 auto"
     }
   }, step === 4 && selSvc && selStaff && selTime && /*#__PURE__*/React.createElement("div", {
-    className: "fade"
+    className: "step-in"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 20,
@@ -9239,7 +9262,7 @@ function BookingPage({
     n: "check",
     s: 17
   })))), step === 1 && /*#__PURE__*/React.createElement("div", {
-    className: "fade"
+    className: "step-in"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 20,
@@ -9295,7 +9318,7 @@ function BookingPage({
       marginTop: 40
     }
   }, "Keine Services verfügbar.")), step === 2 && selSvc && /*#__PURE__*/React.createElement("div", {
-    className: "fade"
+    className: "step-in"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 20,
@@ -9404,7 +9427,7 @@ function BookingPage({
       marginTop: 40
     }
   }, "Heute kein Mitarbeiter verfügbar.")), step === 3 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
-    className: "fade"
+    className: "step-in"
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 20,
@@ -9648,7 +9671,7 @@ function BookingPage({
       open: true
     }))
   }, "Kein passender Termin? → Auf die Warteliste"))), step === 5 && selSvc && selStaff && /*#__PURE__*/React.createElement("div", {
-    className: "fade",
+    className: "step-in",
     style: {
       paddingBottom: 40
     }
