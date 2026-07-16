@@ -2767,6 +2767,61 @@ function Recovery({
 
 // ─── SHEET BASE ───────────────────────────────────────────────
 // ─── WOCHENANSICHT (Termine-Tab) ─────────────────────────────
+function StaffFilterChips({
+  staff,
+  value,
+  onChange
+}) {
+  const active = (staff || []).filter(m => m.active !== false);
+  if (active.length < 2) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      paddingBottom: 6,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onChange("all"),
+    style: {
+      padding: "6px 14px",
+      borderRadius: 20,
+      border: "none",
+      cursor: "pointer",
+      fontSize: 12,
+      fontWeight: 700,
+      flexShrink: 0,
+      background: value === "all" ? "var(--ink)" : "var(--bg2)",
+      color: value === "all" ? "#fff" : "var(--muted)"
+    }
+  }, "Alle"), active.map(m => /*#__PURE__*/React.createElement("button", {
+    key: m.id,
+    onClick: () => onChange(m.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 12px",
+      borderRadius: 20,
+      border: value === m.id ? `2px solid ${m.color || "var(--accent)"}` : "1.5px solid var(--border)",
+      cursor: "pointer",
+      fontSize: 12,
+      fontWeight: 700,
+      flexShrink: 0,
+      background: value === m.id ? "#fff" : "var(--bg2)",
+      color: "var(--ink)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 14,
+      height: 14,
+      borderRadius: "50%",
+      background: m.color || "var(--accent)",
+      display: "inline-block"
+    }
+  }), m.name)));
+}
 function WeekView({
   bookings,
   services,
@@ -2774,7 +2829,8 @@ function WeekView({
   availability,
   weekOff,
   setWeekOff,
-  onOpen
+  onOpen,
+  staffFilter
 }) {
   const monday = (() => {
     const d = new Date();
@@ -2866,7 +2922,9 @@ function WeekView({
     }
   }, String(minH + i).padStart(2, "0")))), days.map(ds => {
     const isToday = ds === todayStr;
-    const dayB = bookings.filter(b => b.date === ds && b.status !== "cancelled" && b.startTime);
+    const dayB = bookings.filter(b => b.date === ds && b.status !== "cancelled" && b.startTime && (staffFilter === "all" || !staffFilter || b.staffId === staffFilter));
+    const dayStaff = [...new Set(dayB.map(b => b.staffId))];
+    const lanes = Math.max(1, dayStaff.length);
     return /*#__PURE__*/React.createElement("div", {
       key: ds,
       style: {
@@ -2908,18 +2966,19 @@ function WeekView({
       const dur = b.serviceDuration || svc.duration || 30;
       const top = (toMin(b.startTime) - minH * 60) / 60 * PXH;
       const h = Math.max(dur / 60 * PXH, 26);
+      const lane = Math.max(0, dayStaff.indexOf(b.staffId));
       return /*#__PURE__*/React.createElement("div", {
         key: b.id,
         onClick: () => onOpen(b),
         style: {
           position: "absolute",
           top,
-          left: 3,
-          right: 3,
+          left: `calc(${lane / lanes * 100}% + 2px)`,
+          width: `calc(${100 / lanes}% - 4px)`,
           height: h,
           background: mbr?.color || "var(--accent)",
           borderRadius: 8,
-          padding: "3px 6px",
+          padding: "3px 5px",
           color: "#fff",
           cursor: "pointer",
           overflow: "hidden",
@@ -2952,6 +3011,372 @@ function WeekView({
       color: "var(--muted)"
     }
   }, /*#__PURE__*/React.createElement("span", null, "Farbe = Mitarbeiter:in"), /*#__PURE__*/React.createElement("span", null, "gestrichelt = noch unbestätigt")));
+}
+
+// ─── TAGESANSICHT (Spalte pro Mitarbeiter) ───────────────────
+function DayView({
+  date,
+  setDate,
+  bookings,
+  services,
+  staff,
+  availability,
+  onOpen,
+  staffFilter
+}) {
+  const active = (staff || []).filter(m => m.active !== false && (staffFilter === "all" || !staffFilter || m.id === staffFilter));
+  let minH = 9,
+    maxH = 18;
+  Object.values(availability || {}).forEach(a => {
+    if (a.start) {
+      minH = Math.min(minH, parseInt(a.start, 10) || 9);
+    }
+    if (a.end) {
+      const eh = parseInt(a.end, 10) || 18;
+      maxH = Math.max(maxH, a.end.slice(3, 5) > "00" ? eh + 1 : eh);
+    }
+  });
+  const PXH = 48,
+    H = (maxH - minH) * PXH;
+  const toMin = t => {
+    const [a, b] = String(t).split(":").map(Number);
+    return a * 60 + b;
+  };
+  const svcById = Object.fromEntries((services || []).map(s => [s.id, s]));
+  const shift = d => {
+    const x = new Date(date + "T12:00:00");
+    x.setDate(x.getDate() + d);
+    setDate(localDateStr(x));
+  };
+  const isToday = date === today();
+  const nowTop = (() => {
+    const n = new Date();
+    const m = n.getHours() * 60 + n.getMinutes();
+    return (m - minH * 60) / 60 * PXH;
+  })();
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => shift(-1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "left",
+    s: 14
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, fmtLong(date)), !isToday && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setDate(today()),
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--accent)",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer",
+      textDecoration: "underline",
+      padding: 2
+    }
+  }, "zu Heute")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => shift(1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 14
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      overflowX: "auto",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "#fff"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 44,
+      flexShrink: 0,
+      borderRight: "1px solid var(--border)",
+      paddingTop: 44
+    }
+  }, Array.from({
+    length: maxH - minH
+  }, (_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      height: PXH,
+      fontSize: 10,
+      color: "var(--muted2)",
+      textAlign: "right",
+      paddingRight: 6
+    }
+  }, String(minH + i).padStart(2, "0")))), active.map(m => {
+    const colB = bookings.filter(b => b.date === date && b.staffId === m.id && b.status !== "cancelled" && b.startTime);
+    return /*#__PURE__*/React.createElement("div", {
+      key: m.id,
+      style: {
+        minWidth: 120,
+        flex: 1,
+        borderRight: "1px solid var(--border)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 44,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        borderBottom: "1px solid var(--border)",
+        background: "var(--bg2)"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        background: m.color || "var(--accent)",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 10,
+        fontWeight: 800
+      }
+    }, m.name[0]), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, m.name)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        height: H
+      }
+    }, Array.from({
+      length: maxH - minH
+    }, (_, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        position: "absolute",
+        top: i * PXH,
+        left: 0,
+        right: 0,
+        borderTop: "1px dashed rgba(26,38,32,.07)"
+      }
+    })), isToday && nowTop >= 0 && nowTop <= H && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: nowTop,
+        left: 0,
+        right: 0,
+        borderTop: "2px solid var(--error)",
+        zIndex: 2
+      }
+    }), colB.map(b => {
+      const svc = svcById[b.serviceId] || {};
+      const dur = b.serviceDuration || svc.duration || 30;
+      const top = (toMin(b.startTime) - minH * 60) / 60 * PXH;
+      const h = Math.max(dur / 60 * PXH, 30);
+      return /*#__PURE__*/React.createElement("div", {
+        key: b.id,
+        onClick: () => onOpen(b),
+        style: {
+          position: "absolute",
+          top,
+          left: 4,
+          right: 4,
+          height: h,
+          background: m.color || "var(--accent)",
+          borderRadius: 9,
+          padding: "4px 7px",
+          color: "#fff",
+          cursor: "pointer",
+          overflow: "hidden",
+          opacity: b.status === "pending" ? .8 : 1,
+          outline: b.status === "pending" ? "2px dashed rgba(255,255,255,.75)" : "none",
+          outlineOffset: -3
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 11,
+          fontWeight: 800,
+          lineHeight: 1.2
+        }
+      }, b.startTime, " · ", b.customerName), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          fontWeight: 500,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          opacity: .85
+        }
+      }, svc.name || b.serviceName || ""));
+    })));
+  }), active.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      padding: 30,
+      textAlign: "center",
+      fontSize: 13,
+      color: "var(--muted)"
+    }
+  }, "Keine aktiven Mitarbeiter.")));
+}
+
+// ─── MONATSANSICHT ───────────────────────────────────────────
+function MonthView({
+  monthOff,
+  setMonthOff,
+  bookings,
+  staff,
+  onPick
+}) {
+  const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + monthOff);
+  const y = base.getFullYear(),
+    m = base.getMonth();
+  const startDow = (base.getDay() + 6) % 7;
+  const daysIn = new Date(y, m + 1, 0).getDate();
+  const p = n => String(n).padStart(2, "0");
+  const todayStr = today();
+  const byDay = {};
+  bookings.forEach(b => {
+    if (b.status !== "cancelled" && b.date && b.date.startsWith(`${y}-${p(m + 1)}`)) {
+      (byDay[b.date] = byDay[b.date] || []).push(b);
+    }
+  });
+  const staffColor = id => (staff.find(s => s.id === id) || {}).color || "var(--accent)";
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMonthOff(o => o - 1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "left",
+    s: 14
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, MONTHS[m], " ", y), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMonthOff(o => o + 1),
+    className: "btn btn-g",
+    style: {
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "right",
+    s: 14
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 4,
+      marginBottom: 6
+    }
+  }, ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map(d => /*#__PURE__*/React.createElement("div", {
+    key: d,
+    style: {
+      textAlign: "center",
+      fontSize: 10,
+      fontWeight: 700,
+      color: "var(--muted)"
+    }
+  }, d))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7,1fr)",
+      gap: 4
+    }
+  }, Array.from({
+    length: startDow
+  }, (_, i) => /*#__PURE__*/React.createElement("div", {
+    key: "x" + i
+  })), Array.from({
+    length: daysIn
+  }, (_, i) => {
+    const ds = `${y}-${p(m + 1)}-${p(i + 1)}`;
+    const dayB = byDay[ds] || [];
+    const isToday = ds === todayStr;
+    const dots = [...new Set(dayB.map(b => b.staffId))].slice(0, 3);
+    return /*#__PURE__*/React.createElement("button", {
+      key: ds,
+      onClick: () => onPick(ds),
+      style: {
+        aspectRatio: "1",
+        borderRadius: 10,
+        border: isToday ? "2px solid var(--accent)" : "1px solid var(--border)",
+        background: dayB.length ? "var(--accent-soft)" : "#fff",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 3,
+        padding: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: isToday ? 800 : 600,
+        color: isToday ? "var(--accent)" : "var(--ink)"
+      }
+    }, i + 1), dayB.length > 0 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        gap: 2,
+        alignItems: "center"
+      }
+    }, dots.map(id => /*#__PURE__*/React.createElement("span", {
+      key: id,
+      style: {
+        width: 5,
+        height: 5,
+        borderRadius: "50%",
+        background: staffColor(id)
+      }
+    })), dayB.length > 3 && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 8,
+        color: "var(--muted)",
+        fontWeight: 700
+      }
+    }, "+", dayB.length - 3)));
+  })), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "var(--muted)",
+      marginTop: 10
+    }
+  }, "Punkte = Mitarbeiter mit Terminen · Tag antippen für die Tagesansicht"));
 }
 
 // ─── WILLKOMMENS-TOUR (einmalig beim ersten Login) ───────────
@@ -6087,6 +6512,9 @@ function Dashboard({
   const [showPast, setShowPast] = useState(false);
   const [bkView, setBkView] = useState("list");
   const [weekOff, setWeekOff] = useState(0);
+  const [dayDate, setDayDate] = useState(today());
+  const [monthOff, setMonthOff] = useState(0);
+  const [wvStaff, setWvStaff] = useState("all");
   const [tourOpen, setTourOpen] = useState(() => {
     try {
       return !localStorage.getItem('slotly_tour_v1');
@@ -7551,38 +7979,68 @@ function Dashboard({
         background: bkView === "list" && bkFilter === v ? "var(--ink)" : "var(--bg2)",
         color: bkView === "list" && bkFilter === v ? "#fff" : "var(--muted)"
       }
-    }, l, v === "all" && allActive.length > 0 ? ` (${allActive.length})` : "")), /*#__PURE__*/React.createElement("button", {
-      onClick: () => setBkView(v => v === "week" ? "list" : "week"),
+    }, l, v === "all" && allActive.length > 0 ? ` (${allActive.length})` : "")), /*#__PURE__*/React.createElement("div", {
       style: {
         marginLeft: "auto",
-        padding: "6px 14px",
+        display: "flex",
+        gap: 4,
+        flexShrink: 0
+      }
+    }, [["day", "Tag"], ["week", "Woche"], ["month", "Monat"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: () => setBkView(x => x === v ? "list" : v),
+      style: {
+        padding: "6px 12px",
         borderRadius: 20,
         border: "none",
         cursor: "pointer",
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 700,
         whiteSpace: "nowrap",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        gap: 5,
-        background: bkView === "week" ? "var(--accent)" : "var(--accent-soft)",
-        color: bkView === "week" ? "#fff" : "var(--accent)"
+        background: bkView === v ? "var(--accent)" : "var(--accent-soft)",
+        color: bkView === v ? "#fff" : "var(--accent)"
       }
-    }, /*#__PURE__*/React.createElement(I, {
-      n: "cal",
-      s: 13
-    }), "Woche")), bkView === "week" ? /*#__PURE__*/React.createElement(WeekView, {
+    }, l)))), bkView === "day" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(StaffFilterChips, {
+      staff: staff,
+      value: wvStaff,
+      onChange: setWvStaff
+    }), /*#__PURE__*/React.createElement(DayView, {
+      date: dayDate,
+      setDate: setDayDate,
+      bookings: bookings,
+      services: services,
+      staff: staff,
+      availability: state.availability,
+      staffFilter: wvStaff,
+      onOpen: b => setSheet({
+        type: "booking",
+        data: b
+      })
+    })) : bkView === "week" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(StaffFilterChips, {
+      staff: staff,
+      value: wvStaff,
+      onChange: setWvStaff
+    }), /*#__PURE__*/React.createElement(WeekView, {
       bookings: bookings,
       services: services,
       staff: staff,
       availability: state.availability,
       weekOff: weekOff,
       setWeekOff: setWeekOff,
+      staffFilter: wvStaff,
       onOpen: b => setSheet({
         type: "booking",
         data: b
       })
+    })) : bkView === "month" ? /*#__PURE__*/React.createElement(MonthView, {
+      monthOff: monthOff,
+      setMonthOff: setMonthOff,
+      bookings: bookings,
+      staff: staff,
+      onPick: ds => {
+        setDayDate(ds);
+        setBkView("day");
+      }
     }) : bookings.length === 0 ? /*#__PURE__*/React.createElement("div", {
       className: "card",
       style: {
