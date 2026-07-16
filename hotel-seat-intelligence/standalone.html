@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cm</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cn</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cm · 15.07.2026</span>
+          <span class="set-version">v.25.06-cn · 15.07.2026</span>
         </div>
       </div>
 
@@ -7037,7 +7037,7 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
     const statusStr=(!g.status||g.status==='BL')?'':(g.status==='AN·AB'?'AN/AB':g.status);
     const name=[g.nachname,g.vorname].filter(Boolean).join(', ');
     const extras=extrasForPlan([g.allergie,g.bemerkung,g.extras]);
-    const r=ws2.addRow(['',g.zugewiesener_tisch||'',zimmerLabel(g.zimmer)||String(g.zimmer||''),statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
+    const r=ws2.addRow(['',foldedTischId(g.zugewiesener_tisch)||'',zimmerLabel(g.zimmer)||String(g.zimmer||''),statusStr,name,paxLabel(g.pax||1,g.kinder||0),naechteOf(g),extras]);
     for(let c=2;c<=8;c++){r.getCell(c).font={size:9};r.getCell(c).border=borders;r.getCell(c).alignment={vertical:'middle',horizontal:'left',wrapText:false};}
     r.getCell(6).alignment={vertical:'middle',horizontal:'center'};
     r.getCell(7).alignment={vertical:'middle',horizontal:'center'};
@@ -7057,6 +7057,15 @@ function buildSortierungZimmerSheet(wb,tischplanWs){
 // echte Personenzahl erhalten (aufgeteilte Familien wie Jaspers = 10 statt 4 aus der Hotelier-
 // Kurzschrift) und (b) getrennte Parteien bleiben getrennte Zeilen (kein „A + B"-Verkleben → kein
 // 726-Fehler). Ausgeblendet (state:'hidden'), damit die gedruckte Hotelier-Optik unberührt bleibt.
+// Anzeige-Tisch-ID eines Splittischs: faltet „632_1"→„632", wenn die Vorlage nur den Stammtisch
+// kennt (gleiche Bedingung wie foldSplitTables). So zeigen Tischplan UND Sortierung-Zimmer-Blatt
+// dieselbe Tisch-Nummer für ein Zimmer (Konsistenz-Fund S10: sonst 632 im Tischplan, 632_1 in der
+// Sortierung). Ohne Vorlagen-Info (Fallback-Export) bleibt die ID unverändert.
+function foldedTischId(tid){
+  const s=String(tid||'');const base=s.split('_')[0];
+  if(s!==base && tischplanMap && !tischplanMap[s] && tischplanMap[base]) return base;
+  return s;
+}
 function buildVortagDatenSheet(wb){
   if(wb.getWorksheet&&wb.getWorksheet('Vortag-Daten')) return;
   const ws=wb.addWorksheet('Vortag-Daten',{state:'hidden'});

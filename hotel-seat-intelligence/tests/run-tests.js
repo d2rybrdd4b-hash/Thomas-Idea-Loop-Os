@@ -356,6 +356,20 @@ async function exportInvariants(page){
      vortag:'plan-sa-anon.xlsx',ankuenfte:'arr12-anon.xlsx',abreisen:'dep12-anon.xlsx',refDate:'2026-07-12',vorausschau:true,
      anHeuteMin:35,anHeuteMax:60, tinyPremiumTol:3,
      groundTruth:{heute:'ground-truth-so.json',vortag:'ground-truth-sa.json',label:'12.07. (So)',minQuote:0.20,minTreue:0.10,minLogik:0.65}},
+    // S10: 15.07. (MITTWOCH). Vortag = echter 14.07.-Hotelier-Plan (anonymisiert). Dient als
+    // Sicherheitsnetz für den kommenden Platzierungs-Fix (Kombi-Fragmentierung: Einzelparteien
+    // zersplittern Kombitische, die Familien brauchen — Fund 15.07., Zi 307 → schwacher Tisch).
+    // Schwellen zunächst offen; werden nach dem Baseline-Messwert knapp darunter gesetzt.
+    // Baseline bei Aufnahme (anonymisierte Fixtures, deckt sich mit dem Echt-Datei-Vergleich):
+    // 87% exakt / 91% Logik / 83% Bleibegast-Treue. Schwellen mit Puffer darunter. Der kommende
+    // Platzierungs-Fix (Kombi-Reservierung) soll exakt/Logik ANHEBEN, nie senken.
+    {name:'S10 Backtest 15.07. (MITTWOCH — Vortag=14.07-Plan)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-14-anon.xlsx',ankuenfte:'arr15-anon.xlsx',abreisen:'dep15-anon.xlsx',refDate:'2026-07-15',vorausschau:true,
+     // tinyPremiumTol 6: der 15.07. hat viele Tiny-Studio-Anreisen (u.a. die verlinkte 2005/2008/
+     // 2009-Gruppe auf einem Kombitisch). Der kommende Kombi-Reservierungs-Fix soll diesen Wert
+     // senken (Tiny-Studios weichen Familien auf gute Tische) — bis dahin dokumentiert als Baseline.
+     anHeuteMin:12,anHeuteMax:35, tinyPremiumTol:6,
+     groundTruth:{heute:'ground-truth-15.json',vortag:'ground-truth-14.json',label:'15.07. (Mi)',minQuote:0.80,minTreue:0.75,minLogik:0.85}},
   ];
 
   for(const sz of SZENARIEN){
