@@ -3013,6 +3013,263 @@ function WeekView({
   }, /*#__PURE__*/React.createElement("span", null, "Farbe = Mitarbeiter:in"), /*#__PURE__*/React.createElement("span", null, "gestrichelt = noch unbestätigt")));
 }
 
+// ─── FREIE SLOTS (für Verschieben — gleiche Regeln wie Buchen) ──
+function freeSlotsFor(svc, staffId, date, availability, bookings, services, excludeId) {
+  if (!svc || !staffId || !date) return [];
+  const avail = (availability || {})[staffId] || {
+    start: "09:00",
+    end: "18:00",
+    days: [1, 2, 3, 4, 5],
+    blocked: []
+  };
+  if ((avail.blocked || []).includes(date)) return [];
+  const dow = new Date(date + "T12:00:00").getDay();
+  if (!(avail.days || [1, 2, 3, 4, 5]).includes(dow)) return [];
+  const dur = svc.duration || 30,
+    buf = svc.buffer || 0;
+  const [sh, sm] = avail.start.split(":").map(Number);
+  const [eh, em] = avail.end.split(":").map(Number);
+  let cur = sh * 60 + sm;
+  const end = eh * 60 + em;
+  const toMin = t => {
+    const [h, m] = String(t).split(":").map(Number);
+    return h * 60 + m;
+  };
+  const svcById = Object.fromEntries((services || []).map(v => [v.id, v]));
+  const busy = (bookings || []).filter(b => b.id !== excludeId && b.staffId === staffId && b.date === date && b.status !== "cancelled" && b.startTime).map(b => {
+    const bs = svcById[b.serviceId] || {};
+    const bd = (b.serviceDuration || bs.duration || 30) + (bs.buffer || 0);
+    const st = toMin(b.startTime);
+    return [st, st + bd];
+  });
+  const isToday = date === today();
+  const nowMin = (() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  })();
+  const out = [];
+  while (cur + dur <= end) {
+    if (!(isToday && cur < nowMin)) {
+      const slotEnd = cur + dur + buf;
+      if (!busy.some(([bs, be]) => bs < slotEnd && cur < be)) {
+        out.push(`${String(Math.floor(cur / 60)).padStart(2, "0")}:${String(cur % 60).padStart(2, "0")}`);
+      }
+    }
+    cur += dur + buf;
+  }
+  return out;
+}
+
+// ─── TERMIN VERSCHIEBEN ──────────────────────────────────────
+function RescheduleSheet({
+  booking,
+  state,
+  onClose,
+  onSave
+}) {
+  const svc = state.services.find(s => s.id === booking.serviceId) || {
+    duration: booking.serviceDuration || 30,
+    buffer: 0
+  };
+  const activeStaff = state.staff.filter(m => m.active !== false && !m.sick);
+  const [stf, setStf] = useState(booking.staffId);
+  const [date, setDate] = useState(booking.date);
+  const [time, setTime] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const slots = freeSlotsFor(svc, stf, date, state.availability, state.bookings, state.services, booking.id);
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Termin verschieben"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: "12px 14px",
+      marginBottom: 14,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, booking.customerName), " · ", svc.name || booking.serviceName, " · bisher ", fmtShort(booking.date), ", ", booking.startTime, " Uhr"), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Mitarbeiter:in"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      paddingBottom: 6,
+      marginBottom: 12
+    }
+  }, activeStaff.map(m => /*#__PURE__*/React.createElement("button", {
+    key: m.id,
+    onClick: () => {
+      setStf(m.id);
+      setTime(null);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 12px",
+      borderRadius: 20,
+      cursor: "pointer",
+      fontSize: 12,
+      fontWeight: 700,
+      flexShrink: 0,
+      background: stf === m.id ? "#fff" : "var(--bg2)",
+      border: stf === m.id ? `2px solid ${m.color || "var(--accent)"}` : "1.5px solid var(--border)",
+      color: "var(--ink)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 14,
+      height: 14,
+      borderRadius: "50%",
+      background: m.color || "var(--accent)"
+    }
+  }), m.name))), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Datum"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      paddingBottom: 6,
+      marginBottom: 12
+    }
+  }, Array.from({
+    length: 14
+  }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const ds = localDateStr(d);
+    return /*#__PURE__*/React.createElement("button", {
+      key: ds,
+      className: `dchip${date === ds ? " act" : ""}`,
+      onClick: () => {
+        setDate(ds);
+        setTime(null);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13
+      }
+    }, i === 0 ? "Heute" : i === 1 ? "Morgen" : fmtShort(ds)));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 6
+    }
+  }, "Freie Zeiten"), slots.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: "var(--muted)",
+      marginBottom: 14
+    }
+  }, "Keine freien Zeiten an diesem Tag.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      marginBottom: 14
+    }
+  }, slots.map(sl => /*#__PURE__*/React.createElement("button", {
+    key: sl,
+    onClick: () => setTime(sl),
+    className: `slot${time === sl ? " act" : ""}`
+  }, sl))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-accent",
+    style: {
+      width: "100%",
+      padding: 14,
+      marginBottom: 16
+    },
+    disabled: !time || saving,
+    onClick: async () => {
+      setSaving(true);
+      await onSave(stf, date, time);
+      setSaving(false);
+    }
+  }, saving ? "Wird verschoben…" : "Verschieben"));
+}
+function MovedSheet({
+  data,
+  salon,
+  onClose
+}) {
+  const {
+    booking,
+    oldStaffName,
+    newStaff
+  } = data;
+  const custPhone = (booking.customerPhone || "").replace(/\D/g, "").replace(/^0/, "49");
+  const staffPhone = (newStaff?.phone || "").replace(/\D/g, "").replace(/^0/, "49");
+  const staffChanged = oldStaffName && newStaff && oldStaffName !== newStaff.name;
+  const custMsg = encodeURIComponent(`Hallo ${booking.customerName} 👋,\n\ndein Termin bei ${salon.name} wurde verlegt:\n\n` + `📅 ${fmtLong(booking.date)}\n⏰ ${booking.startTime} Uhr\n` + (newStaff ? `👤 ${newStaff.name}${staffChanged ? ` (statt ${oldStaffName})` : ""}\n` : "") + `\nPasst das für dich? Gib uns kurz Bescheid.\n– ${salon.name}`);
+  const staffMsg = encodeURIComponent(`Hallo ${newStaff?.name} 👋,\n\ndu hast einen ${staffChanged ? "übernommenen" : "verschobenen"} Termin:\n\n` + `📅 ${fmtLong(booking.date)} · ⏰ ${booking.startTime} Uhr\n` + `👤 ${booking.customerName}\n✂️ ${booking.serviceName || ""}\n\n– ${salon.name} (Slotly)`);
+  return /*#__PURE__*/React.createElement(Sheet, {
+    onClose: onClose,
+    title: "Termin verschoben ✓"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-a",
+    style: {
+      padding: "12px 14px",
+      marginBottom: 16,
+      fontSize: 13
+    }
+  }, "Neu: ", /*#__PURE__*/React.createElement("strong", null, fmtLong(booking.date), " · ", booking.startTime, " Uhr"), newStaff ? ` · bei ${newStaff.name}` : ""), /*#__PURE__*/React.createElement("div", {
+    className: "cap",
+    style: {
+      marginBottom: 10
+    }
+  }, "Jetzt Bescheid geben"), custPhone && /*#__PURE__*/React.createElement("a", {
+    className: "btn btn-wa",
+    style: {
+      width: "100%",
+      padding: 13,
+      marginBottom: 8
+    },
+    target: "_blank",
+    rel: "noopener noreferrer",
+    href: `https://wa.me/${custPhone}?text=${custMsg}`
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 15
+  }), "Kundin informieren (", booking.customerName, ")"), staffPhone ? /*#__PURE__*/React.createElement("a", {
+    className: "btn btn-wa",
+    style: {
+      width: "100%",
+      padding: 13,
+      marginBottom: 8,
+      opacity: .92
+    },
+    target: "_blank",
+    rel: "noopener noreferrer",
+    href: `https://wa.me/${staffPhone}?text=${staffMsg}`
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "wa",
+    s: 15
+  }), newStaff.name, " informieren (Team)") : newStaff && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      marginBottom: 8
+    }
+  }, "Tipp: Hinterlege für ", newStaff.name, " eine Handynummer im Team-Tab, dann kannst du ihn/sie hier direkt benachrichtigen."), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-g",
+    style: {
+      width: "100%",
+      padding: 13,
+      marginBottom: 16
+    },
+    onClick: onClose
+  }, "Fertig"));
+}
+
 // ─── TAGESANSICHT (Spalte pro Mitarbeiter) ───────────────────
 function DayView({
   date,
@@ -5550,7 +5807,8 @@ function NewStaff({
 }) {
   const [f, setF] = useState({
     name: "",
-    color: "#4FD1C5"
+    color: "#4FD1C5",
+    phone: ""
   });
   const colors = ["#4FD1C5", "#4a8cb8", "#166534", "#c97a6e", "#9a7ac9", "#7a9ec9", "#8fa75a", "#d9a04b"];
   return /*#__PURE__*/React.createElement(Sheet, {
@@ -5569,6 +5827,15 @@ function NewStaff({
     onChange: e => setF(s => ({
       ...s,
       name: e.target.value
+    }))
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    type: "tel",
+    placeholder: "Handynummer (optional, für Benachrichtigungen)",
+    value: f.phone,
+    onChange: e => setF(s => ({
+      ...s,
+      phone: e.target.value
     }))
   }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "cap",
@@ -5701,7 +5968,8 @@ function BookingDetail({
   state,
   onClose,
   onCancel,
-  onConfirm
+  onConfirm,
+  onMove
 }) {
   const svc = state.services.find(s => s.id === booking.serviceId);
   const mbr = state.staff.find(m => m.id === booking.staffId);
@@ -5804,6 +6072,23 @@ function BookingDetail({
   }, v)))), booking.status !== "cancelled" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, onMove && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: onMove,
+    style: {
+      width: "100%",
+      padding: 14,
+      fontSize: 14
+    }
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "clock",
+    s: 15
+  }), "Verschieben (Zeit / Mitarbeiter)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
       gap: 10
     }
   }, booking.status === "pending" && /*#__PURE__*/React.createElement("button", {
@@ -5826,7 +6111,7 @@ function BookingDetail({
       padding: 14,
       fontSize: 14
     }
-  }, "Absagen")));
+  }, "Absagen"))));
 }
 
 // ─── WA LOG SHEET ─────────────────────────────────────────────
@@ -6686,6 +6971,30 @@ function Dashboard({
       const waMsg = encodeURIComponent(`Hallo ${b.customerName} 👋,\n\n` + `leider müssen wir deinen Termin absagen:\n\n` + `✂️ ${svc?.name || b.serviceName || "Termin"}\n` + `📅 ${fmtShort(b.date)}\n` + `⏰ ${b.startTime} Uhr\n\n` + `Bitte melde dich bei uns, um einen neuen Termin zu vereinbaren.\n– ${salon.name}`);
       window.open(`https://wa.me/${waPhone}?text=${waMsg}`, "_blank");
     }
+  };
+  const moveBooking = async (b, newStaffId, newDate, newTime) => {
+    const newStaff = staff.find(m => m.id === newStaffId);
+    if (salon.supabaseId && b.id && !b.id.startsWith("b_")) {
+      await sb.from('bookings').update({
+        staff_id: newStaffId,
+        date: newDate,
+        start_time: newTime
+      }).eq('id', b.id);
+    }
+    const updated = {
+      ...b,
+      staffId: newStaffId,
+      staffName: newStaff?.name,
+      date: newDate,
+      startTime: newTime
+    };
+    update(s => ({
+      ...s,
+      bookings: s.bookings.map(x => x.id === b.id ? updated : x)
+    }));
+    setFlashId(b.id);
+    setTimeout(() => setFlashId(null), 1200);
+    return updated;
   };
   const todayB = bookings.filter(b => b.date === today() && b.status !== "cancelled").sort((a, b) => a.startTime.localeCompare(b.startTime));
   const tomorrowB = bookings.filter(b => b.date === tomorrow() && b.status !== "cancelled").sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -8389,12 +8698,33 @@ function Dashboard({
       style: {
         fontWeight: 600,
         fontSize: 15,
-        marginBottom: 14,
+        marginBottom: 8,
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, m.name), /*#__PURE__*/React.createElement("button", {
+    }, m.name), /*#__PURE__*/React.createElement("input", {
+      className: "inp",
+      type: "tel",
+      placeholder: "Handy (optional)",
+      defaultValue: m.phone || "",
+      onBlur: e => {
+        const v = e.target.value.trim();
+        if (v !== (m.phone || "")) update(st => ({
+          ...st,
+          staff: st.staff.map(x => x.id === m.id ? {
+            ...x,
+            phone: v
+          } : x)
+        }));
+      },
+      style: {
+        padding: "8px 10px",
+        fontSize: 12,
+        marginBottom: 12,
+        textAlign: "center"
+      }
+    }), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-d",
       style: {
         width: "100%",
@@ -8592,13 +8922,38 @@ function Dashboard({
     state: state,
     onClose: () => setSheet(null),
     onCancel: async () => {
-      if (window.confirm) {}
       await cancelBooking(sheet.data);
     },
     onConfirm: async () => {
       await confirmBooking(sheet.data);
       setSheet(null);
+    },
+    onMove: () => setSheet({
+      type: "reschedule",
+      data: sheet.data
+    })
+  }), sheet?.type === "reschedule" && /*#__PURE__*/React.createElement(RescheduleSheet, {
+    booking: sheet.data,
+    state: state,
+    onClose: () => setSheet(null),
+    onSave: async (stfId, date, time) => {
+      const oldStaffName = (staff.find(m => m.id === sheet.data.staffId) || {}).name || sheet.data.staffName;
+      const updated = await moveBooking(sheet.data, stfId, date, time);
+      const newStaff = staff.find(m => m.id === stfId);
+      showToast("Termin verschoben");
+      setSheet({
+        type: "moved",
+        data: {
+          booking: updated,
+          oldStaffName,
+          newStaff
+        }
+      });
     }
+  }), sheet?.type === "moved" && /*#__PURE__*/React.createElement(MovedSheet, {
+    data: sheet.data,
+    salon: salon,
+    onClose: () => setSheet(null)
   }), sheet === "print" && /*#__PURE__*/React.createElement(PrintSheet, {
     salon: salon,
     onClose: () => setSheet(null)
@@ -11084,7 +11439,8 @@ async function syncToSb(salonId, staff, services, availability) {
           name: m.name,
           color: m.color || '#166534',
           active: m.active !== false,
-          sick: m.sick || false
+          sick: m.sick || false,
+          phone: m.phone || null
         }).eq('id', match.id);
       } else {
         const {
@@ -11094,7 +11450,8 @@ async function syncToSb(salonId, staff, services, availability) {
           name: m.name,
           color: m.color || '#166534',
           active: m.active !== false,
-          sick: m.sick || false
+          sick: m.sick || false,
+          phone: m.phone || null
         }).select().single();
         if (ins) idMap[m.id] = ins.id;
       }
@@ -11164,7 +11521,8 @@ async function syncToSb(salonId, staff, services, availability) {
       name: m.name,
       color: m.color || '#166534',
       active: m.active !== false,
-      sick: m.sick || false
+      sick: m.sick || false,
+      phone: m.phone || null
     }));
     const svcsForJson = services.map(sv => ({
       id: svcIdMap[sv.id] || sv.id,
@@ -12077,7 +12435,8 @@ function App() {
               name: m.name,
               color: m.color || '#4FD1C5',
               active: true,
-              sick: m.sick || false
+              sick: m.sick || false,
+              phone: m.phone || ""
             })) : s.staff,
             services: svcRows?.length ? svcRows.map(sv => ({
               id: sv.id,
