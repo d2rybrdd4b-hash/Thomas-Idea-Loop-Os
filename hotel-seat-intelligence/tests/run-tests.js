@@ -608,7 +608,7 @@ async function exportInvariants(page){
       const tp=X.utils.aoa_to_sheet([
         ['Hotel','','APP','09:00','15.07.'],[],
         ['Tisch','Zimmer','Status','Gastname','Pax','Extras'],
-        ['622','205,502,503,504','','Jaspers','4','4 Kinder'],
+        ['612','205,502,503,504','','Jaspers','4','4 Kinder'],
         ['632','301, 112','AB','Büllmann, Anja + Potschka','3','']
       ]);
       const vd=X.utils.aoa_to_sheet([
@@ -631,7 +631,7 @@ async function exportInvariants(page){
       const rejectOhneDaten=vortagIstEigenerExport;
       return {
         source:parsed&&parsed._source,
-        jasPax:jas&&jas.AnzahlPersonen, jasInPax:jasIn&&jasIn.AnzahlPersonen,
+        jasPax:jas&&jas.AnzahlPersonen, jasInPax:jasIn&&jasIn.AnzahlPersonen, jasTisch:jas&&jas.Tisch,
         n632:t632.length, namen632:t632.map(r=>r.Nachname).join('+'),
         eigenexportFlag:eigenexportFlagNachDaten, rejectOhneDaten
       };
@@ -639,6 +639,7 @@ async function exportInvariants(page){
     check('Keine JS-Laufzeitfehler (Vortag-Daten)',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
     check('Datenblatt wird bevorzugt gelesen (_source=vortag_daten)',vt.source==='vortag_daten','source: '+vt.source);
     check('Jaspers behält echte Pax 10 (nicht 4 aus dem Druck)',vt.jasPax==='10'&&vt.jasInPax==='10','Pax: '+vt.jasPax+'/'+vt.jasInPax);
+    check('Handänderung respektiert: Jaspers-Tisch aus sichtbarem Plan (612, nicht 622)',String(vt.jasTisch)==='612','Tisch: '+vt.jasTisch);
     check('632: zwei getrennte Parteien (kein 726-Verkleben)',vt.n632===2&&/büllmann/i.test(vt.namen632)&&/potschka/i.test(vt.namen632),vt.n632+': '+vt.namen632);
     check('Eigener Export mit Datenblatt wird NICHT abgelehnt',vt.eigenexportFlag===false);
     check('Eigener Export OHNE Datenblatt bleibt abgelehnt (Alt-Exporte)',vt.rejectOhneDaten===true);

@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cn</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-co</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cn · 15.07.2026</span>
+          <span class="set-version">v.25.06-co · 16.07.2026</span>
         </div>
       </div>
 
@@ -2330,33 +2330,39 @@ function parseVortagPanorama(wb){
   // Bevorzugt das maschinenlesbare „Vortag-Daten"-Blatt (eigener App-Export). Nur wenn es fehlt,
   // wird der gedruckte (menschliche) Tischplan interpretiert. So wird unser eigener Export ein
   // sauberer Vortag: echte Pax bleibt erhalten, getrennte Parteien bleiben getrennt.
+  // Datenblatt (eigener App-Export) = saubere Pax/Parteien. Der SICHTBARE Tischplan = das, was
+  // der Hotelier zuletzt (ggf. VON HAND) hinterlassen hat. Beides wird versöhnt (reconcileVortag):
+  // Tisch-Zuordnung aus dem sichtbaren Plan (Handänderungen bleiben erhalten!), Pax/Nachname/
+  // Status/Bemerkung aus dem Datenblatt (Jaspers 10, kein 726-Verkleben). Fehlt das Datenblatt →
+  // nur der sichtbare Plan wie bisher.
   const datenRows=parseVortagDatenSheet(wb);
+  const vis=parseVortagVisibleTischplan(wb);
   if(datenRows&&datenRows.length){
-    vortagIstEigenerExport=false; // sauberes Datenblatt → NICHT als „roher Eigenexport" ablehnen
-    return {headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows:datenRows,_source:'vortag_daten'};
+    vortagIstEigenerExport=false; // sauberes Datenblatt → nie als „roher Eigenexport" ablehnen
+    const rows=(vis&&vis.rows&&vis.rows.length)?reconcileVortag(datenRows,vis.rows):datenRows;
+    return {headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows,_source:'vortag_daten'};
   }
+  return vis;
+}
+// Liest den SICHTBAREN Vortags-Tischplan (menschliche/hand-geänderte Fassung). Setzt dabei
+// vortagIstEigenerExport (Kürzel „APP"/Zusatz-Blätter → eigener Export ohne Datenblatt = Alt-Export).
+function parseVortagVisibleTischplan(wb){
   const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()));
   if(!sheetName) return null;
   const ws=wb.Sheets[sheetName];
   const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
   const norm=v=>String(v||'').trim().toLowerCase();
-
   let headerRow=-1;
   for(let r=0;r<Math.min(8,aoa.length);r++){
     if((aoa[r]||[]).some(c=>norm(c)==='tisch')){headerRow=r;break;}
   }
   if(headerRow<0) return null;
-  // Eigener Export als Vortag? Zwei Fingerabdrücke: (1) unsere Zusatz-Blätter „Warum dieser
-  // Tisch"/„Prüfbericht" — die schreibt NUR unsere App, der Hotelier nie (100 % zuverlässig,
-  // vorlagenunabhängig); (2) Bearbeiter-Kürzel „APP" oberhalb der Kopfzeile (Fallback für
-  // Exporte älterer Versionen ohne Zusatz-Blätter).
   vortagIstEigenerExport=(wb.SheetNames||[]).some(n=>/^(warum dieser tisch|prüfbericht)$/i.test(String(n).trim()));
   if(!vortagIstEigenerExport){
     for(let r=0;r<headerRow;r++){
       if((aoa[r]||[]).some(c=>String(c||'').trim()==='APP')){vortagIstEigenerExport=true;break;}
     }
   }
-
   const headerCells=aoa[headerRow]||[];
   const blocks=[];
   headerCells.forEach((c,ci)=>{
@@ -2371,15 +2377,11 @@ function parseVortagPanorama(wb){
     blocks.push(block);
   });
   if(blocks.length===0) return null;
-
   const STOP_WORDS=['geburtstage','änderungen','summe','day spa','einfügen'];
   const rows=[];
   for(let i=headerRow+1;i<aoa.length;i++){
     const row=aoa[i]||[];
     const rowVals=row.filter(c=>c!=null).map(c=>String(c).trim().toLowerCase());
-    // Stop am Summen-/Fußzeilenbereich — aber nur, wenn in dieser Zeile in KEINEM
-    // Spaltenblock mehr eine gültige Tisch-ID steht. Sonst gehen bei Mehrblock-Layouts
-    // echte Gäste-Zeilen verloren, nur weil im Nachbarblock z.B. "Summe 700er" steht.
     if(rowVals.some(v=>STOP_WORDS.some(sw=>v.startsWith(sw)))){
       const hasValidId=blocks.some(b=>/^\d/.test(String(row[b.tischCol]||'').trim()));
       if(!hasValidId) break;
@@ -2390,6 +2392,31 @@ function parseVortagPanorama(wb){
     });
   }
   return rows.length>0?{headers:['Tisch','Zimmernummer','Status','Nachname','AnzahlPersonen','Extras'],rows}:null;
+}
+// Versöhnt Datenblatt (saubere Pax/Parteien) mit dem sichtbaren, ggf. HAND-geänderten Tischplan.
+// Grundsatz „Handänderung schlägt": Die Tisch-Zuordnung je Zimmer kommt aus dem sichtbaren Plan
+// (Verschiebungen bleiben erhalten); Pax/Nachname/Status/Bemerkung aus dem Datenblatt. Von Hand
+// ENTFERNTE Zimmer (im Datenblatt, aber nicht mehr im Plan) fallen weg; von Hand ERGÄNZTE Zimmer
+// (im Plan, aber nicht im Datenblatt) kommen aus dem sichtbaren Plan dazu.
+function reconcileVortag(datenRows,visRows){
+  const roomsOf=z=>String(z||'').split(/[,+]/).map(s=>s.trim()).filter(s=>/^\d{3,4}$/.test(s));
+  const visMap={};
+  visRows.forEach(r=>roomsOf(r.Zimmernummer).forEach(rm=>{if(visMap[rm]==null)visMap[rm]=r.Tisch;}));
+  const covered=new Set();
+  const out=[];
+  datenRows.forEach(dr=>{
+    const rms=roomsOf(dr.Zimmernummer);
+    const anyVis=rms.some(rm=>visMap[rm]!=null);
+    if(rms.length&&!anyVis) return; // von Hand entfernt → weglassen
+    const lead=rms.find(rm=>visMap[rm]!=null);
+    out.push({...dr,Tisch:lead?visMap[lead]:dr.Tisch}); // Tisch aus sichtbarem Plan (Handänderung)
+    rms.forEach(rm=>covered.add(rm));
+  });
+  visRows.forEach(r=>{
+    const rms=roomsOf(r.Zimmernummer);
+    if(rms.length&&rms.every(rm=>!covered.has(rm))) out.push(r); // von Hand ergänzte Zeile übernehmen
+  });
+  return out;
 }
 
 function buildVortagRow(row,tc,zc,sc,nc,pc,ec){
