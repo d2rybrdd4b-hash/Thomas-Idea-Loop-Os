@@ -370,6 +370,14 @@ async function exportInvariants(page){
      // senken (Tiny-Studios weichen Familien auf gute Tische) — bis dahin dokumentiert als Baseline.
      anHeuteMin:12,anHeuteMax:35, tinyPremiumTol:6,
      groundTruth:{heute:'ground-truth-15.json',vortag:'ground-truth-14.json',label:'15.07. (Mi)',minQuote:0.80,minTreue:0.75,minLogik:0.85}},
+    // S11: 16.07. (DONNERSTAG). Vortag = echter 15.07.-Hotelier-Plan (anonymisiert). Schwellen
+    // zunächst offen; nach Baseline-Messwert knapp darunter gesetzt.
+    // Baseline bei Aufnahme (anonymisiert): 72% exakt / 91% Logik / 81% Bleibegast-Treue
+    // (deckt sich mit dem Echt-Datei-Vergleich 77%/95%). Schwellen mit Puffer darunter.
+    {name:'S11 Backtest 16.07. (DONNERSTAG — Vortag=15.07-Plan)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-15-anon.xlsx',ankuenfte:'arr16-anon.xlsx',abreisen:'dep16-anon.xlsx',refDate:'2026-07-16',vorausschau:true,
+     anHeuteMin:12,anHeuteMax:40, tinyPremiumTol:6,
+     groundTruth:{heute:'ground-truth-16.json',vortag:'ground-truth-15.json',label:'16.07. (Do)',minQuote:0.65,minTreue:0.72,minLogik:0.85}},
   ];
 
   for(const sz of SZENARIEN){
