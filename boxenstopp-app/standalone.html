@@ -64,7 +64,9 @@ const {
 
 // ─── SUPABASE ────────────────────────────────────────────────
 // ⚠️ BOXENSTOPP: eigenes Supabase-Projekt — URL + Publishable Key nach Projektanlage eintragen
-const sb = supabase.createClient('https://BOXENSTOPP-PROJEKT.supabase.co', 'sb_publishable_HIER_EINTRAGEN', {
+const SB_URL = 'https://BOXENSTOPP-PROJEKT.supabase.co';
+const SB_READY = !SB_URL.includes('PROJEKT');
+const sb = supabase.createClient(SB_URL, 'sb_publishable_HIER_EINTRAGEN', {
   auth: {
     persistSession: true,
     autoRefreshToken: true
@@ -496,6 +498,7 @@ function I({
     smartphone: "M17 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2z|M12 18h.01",
     shuffle: "M16 3h5v5|M4 20l17-17|M21 16v5h-5|M15 15l6 6|M4 4l5 5",
     box: "M21 8l-9-5-9 5v8l9 5 9-5V8z|M3.3 7l8.7 5 8.7-5|M12 22V12",
+    wrench: "M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z",
     thumb_up: "M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z|M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3",
     thumb_down: "M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z|M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"
   };
@@ -721,7 +724,7 @@ function PhoneMockup() {
       color: "#fff"
     }
   }, /*#__PURE__*/React.createElement(I, {
-    n: "cut",
+    n: "wrench",
     s: 13
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -852,7 +855,7 @@ function PhoneMockup() {
       fontSize: 10,
       fontWeight: 600
     }
-  }, "Herrenhaarschnitt"), /*#__PURE__*/React.createElement("div", {
+  }, "Räderwechsel"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 8,
       color: "var(--muted)"
@@ -1296,7 +1299,7 @@ function Landing({
     n: "01",
     i: "edit",
     t: "Profil einrichten",
-    d: "Salon-Name, Services und Mitarbeiter. Fertig in unter 5 Minuten."
+    d: "Werkstatt-Name, Services und Team. Fertig in unter 5 Minuten."
   }, {
     n: "02",
     i: "link",
@@ -2287,6 +2290,10 @@ function Auth({
   }
   const submit = async () => {
     setErr("");
+    if (!SB_READY) {
+      setErr("Die Datenbank ist noch nicht verbunden — das Supabase-Projekt für Boxenstopp muss erst angelegt und eingetragen werden. Die Demo-Werkstatt funktioniert schon: ?werkstatt=muster");
+      return;
+    }
     if (!f.email || !f.password) {
       setErr("Bitte E-Mail und Passwort eingeben.");
       return;
@@ -2458,8 +2465,8 @@ function Auth({
       boxShadow: "0 8px 24px var(--accent-glow)"
     }
   }, /*#__PURE__*/React.createElement(I, {
-    n: "cut",
-    s: 26
+    n: "wrench",
+    s: 24
   })), /*#__PURE__*/React.createElement("h1", {
     className: "serif",
     style: {
@@ -4701,7 +4708,7 @@ function PrintSheet({
     className: "inp",
     value: f.insta,
     onChange: e => set("insta", e.target.value),
-    placeholder: "Instagram (optional, z.B. @haarliebe)"
+    placeholder: "Instagram (optional, z.B. @kfz.mueller)"
   })), /*#__PURE__*/React.createElement("div", {
     className: "cap",
     style: {
@@ -5706,7 +5713,7 @@ function TemplateSheet({
     datum: "Mo, 15.",
     uhrzeit: "10:30",
     link: `${BOOKING_BASE}${state.salon.slug}`,
-    leistung: "Herrenhaarschnitt",
+    leistung: "Räderwechsel",
     grund: "ich krankheitsbedingt ausfalle"
   });
   return /*#__PURE__*/React.createElement(Sheet, {
@@ -9078,7 +9085,7 @@ function Dashboard({
   }, /*#__PURE__*/React.createElement("div", {
     className: "feat-icon"
   }, /*#__PURE__*/React.createElement(I, {
-    n: "cut",
+    n: "wrench",
     s: 18
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -9273,7 +9280,7 @@ function Dashboard({
     label: "Lager"
   }, {
     id: "services",
-    icon: "cut",
+    icon: "wrench",
     label: "Services"
   }, {
     id: "team",
@@ -10540,7 +10547,7 @@ function BookingPage({
       fontWeight: 700,
       fontSize: 16
     }
-  }, salon.name || "Salon"), step < 5 && /*#__PURE__*/React.createElement("div", {
+  }, salon.name || "Werkstatt"), step < 5 && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--muted)"
@@ -11978,55 +11985,55 @@ const DURATION_OPTS = [10, 15, 20, 30, 45, 60, 75, 90, 120];
 const BUFFER_OPTS = [0, 5, 10, 15, 20];
 const DAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 const SERVICE_TEMPLATES = [{
-  name: "Herrenhaarschnitt",
+  name: "Räderwechsel (eingelagert)",
   duration: 30,
   price: 25,
-  buffer: 5
-}, {
-  name: "Damenhaarschnitt",
-  duration: 60,
-  price: 45,
   buffer: 10
 }, {
-  name: "Kinderhaarschnitt",
-  duration: 20,
-  price: 18,
-  buffer: 5
+  name: "Räderwechsel + Einlagerung",
+  duration: 45,
+  price: 55,
+  buffer: 10
 }, {
-  name: "Bart trimmen",
-  duration: 20,
-  price: 15,
-  buffer: 5
+  name: "Ölwechsel + Sichtcheck",
+  duration: 45,
+  price: 89,
+  buffer: 15
 }, {
-  name: "Bart rasieren",
+  name: "HU/AU-Begleitung (TÜV)",
+  duration: 60,
+  price: 139,
+  buffer: 15
+}, {
+  name: "Inspektion klein",
+  duration: 120,
+  price: 189,
+  buffer: 15
+}, {
+  name: "Inspektion groß",
+  duration: 180,
+  price: 329,
+  buffer: 15
+}, {
+  name: "Bremsen-Check",
   duration: 30,
-  price: 20,
-  buffer: 5
+  price: 0,
+  buffer: 10
 }, {
-  name: "Colorierung",
+  name: "Bremsbeläge vorne",
   duration: 90,
-  price: 65,
+  price: 179,
   buffer: 15
 }, {
-  name: "Strähnen",
-  duration: 120,
-  price: 85,
-  buffer: 15
-}, {
-  name: "Föhnen & Styling",
+  name: "Batterie-Service",
   duration: 30,
-  price: 25,
-  buffer: 5
+  price: 39,
+  buffer: 10
 }, {
-  name: "Haarpflege / Kur",
-  duration: 30,
-  price: 20,
-  buffer: 5
-}, {
-  name: "Dauerwelle",
-  duration: 120,
-  price: 75,
-  buffer: 15
+  name: "Klima-Check",
+  duration: 45,
+  price: 59,
+  buffer: 10
 }];
 
 // ─── SUPABASE SYNC HELPER ────────────────────────────────────────────────────
@@ -12504,7 +12511,7 @@ function OnboardingWizard({
     }
   }, /*#__PURE__*/React.createElement("input", {
     className: "inp",
-    placeholder: "z.B. Haarschnitt",
+    placeholder: "z.B. Ölwechsel",
     value: sv.name,
     onChange: e => updSvc(sv.id, "name", e.target.value),
     style: {
