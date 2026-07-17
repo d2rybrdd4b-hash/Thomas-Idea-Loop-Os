@@ -107,6 +107,9 @@ async function calcInvariants(page){
       // vorhanden, kein Neu-Anreisender), MUSS auf seinem Tisch bleiben. Das Kernversprechen.
       bleibeMoved:guests.filter(g=>g.vorheriger_tisch&&g.status!=='AN'&&g.status!=='AN·AB'
         &&g.zugewiesener_tisch&&String(g.zugewiesener_tisch)!==String(g.vorheriger_tisch)).length,
+      // Anzahl Bleibegäste (aus dem Vortag übernommen). >0 beweist, dass der Vortag wirklich
+      // gelesen wurde — bei einem nicht erkannten Blatt (Fund 17.07. „Tabelle1") wäre er 0.
+      bleibeCount:guests.filter(g=>g.vorheriger_tisch).length,
       // Doppelplatzierung: kein Zimmer darf an mehreren Tischen stehen (Feedback 09.07.: Weber
       // auf 621 UND 732). Kernversprechen — ein Zimmer gehört an genau einen Tisch/eine Kombi.
       roomDoublePlaced:(()=>{const m={};guests.filter(g=>g.zugewiesener_tisch).forEach(g=>{
@@ -378,6 +381,13 @@ async function exportInvariants(page){
      vortag:'plan-15-anon.xlsx',ankuenfte:'arr16-anon.xlsx',abreisen:'dep16-anon.xlsx',refDate:'2026-07-16',vorausschau:true,
      anHeuteMin:12,anHeuteMax:40, tinyPremiumTol:6,
      groundTruth:{heute:'ground-truth-16.json',vortag:'ground-truth-15.json',label:'16.07. (Do)',minQuote:0.65,minTreue:0.72,minLogik:0.85}},
+    // S12: 17.07. — strukturelles Sicherheitsnetz für den „Tabelle1"-Vortag-Fund. Der Vortag
+    // (echter 16.07.-Plan) trägt das Blatt „Tabelle1" statt „Tischplan". OHNE Ground-Truth
+    // (echter 17.07.-Plan liegt noch nicht vor): prüft, dass der Vortag TROTZDEM gelesen wird
+    // (echte Tische + Bleibegäste, kein Demo-Rückfall), alle platziert, Export baubar.
+    {name:'S12 Backtest 17.07. (Vortag=16.07 „Tabelle1"-Blatt — Struktur)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+     vortag:'plan-16tab-anon.xlsx',ankuenfte:'arr17-anon.xlsx',abreisen:'dep17-anon.xlsx',refDate:'2026-07-17',vorausschau:true,
+     anHeuteMin:12,anHeuteMax:45, tinyPremiumTol:6, minBleibe:20},
   ];
 
   for(const sz of SZENARIEN){
@@ -394,6 +404,7 @@ async function exportInvariants(page){
     check('Tische geladen (≥60)',ci.nTables>=60,'nur '+ci.nTables);
     check('Gäste geladen (≥40)',ci.nGuests>=40,'nur '+ci.nGuests);
     check('Alle Gäste platziert',ci.unplaced===0,ci.unplaced+' ohne Tisch');
+    if(sz.minBleibe) check('Bleibegäste aus Vortag geladen (≥'+sz.minBleibe+' — Vortagsblatt erkannt)',ci.bleibeCount>=sz.minBleibe,ci.bleibeCount+' Bleibegäste');
     check('Keine Geister-Tische (Zuweisung auf unbekannten Tisch)',ci.ghosts===0,ci.ghosts+' Geister');
     check('Keine Doppelplatzierung (kein Zimmer an mehreren Tischen)',ci.roomDoublePlaced.length===0,ci.roomDoublePlaced.join(' | '));
     check('Kein Fremdgast auf offenem Kombi-Partner (Kombination bleibt Einheit)',ci.fremdAufKombiPartner.length===0,ci.fremdAufKombiPartner.join(' | '));
