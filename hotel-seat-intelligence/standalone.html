@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-co</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cp</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-co · 16.07.2026</span>
+          <span class="set-version">v.25.06-cp · 17.07.2026</span>
         </div>
       </div>
 
@@ -2347,7 +2347,19 @@ function parseVortagPanorama(wb){
 // Liest den SICHTBAREN Vortags-Tischplan (menschliche/hand-geänderte Fassung). Setzt dabei
 // vortagIstEigenerExport (Kürzel „APP"/Zusatz-Blätter → eigener Export ohne Datenblatt = Alt-Export).
 function parseVortagVisibleTischplan(wb){
-  const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()));
+  // Plan-Blatt am INHALT finden (Blatt mit einer „Tisch"-Kopfzeile), nicht nur am Namen — manche
+  // Hotelier-Exporte heißen „Tabelle1" statt „Tischplan" (Fund 17.07.: sonst Rückfall auf Demo-
+  // Tische + Verlust ALLER Bleibegäste-Tische). Ein Blatt namens „Tischplan" hat weiter Vorrang.
+  const hasTischHeader=ws0=>{
+    if(!ws0) return false;
+    const a0=XLSX.utils.sheet_to_json(ws0,{header:1,defval:null});
+    for(let r=0;r<Math.min(8,a0.length);r++){
+      if((a0[r]||[]).some(c=>String(c||'').trim().toLowerCase()==='tisch')) return true;
+    }
+    return false;
+  };
+  const sheetName=wb.SheetNames.find(n=>/^Tischplan/i.test(n.trim()))
+    ||wb.SheetNames.find(n=>hasTischHeader(wb.Sheets[n]));
   if(!sheetName) return null;
   const ws=wb.Sheets[sheetName];
   const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
