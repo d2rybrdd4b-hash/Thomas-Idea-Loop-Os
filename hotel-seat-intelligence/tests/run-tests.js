@@ -385,9 +385,12 @@ async function exportInvariants(page){
     // (echter 16.07.-Plan) trägt das Blatt „Tabelle1" statt „Tischplan". OHNE Ground-Truth
     // (echter 17.07.-Plan liegt noch nicht vor): prüft, dass der Vortag TROTZDEM gelesen wird
     // (echte Tische + Bleibegäste, kein Demo-Rückfall), alle platziert, Export baubar.
-    {name:'S12 Backtest 17.07. (Vortag=16.07 „Tabelle1"-Blatt — Struktur)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
+    {name:'S12 Backtest 17.07. (FREITAG — Vortag=16.07 „Tabelle1"-Blatt)',vorlage:'vorlage-blanco.xlsx',expectTemplate:true,
      vortag:'plan-16tab-anon.xlsx',ankuenfte:'arr17-anon.xlsx',abreisen:'dep17-anon.xlsx',refDate:'2026-07-17',vorausschau:true,
-     anHeuteMin:12,anHeuteMax:45, tinyPremiumTol:6, minBleibe:20},
+     // FREITAG = viel Fluktuation → niedrigere Exakt-Schwelle (wie 10.07.). Baseline bei Aufnahme:
+     // 61% exakt / 87% Logik / 64% Bleibegast-Treue. Namenstreue im Echt-Vergleich 100%.
+     anHeuteMin:12,anHeuteMax:45, tinyPremiumTol:6, minBleibe:20,
+     groundTruth:{heute:'ground-truth-17.json',vortag:'ground-truth-16.json',label:'17.07. (Fr)',minQuote:0.55,minTreue:0.55,minLogik:0.80}},
   ];
 
   for(const sz of SZENARIEN){
