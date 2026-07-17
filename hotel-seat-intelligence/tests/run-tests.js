@@ -643,6 +643,24 @@ async function exportInvariants(page){
     check('632: zwei getrennte Parteien (kein 726-Verkleben)',vt.n632===2&&/büllmann/i.test(vt.namen632)&&/potschka/i.test(vt.namen632),vt.n632+': '+vt.namen632);
     check('Eigener Export mit Datenblatt wird NICHT abgelehnt',vt.eigenexportFlag===false);
     check('Eigener Export OHNE Datenblatt bleibt abgelehnt (Alt-Exporte)',vt.rejectOhneDaten===true);
+    // Plan-Blatt am INHALT erkennen, nicht am Namen (Fund 17.07.: Hotelier-Datei heißt „Tabelle1"
+    // statt „Tischplan" → sonst Rückfall auf Demo-Tische + Verlust aller Bleibegäste).
+    const tab=await page.evaluate(()=>{
+      const X=window.XLSX;
+      const ws=X.utils.aoa_to_sheet([
+        ['LH','','','16. Juli - Donnerstag'],[],
+        ['Tisch','Zimmer','Status','Gastname','Pax','Extras'],
+        ['611','205','','Muster','2',''],
+        ['642','101','AN','Probe','2','']
+      ]);
+      const wb={SheetNames:['Tabelle1'],Sheets:{'Tabelle1':ws}};
+      const parsed=parseVortagPanorama(wb);
+      const rows=(parsed&&parsed.rows)||[];
+      const tische=extractTablesFromVortag(rows);
+      return { nRows:rows.length, hat611:rows.some(r=>String(r.Tisch)==='611'), nTische:(tische&&tische.rows&&tische.rows.length)||0 };
+    });
+    check('Plan-Blatt „Tabelle1" wird per Inhalt erkannt (nicht nur Name „Tischplan")',tab.nRows>=2&&tab.hat611,'Zeilen: '+tab.nRows+' 611:'+tab.hat611);
+    check('Echte Tische aus „Tabelle1"-Vortag extrahiert (kein Demo-Rückfall)',tab.nTische>=2,'nTische: '+tab.nTische);
     await page.close();
   }
 
