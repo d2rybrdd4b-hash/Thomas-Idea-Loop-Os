@@ -675,6 +675,19 @@ async function exportInvariants(page){
     });
     check('Plan-Blatt „Tabelle1" wird per Inhalt erkannt (nicht nur Name „Tischplan")',tab.nRows>=2&&tab.hat611,'Zeilen: '+tab.nRows+' 611:'+tab.hat611);
     check('Echte Tische aus „Tabelle1"-Vortag extrahiert (kein Demo-Rückfall)',tab.nTische>=2,'nTische: '+tab.nTische);
+    // Ad-hoc-Nachbarblock vor der Bar (Fund 17.07.): eine 4-Pers.-Partei muss freie benachbarte
+    // reguläre Tische (744+745) bekommen, NICHT den Bar-Tisch 801 — auch wenn 744+745 keine
+    // registrierte Kombi sind. findAdjacentBlock meidet 80x/Notfall.
+    const adj=await page.evaluate(()=>{
+      const mk=(id,kap,belegt)=>({tisch_id:id,kapazitaet:kap,belegtPax:belegt||0,aktiv:true});
+      const ts=[mk('741',2,2),mk('742',2,2),mk('743',2,2),mk('744',2,0),mk('745',2,0),mk('746',2,2),
+                mk('801',3,0),mk('802',3,0),mk('803',3,0)]; // nur 744+745 (benachbart) + Bar frei
+      const blk=findAdjacentBlock(ts,4,null,null,null);
+      const ids=blk?blk.tables.map(t=>t.tisch_id):[];
+      return { ids:ids.join('+'), keineBar:!ids.some(x=>/^80\d/.test(x)) };
+    });
+    check('Ad-hoc-Nachbarblock für 4 Pers.: 744+745 statt Bar',adj.ids==='744+745','gewählt: '+adj.ids);
+    check('Ad-hoc-Nachbarblock meidet Bar-Tische (80x)',adj.keineBar===true);
     await page.close();
   }
 
