@@ -1009,7 +1009,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cp</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cq</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1337,7 +1337,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cp · 17.07.2026</span>
+          <span class="set-version">v.25.06-cq · 17.07.2026</span>
         </div>
       </div>
 
@@ -4784,6 +4784,20 @@ function runCalc(){
       t=findBestTable(ts,pref,g.pax,nights,null,null,null,g);
       if(t){doAssign(g,t);g.begruendung=ausweich+`Tisch ${t.tisch_id} (Kalender prüfen)`;fillCal++;
         warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}) → Tisch ${t.tisch_id}: heute gesetzt, Folgetag-Konflikt möglich`});return;}
+      // Stufe 3: Ad-hoc-Nachbarblock (freie benachbarte reguläre Tische) für Parteien ≥3 — BEVOR
+      // die Notplatzierung auf einen Bar-/Restkapazitäts-Tisch ausweicht. Fund 17.07.: Miller (218)
+      // und Kadik (518, je 4 Pers.) landeten auf 801/802, obwohl 744+745 (benachbart, frei, zus. 4
+      // Plätze) passten. findAdjacentBlock meidet Bar/Notfall → echte Familie kommt regulär unter.
+      if((g.pax||1)>=3){
+        const blk=findAdjacentBlock(ts,g.pax,g.check_in,g.check_out,tableCalendar)
+               ||findAdjacentBlock(ts,g.pax,null,null,null);
+        if(blk){
+          const label=assignKombi([g],blk,tableCalendar,g.check_in,g.check_out);
+          assigned++; fillOk++;
+          warns.push({level:'yellow',msg:`${g.nachname} (Zi. ${g.zimmer}, ${g.pax} PAX) → Nachbartische ${label} (kein Einzeltisch/Kombi frei — statt Bar/Notfall)`});
+          return;
+        }
+      }
       // Stufe 4: Notplatzierung — aktiver, nicht gesperrter Tisch mit größter Restkapazität
       // (cand wird je Gast neu berechnet → Überlauf verteilt sich gleichmäßig)
       const cand=ts.filter(x=>x.aktiv&&!x.blocked_for&&!x.kombiMit)
