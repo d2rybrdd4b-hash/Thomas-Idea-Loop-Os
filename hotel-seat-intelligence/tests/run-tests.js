@@ -691,6 +691,45 @@ async function exportInvariants(page){
     await page.close();
   }
 
+  // ══ In-App-Tischkorrektur (v1): Tisch tauschen wirkt auf assignedGuests + Export + Protokoll ══
+  {
+    results.push('▶ Sk In-App-Tischkorrektur (Tisch tauschen vor Export)');
+    const page=await browser.newPage({viewport:{width:440,height:1000}});
+    const pageErrors=[];
+    page.on('pageerror',e=>pageErrors.push(e.message));
+    page.on('dialog',d=>d.accept()); // etwaige confirm() automatisch bestätigen
+    await page.goto(APP,{waitUntil:'networkidle'});
+    await page.waitForTimeout(1400);
+    await loadAndCalc(page,{vorlage:'vorlage-blanco.xlsx'});
+    const kor=await page.evaluate(()=>{
+      const g=(assignedGuests||[]).find(x=>x.zugewiesener_tisch);
+      const idx=assignedGuests.indexOf(g);
+      const alt=String(g.zugewiesener_tisch);
+      const ziel=(lastTables||[]).find(t=>t.aktiv&&!t.blocked_for&&!t.kombiMit&&!t.notfall
+        &&(t.belegtPax||0)===0&&(t.kapazitaet||0)>=(g.pax||1)&&String(t.tisch_id)!==alt&&!/^80\d/.test(String(t.tisch_id)));
+      if(!ziel) return {noZiel:true};
+      korrigiereTisch(idx,String(ziel.tisch_id));
+      return {alt,neu:String(g.zugewiesener_tisch),ziel:String(ziel.tisch_id),hand:!!g._handKorrigiert,
+        logOk:handKorrekturen.some(k=>String(k.nach)===String(ziel.tisch_id)&&String(k.von)===alt),
+        nachname:g.nachname};
+    });
+    check('Keine JS-Laufzeitfehler (Korrektur)',pageErrors.length===0,pageErrors.slice(0,2).join(' | '));
+    check('Freien Zieltisch gefunden',!kor.noZiel);
+    check('Gast auf neuen Tisch verschoben',kor.neu===kor.ziel&&kor.neu!==kor.alt,kor.alt+' → '+kor.neu);
+    check('Gast als Hand-korrigiert markiert',kor.hand===true);
+    check('Korrektur protokolliert (von→nach)',kor.logOk===true);
+    const exp=await page.evaluate(async()=>{
+      const built=await buildFilledTischplanSheet();
+      const g=(assignedGuests||[]).find(x=>x._handKorrigiert);
+      const gs=(built.guestsByTable||{})[String(g.zugewiesener_tisch)]||[];
+      let notiz=false; built.ws.eachRow(r=>r.eachCell(c=>{if(typeof c.value==='string'&&/von Hand geändert/i.test(c.value))notiz=true;}));
+      return {amNeuenTisch:gs.some(x=>x.nachname===g.nachname),notiz};
+    });
+    check('Export: Gast steht am neuen (korrigierten) Tisch',exp.amNeuenTisch===true);
+    check('Export: „von Hand geändert" im Änderungen-Footer',exp.notiz===true);
+    await page.close();
+  }
+
   await browser.close();
   console.log('\n'+results.join('\n'));
   console.log('\n'+(failures===0?'✅ ALLE TESTS BESTANDEN':'❌ '+failures+' TEST(S) FEHLGESCHLAGEN — NICHT PUSHEN!'));
