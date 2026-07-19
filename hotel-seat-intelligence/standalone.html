@@ -217,6 +217,31 @@ html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-
 .tbl-preview tr:hover td{background:rgba(255,255,255,.02)}
 .zone-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;
   box-shadow:inset -1px -1px 1.5px rgba(0,0,0,.3),inset 1px 1px 1px rgba(255,255,255,.55)}
+/* In-App-Tischkorrektur: antippbare Tisch-Zelle + Auswahl-Modal */
+.tp-edit{cursor:pointer;white-space:nowrap;border-radius:4px}
+.tp-edit:hover{background:rgba(212,175,55,.12)}
+.tp-edit .tp-pen{font-size:9px;color:var(--gold);margin-left:4px;opacity:.65}
+.tp-edit .tp-hand{display:inline-block;font-size:7px;font-weight:800;color:#fff;background:var(--gold);
+  border-radius:3px;padding:1px 3px;margin-left:4px;vertical-align:middle}
+.tw-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.tw-panel{background:var(--card);width:100%;max-width:560px;max-height:82vh;display:flex;flex-direction:column;
+  border-radius:16px 16px 0 0;padding:16px 14px calc(14px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 30px rgba(0,0,0,.4)}
+.tw-head{font-family:var(--font-display);font-size:16px;color:var(--fg);margin-bottom:10px;line-height:1.35}
+.tw-head .tw-meta{display:block;font-family:var(--font-body);font-size:11px;color:var(--dim);margin-top:3px}
+.tw-list{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.tw-sec{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);
+  margin:10px 2px 5px}
+.tw-opt{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+  background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px 12px;margin-bottom:6px;
+  cursor:pointer;color:var(--fg);font-family:inherit}
+.tw-opt:hover{border-color:var(--gold)}
+.tw-opt .tw-tid{font-size:15px;font-weight:800;color:var(--gold);min-width:46px}
+.tw-opt .tw-meta{font-size:11px;color:var(--dim)}
+.tw-opt.tw-warn{border-color:rgba(230,126,34,.5)}
+.tw-opt.tw-warn .tw-meta{color:var(--orange)}
+.tw-close{margin-top:10px;align-self:stretch}
 #s3 .bot{display:flex;justify-content:space-between;align-items:center;
          max-width:900px;margin:24px auto 0;gap:12px}
 
@@ -1009,7 +1034,7 @@ details.set-adv .adv-body{padding-top:12px;}
           <input type="date" id="dash-date" class="dash-date-input-overlay" onchange="updateDashboard()">
         </span>
         <span class="dash-meta-sep">·</span>
-        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cq</span>
+        <span class="dash-meta-item" style="font-size:9px;opacity:.5;letter-spacing:.03em" title="App-Version">v.25.06-cr</span>
       </div>
       <select id="dash-meal" style="display:none" onchange="updateDashboard();updateMealCards()">
         <option value="fruehstueck">🌅 Frühstück</option>
@@ -1192,6 +1217,15 @@ details.set-adv .adv-body{padding-top:12px;}
         <table class="tbl-preview" id="plan-table"></table>
       </div>
 
+      <!-- In-App-Tischkorrektur: Auswahl-Modal (verdeckt, per oeffneTischWechsel geöffnet) -->
+      <div id="tw-modal" class="tw-overlay" style="display:none" onclick="if(event.target===this)schliesseTischWechsel()">
+        <div class="tw-panel">
+          <div class="tw-head"></div>
+          <div class="tw-list"></div>
+          <button type="button" class="btn btn-outline btn-sm tw-close" onclick="schliesseTischWechsel()">Abbrechen</button>
+        </div>
+      </div>
+
       <!-- Backward-compat stub: Element wird von updateDrucklistenState() nullsicher referenziert -->
       <div id="cockpit-dl-section" style="display:none"></div>
 
@@ -1337,7 +1371,7 @@ details.set-adv .adv-body{padding-top:12px;}
         </div>
         <div class="set-row" style="margin-top:6px">
           <span class="rl" data-i18n="set.version">Version</span>
-          <span class="set-version">v.25.06-cq · 17.07.2026</span>
+          <span class="set-version">v.25.06-cr · 17.07.2026</span>
         </div>
       </div>
 
@@ -1679,6 +1713,7 @@ let currentSlot='fruehstueck';
 let rawGuests=[];     // parsed from files
 let baseTables=[];    // parsed table config
 let assignedGuests=[]; // after runCalc
+let handKorrekturen=[]; // In-App-Tischkorrekturen (Protokoll für „Änderungen"-Footer + Lern-Schleife)
 let warnings=[];      // after runCalc
 let resolvedWarnings=new Set();
 let pmsProfiles={};
@@ -4954,6 +4989,7 @@ function runCalc(){
   const guestMap={};
   [...bleib,...neu].forEach(g=>{guestMap[g.id]=g;});
   assignedGuests=[...Object.values(guestMap),...active.filter(g=>!guestMap[g.id])];
+  handKorrekturen=[]; // frische Berechnung → alte Hand-Korrekturen verwerfen
 
   // Begründung je Gast protokollieren (feste Prüf-Reihenfolge) — für die Kontroll-Liste
   // "Warum dieser Tisch?", die dem Hotelier die Denkweise des Systems zeigt.
@@ -5095,7 +5131,7 @@ function renderPlanTable(guests,filter=''){
     const zc=zoneColor[zone]||'var(--dim)';
     const bereich=tischplanMap[g.zugewiesener_tisch]?.bereich||zone;
     return`<tr>
-      <td><b>${esc(g.zugewiesener_tisch)}</b></td>
+      <td class="tp-edit" onclick="oeffneTischWechsel(${assignedGuests.indexOf(g)})" title="Tisch ändern (tippen)"><b>${esc(g.zugewiesener_tisch)}</b><span class="tp-pen">✎</span>${g._handKorrigiert?'<span class="tp-hand">Hand</span>':''}</td>
       <td><span class="zone-dot" style="background:${zc}"></span>${esc(bereich)}</td>
       <td>${esc(g.zimmer)}</td>
       <td>${g.vorname?esc(g.vorname)+' ':''}${esc(g.nachname)}${g.allergie?` <span style="font-size:9px;color:var(--orange)"><span class="inline-ico" style="width:10px;height:10px;margin-right:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>${esc(g.allergie)}</span>`:''}</td>
@@ -5111,6 +5147,63 @@ function renderPlanTable(guests,filter=''){
 
 let planFilterVal='';
 function filterPlan(val){planFilterVal=val;renderPlanTable(assignedGuests,val);}
+
+// ══ IN-APP-TISCHKORREKTUR (v1) ══════════════════════════════════════════════════
+// Der Hotelier tauscht einen Tisch per Fingertipp VOR dem Export. assignedGuests bleibt die
+// einzige Wahrheitsquelle → Export/Blätter lesen daraus, die Korrektur ist sofort im Download.
+// Jede Korrektur wird protokolliert (handKorrekturen) → „Änderungen"-Footer + spätere Lern-Schleife.
+// Die Rechen-Engine bleibt unangetastet — wir hängen nur eine bewusste Nachkorrektur an das Ergebnis.
+function tischInfo(tid){ return (lastTables||[]).find(t=>String(t.tisch_id)===String(tid))||null; }
+function oeffneTischWechsel(idx){
+  const g=(assignedGuests||[])[idx];
+  const box=el('tw-modal');
+  if(!g||!box) return;
+  const pax=g.pax||1, cur=String(g.zugewiesener_tisch||'');
+  const isReserve=t=>t.notfall||/^80\d/.test(String(t.tisch_id));
+  const cand=(lastTables||[]).filter(t=>t.aktiv&&!t.blocked_for&&!t.kombiMit&&String(t.tisch_id)!==cur);
+  const sortK=(a,b)=>((isReserve(a)?1:0)-(isReserve(b)?1:0))||((a.kategorie||9)-(b.kategorie||9))||(parseInt(a.tisch_id)-parseInt(b.tisch_id));
+  const frei=cand.filter(t=>(t.belegtPax||0)===0).sort(sortK);
+  const belegt=cand.filter(t=>(t.belegtPax||0)>0).sort(sortK);
+  const bereichOf=t=>tischplanMap[t.tisch_id]?.bereich||String(t.tisch_id)[0];
+  const btn=(t,warn)=>{
+    const info=isReserve(t)?'Bar/Notfall':((t.belegtPax||0)>0?`belegt ${t.belegtPax}P`:`${(t.kapazitaet||0)-(t.belegtPax||0)} frei`);
+    return `<button type="button" class="tw-opt${warn?' tw-warn':''}" onclick="korrigiereTisch(${idx},'${esc(t.tisch_id)}')">`
+      +`<span class="tw-tid">${esc(t.tisch_id)}</span><span class="tw-meta">${esc(bereichOf(t))} · Q${t.kategorie||'?'} · ${info}</span></button>`;
+  };
+  box.querySelector('.tw-head').innerHTML=`Tisch ändern: <b>${esc([g.nachname,g.vorname].filter(Boolean).join(', ')||'—')}</b>`
+    +`<div class="tw-meta">Zi ${esc(g.zimmer||'')} · ${pax} Pers. · aktuell Tisch ${esc(cur)}</div>`;
+  box.querySelector('.tw-list').innerHTML=
+    (frei.length?`<div class="tw-sec">Freie Tische (beste zuerst)</div>`+frei.map(t=>btn(t,isReserve(t))).join(''):'')
+    +(belegt.length?`<div class="tw-sec">Belegt — zusammenlegen (bitte prüfen)</div>`+belegt.map(t=>btn(t,true)).join(''):'')
+    +(!frei.length&&!belegt.length?`<div class="tw-sec">Keine anderen Tische verfügbar</div>`:'');
+  box.style.display='flex';
+}
+function schliesseTischWechsel(){ const b=el('tw-modal'); if(b) b.style.display='none'; }
+function korrigiereTisch(idx,newTid){
+  const g=(assignedGuests||[])[idx];
+  if(!g){schliesseTischWechsel();return;}
+  const old=String(g.zugewiesener_tisch||''); newTid=String(newTid);
+  if(newTid===old){schliesseTischWechsel();return;}
+  const zt=tischInfo(newTid), pax=g.pax||1;
+  const belegtVorher=zt?(zt.belegtPax||0):0, kap=zt?(zt.kapazitaet||0):0;
+  // Nicht blockieren (bewusste Handentscheidung), aber sichtbar bestätigen lassen:
+  if(belegtVorher>0&&!confirm(`Tisch ${newTid} ist bereits belegt (${belegtVorher} Pers.). ${g.nachname} zusätzlich dorthin setzen (zusammenlegen)?`)){schliesseTischWechsel();return;}
+  if(zt&&belegtVorher+pax>kap&&!confirm(`Tisch ${newTid} hat nur ${kap} Plätze — mit ${g.nachname} wären es ${belegtVorher+pax}. Trotzdem (überbelegt)?`)){schliesseTischWechsel();return;}
+  // Platzzahlen nachziehen (für die Live-Anzeige „frei/belegt")
+  const ot=tischInfo(old); if(ot) ot.belegtPax=Math.max(0,(ot.belegtPax||0)-pax);
+  if(zt) zt.belegtPax=(zt.belegtPax||0)+pax;
+  g.zugewiesener_tisch=newTid; g._handKorrigiert=true;
+  g.begruendung='Von Hand geändert ('+old+' → '+newTid+')';
+  // Protokoll: mehrfaches Ändern desselben Gasts zusammenfassen; Rück-Änderung auf Original löschen
+  const key=(g.zimmer||'')+'|'+(g.nachname||'');
+  const ex=handKorrekturen.find(k=>k.key===key);
+  if(ex){ if(String(ex.von)===newTid){handKorrekturen=handKorrekturen.filter(k=>k!==ex);g._handKorrigiert=false;} else ex.nach=newTid; }
+  else handKorrekturen.push({key,zimmer:g.zimmer,nachname:g.nachname,von:old,nach:newTid});
+  schliesseTischWechsel();
+  renderPlanTable(assignedGuests,planFilterVal);
+  try{updateDashboard();updateCockpitSolved();saveState();}catch(e){}
+  setStatus(`${g.nachname}: Tisch ${old} → ${newTid} geändert`,'go');
+}
 
 // ══════════════════════════════════════════════════════════════
 //  THEME TOGGLE
@@ -6300,6 +6393,9 @@ function appendServiceHinweise(ws,N){
   if(eci.length) eci.forEach(g=>zeile({zimmer:g.zimmer,name:g.name,pax:g.pax}));
   else zeile({name:'— keine —'});
   header('Änderungen (Hand-Notizen)');
+  // In-App-Tischkorrekturen protokollieren (nachvollziehbar für den Hotelier + Lern-Schleife)
+  (handKorrekturen||[]).filter(k=>String(k.von)!==String(k.nach))
+    .forEach(k=>zeile({zimmer:k.zimmer,name:k.nachname,extras:`Tisch von Hand geändert: ${k.von} → ${k.nach}`}));
   notizfeld();
 }
 // ── PRÜFBERICHT-Blatt: die Selbstkontrolle IN der Excel sichtbar machen (nicht nur in der App) ──
@@ -8219,6 +8315,7 @@ function saveState(){
       lastTables,
       warnings,
       resolvedWarnings:[...resolvedWarnings],
+      handKorrekturen,
       refDate,
       isDemoMode,
       savedAt:new Date().toISOString()
@@ -8228,7 +8325,7 @@ function saveState(){
 
 function clearState(){
   localStorage.removeItem('hsi_state');
-  assignedGuests=[];lastTables=[];warnings=[];resolvedWarnings=new Set();
+  assignedGuests=[];lastTables=[];warnings=[];resolvedWarnings=new Set();handKorrekturen=[];
   calcDone=false;isDemoMode=false;
   parsedFiles={};demoFileKeys=new Set();
   Object.keys(fileStatus).forEach(k=>fileStatus[k]=false);
@@ -8252,6 +8349,7 @@ function restoreState(){
     lastTables=s.lastTables;
     warnings=s.warnings||[];
     resolvedWarnings=new Set(s.resolvedWarnings||[]);
+    handKorrekturen=s.handKorrekturen||[];
     refDate=s.refDate||today;
     isDemoMode=!!s.isDemoMode;
     calcDone=true;
